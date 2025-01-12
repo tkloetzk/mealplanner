@@ -1,6 +1,14 @@
 // src/types/food.ts
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
-export type DayType = "monday" | "tuesday";
+export type DayType =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
+
 export type CategoryType =
   | "grains"
   | "fruits"
@@ -30,7 +38,9 @@ export interface Food {
   servingSize: string;
   servingSizeUnit: ServingSizeUnit;
   category: CategoryType;
+  imagePath?: string;
   imageUrl?: string;
+  upc?: string;
 }
 
 export interface SelectedFood extends Food {

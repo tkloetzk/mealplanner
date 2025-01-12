@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, Sliders } from "lucide-react";
+import { MessageCircle, Plus, Sliders } from "lucide-react";
 import { ServingSelector } from "./ServingSelector";
 import {
   Food,
@@ -14,7 +14,7 @@ import {
   CategoryType,
   MealPlan,
   MealHistoryEntry,
-  MealSelection,
+  // MealSelection,
   NutritionSummary,
   MILK_OPTION,
   // DailyGoals,
@@ -24,6 +24,7 @@ import { ViewToggle } from "./ViewToggle";
 import { MilkToggle } from "./MilkToggle";
 import { FoodEditor } from "./FoodEditor";
 import { CompactNutritionProgress } from "./CompactNutritionProgress";
+import { DAYS_OF_WEEK, DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 
 const MEAL_CALORIE_TARGET = {
   breakfast: 400,
@@ -32,39 +33,29 @@ const MEAL_CALORIE_TARGET = {
   snacks: 200,
 };
 
+const getCurrentDay = (): DayType => {
+  const days = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const currentDay = days[new Date().getDay()];
+  return currentDay as DayType;
+};
 // const DAILY_NUTRITION_GOALS: DailyGoals = {
 //   totalProtein: { min: 20, max: 25 },
 //   totalFat: { min: 33, max: 62 },
 // };
 
-const defaultObj = {
-  grains: null,
-  fruits: null,
-  proteins: null,
-  vegetables: null,
-  milk: null,
-};
-
-const DEFAULT_MEAL_PLAN: MealPlan = {
-  monday: {
-    breakfast: defaultObj,
-    lunch: defaultObj,
-    dinner: defaultObj,
-    snack: defaultObj,
-  },
-  tuesday: {
-    breakfast: defaultObj,
-    lunch: defaultObj,
-    dinner: defaultObj,
-    snack: defaultObj,
-  },
-};
-
 export function MealPlanner() {
   const [isChildView, setIsChildView] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMeal, setSelectedMeal] = useState<MealType | null>(null);
-  const [selectedDay, setSelectedDay] = useState<DayType>("monday");
+  const [selectedDay, setSelectedDay] = useState<DayType>(getCurrentDay());
   const [selections, setSelections] = useState<MealPlan>(DEFAULT_MEAL_PLAN);
   const [mealHistory, setMealHistory] = useState<MealHistoryEntry[]>([]);
   const [pantry, setPantry] = useState([]);
@@ -106,6 +97,7 @@ export function MealPlanner() {
             mealPlanRes.json(),
             historyRes.json(),
           ]);
+          console.log(mealPlan, mealPlan || DEFAULT_MEAL_PLAN);
 
           setSelections(mealPlan || DEFAULT_MEAL_PLAN);
           setMealHistory(history || []);
@@ -120,8 +112,6 @@ export function MealPlanner() {
 
     loadData();
   }, []);
-
-  console.log("pantry", pantry);
 
   const calculateMealNutrition = (
     meal: MealType,
@@ -160,6 +150,7 @@ export function MealPlanner() {
   };
 
   const handleFoodSelect = (category: CategoryType, food: Food) => {
+    console.log("inside", category, food, selectedDay);
     if (!selectedMeal || !selectedDay) return;
 
     const newSelections = { ...selections };
@@ -225,27 +216,27 @@ export function MealPlanner() {
     setSelections(newSelections);
   };
 
-  const saveToHistory = async (mealSelections: MealSelection) => {
-    const historyEntry: MealHistoryEntry = {
-      date: new Date().toISOString(),
-      meal: selectedMeal!,
-      selections: { ...mealSelections },
-    };
+  // const saveToHistory = async (mealSelections: MealSelection) => {
+  //   const historyEntry: MealHistoryEntry = {
+  //     date: new Date().toISOString(),
+  //     meal: selectedMeal!,
+  //     selections: { ...mealSelections },
+  //   };
 
-    try {
-      await fetch("/api/history", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(historyEntry),
-      });
+  //   try {
+  //     await fetch("/api/history", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(historyEntry),
+  //     });
 
-      setMealHistory((prev) => [historyEntry, ...prev.slice(0, 9)]);
-    } catch (error) {
-      console.error("Error saving to history:", error);
-    }
-  };
+  //     setMealHistory((prev) => [historyEntry, ...prev.slice(0, 9)]);
+  //   } catch (error) {
+  //     console.error("Error saving to history:", error);
+  //   }
+  // };
 
   const calculateDailyTotals = (): {
     calories: number;
@@ -254,13 +245,16 @@ export function MealPlanner() {
   } => {
     return Object.values(selections[selectedDay]).reduce(
       (totals, meal) => {
-        Object.values(meal).forEach((food: SelectedFood | null) => {
-          if (food) {
-            totals.calories += food.adjustedCalories || food.calories;
-            totals.protein += food.adjustedProtein || food.protein;
-            totals.fat += food.adjustedFat || food.fat;
+        Object.values(meal as Record<string, SelectedFood | null>).forEach(
+          (food) => {
+            if (food) {
+              // Check for null or undefined
+              totals.calories += food.adjustedCalories || food.calories;
+              totals.protein += food.adjustedProtein || food.protein;
+              totals.fat += food.adjustedFat || food.fat;
+            }
           }
-        });
+        );
         return totals;
       },
       { calories: 0, protein: 0, fat: 0 }
@@ -276,6 +270,16 @@ export function MealPlanner() {
     newSelections[selectedDay][selectedMeal][category] = adjustedFood;
     setSelections(newSelections);
     setSelectedFood(null);
+  };
+
+  const getOrderedDays = (): DayType[] => {
+    const today = getCurrentDay();
+    const currentIndex = DAYS_OF_WEEK.indexOf(today);
+    const reorderedDays = [
+      ...DAYS_OF_WEEK.slice(currentIndex),
+      ...DAYS_OF_WEEK.slice(0, currentIndex),
+    ];
+    return reorderedDays;
   };
 
   const getMealSuggestion = () => {
@@ -367,6 +371,7 @@ export function MealPlanner() {
           selections={selections}
           selectedDay={selectedDay}
           onFoodSelect={handleFoodSelect}
+          onMealSelect={setSelectedMeal}
         />
       ) : (
         <Tabs defaultValue="planner" className="w-full">
@@ -379,10 +384,10 @@ export function MealPlanner() {
           <TabsContent value="planner">
             {/* Day Selection */}
             <div className="flex space-x-2 overflow-x-auto pb-2 mb-4">
-              {Object.keys(selections).map((day) => (
+              {getOrderedDays().map((day) => (
                 <button
                   key={day}
-                  onClick={() => setSelectedDay(day as DayType)}
+                  onClick={() => setSelectedDay(day)}
                   className={`px-4 py-2 rounded-lg capitalize ${
                     selectedDay === day
                       ? "bg-blue-500 text-white"
@@ -480,9 +485,14 @@ export function MealPlanner() {
                     />
                   </div>
                 )}
-                <Button onClick={() => setShowFoodEditor(true)}>
-                  Add New Food
-                </Button>
+                <div className="fixed right-4 bottom-20 z-50">
+                  <Button
+                    onClick={() => setShowFoodEditor(true)}
+                    className="rounded-full h-12 w-12 shadow-lg bg-blue-500 hover:bg-blue-600 flex items-center justify-center"
+                  >
+                    <Plus className="h-6 w-6" />
+                  </Button>
+                </div>
                 {showFoodEditor && (
                   <FoodEditor
                     onSave={handleSaveFood}
@@ -490,7 +500,7 @@ export function MealPlanner() {
                   />
                 )}
                 {/* Food Selection Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-14">
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
                   ).map(([category, foods]) => (
@@ -587,15 +597,15 @@ export function MealPlanner() {
 
           <TabsContent value="weekly">
             <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-              {Object.entries(selections).map(([day, meals]) => (
+              {DAYS_OF_WEEK.map((day) => (
                 <Card key={day} className="p-4">
                   <h3 className="text-lg font-semibold capitalize mb-3">
                     {day}
                   </h3>
-                  {Object.entries(meals).map(([meal]) => {
+                  {Object.entries(selections[day]).map(([meal]) => {
                     const nutrition = calculateMealNutrition(
                       meal as MealType,
-                      day as DayType
+                      day
                     );
                     if (nutrition.calories > 0) {
                       return (

@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { MealService } from "@/lib/meal-service";
+import { DAYS_OF_WEEK, DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
+import { MealPlan } from "@/types/food";
 
 export async function GET() {
-  // For now, using a mock user ID until we implement authentication
   const userId = "default-user";
 
   try {
     const mealPlan = await MealService.getUserMealPlan(userId);
-    return NextResponse.json(mealPlan);
+    if (!mealPlan) {
+      return NextResponse.json(DEFAULT_MEAL_PLAN);
+    }
+    const completeMealPlan = DAYS_OF_WEEK.reduce((plan, day) => {
+      plan[day] = mealPlan[day] || DEFAULT_MEAL_PLAN[day];
+      return plan;
+    }, {} as MealPlan);
+
+    return NextResponse.json(completeMealPlan);
   } catch (error) {
     console.error("Error fetching meal plan:", error);
     return NextResponse.json(
@@ -22,6 +31,7 @@ export async function POST(request: Request) {
 
   try {
     const selections = await request.json();
+    console.log("in post", selections);
     await MealService.saveMealPlan(userId, selections);
     return NextResponse.json({ success: true });
   } catch (error) {

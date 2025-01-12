@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const upc = searchParams.get("upc");
 
+  console.log("in");
   if (!upc) {
     return NextResponse.json({ error: "UPC required" }, { status: 400 });
   }
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
         fat: product.nutriments.fat,
         servingSize: product.serving_quantity,
         servingSizeUnit: product.serving_quantity_unit,
-        image: product.image_url,
+        imageUrl: product.image_front_thumb_url,
         // Add any additional fields you need
       });
     } else {

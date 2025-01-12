@@ -4,6 +4,9 @@ import path from "path";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    domains: ["images.openfoodfacts.org"], // Add the domain here
+  },
   webpack: (config: Configuration) => {
     if (config.resolve?.alias) {
       config.resolve.alias = {

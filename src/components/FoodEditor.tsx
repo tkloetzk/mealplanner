@@ -14,7 +14,7 @@ import { Food, CategoryType, ServingSizeUnit } from "@/types/food";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { ImageCapture } from "./ImageCapture";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
+import Image from "next/image";
 interface FoodEditorProps {
   onSave: (food: Food) => void;
   onCancel: () => void;
@@ -30,6 +30,7 @@ const MIN_CALORIES_PER_SERVING = 0;
 
 export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
   const [isScanning, setIsScanning] = useState(false);
+  const [manualUPC, setManualUPC] = useState(""); // State for manual UPC entry
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
   const [food, setFood] = useState<Partial<Food>>(
     initialFood || {
@@ -41,10 +42,52 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
       servingSize: "1",
       servingSizeUnit: "g",
       category: "proteins",
-      imageUrl: "",
     }
   );
   const [loading, setLoading] = useState(false);
+
+  const handleUPCScan = async (upc: string) => {
+    setIsScanning(false);
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/upc?upc=${upc}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("!data", data);
+        setFood((prev) => ({ ...prev, ...data }));
+      } else {
+        // Handle error
+        console.error("Failed to fetch product data");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImageCapture = async (imageData: string) => {
+    setIsTakingPhoto(false);
+    setLoading(true);
+    try {
+      // Upload the captured image
+      const formData = new FormData();
+      formData.append("image", imageData);
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        const { url } = await response.json();
+        // Update the food with the new image URL
+        setFood((prev) => ({ ...prev, imageUrl: url }));
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const validateNutrition = (foodData: Partial<Food>): string[] => {
@@ -83,57 +126,6 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
     return errors;
   };
 
-  const handleUPCScan = async (upc: string) => {
-    setIsScanning(false);
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/upc?upc=${upc}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFood((prev) => ({ ...prev, ...data }));
-        // Validate the scanned data
-        const errors = validateNutrition(data);
-        setValidationErrors(errors);
-      } else {
-        const errorData = await response.json();
-        setValidationErrors([
-          errorData.error || "Failed to fetch product data",
-        ]);
-      }
-    } catch (error) {
-      console.error(error);
-      setValidationErrors([
-        "Error scanning product. Please try again or enter manually.",
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleImageCapture = async (imageData: string) => {
-    setIsTakingPhoto(false);
-    setLoading(true);
-    try {
-      // Upload the image and get a URL back
-      const formData = new FormData();
-      formData.append("image", imageData);
-      const response = await fetch("/api/upload-image", {
-        method: "POST",
-        body: formData,
-      });
-      if (response.ok) {
-        const { url } = await response.json();
-        setFood((prev) => ({ ...prev, imageUrl: url }));
-      }
-    } catch (error) {
-      console.error(error);
-
-      setValidationErrors(["Failed to upload image. Please try again."]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors = validateNutrition(food);
@@ -150,40 +142,68 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold">
             {initialFood ? "Edit Food" : "Add New Food"}
           </h2>
+        </div>
+        <div className="mb-6">
+          <label className="block text-sm font-medium mb-2">Manual UPC</label>
           <div className="flex gap-2">
+            <Input
+              type="text"
+              value={manualUPC}
+              placeholder="Enter UPC code"
+              onChange={(e) => setManualUPC(e.target.value)}
+            />
             <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setIsTakingPhoto(true)}
-              disabled={loading}
+              onClick={() => handleUPCScan(manualUPC)}
+              disabled={!manualUPC || loading}
             >
-              <Camera className="h-4 w-4" />
+              Search
             </Button>
             <Button
               variant="outline"
-              size="icon"
               onClick={() => setIsScanning(true)}
               disabled={loading}
             >
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-              >
-                <path
-                  d="M4 7V4h3m13 0h3v3M20 17v3h-3m-13 0H4v-3"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+              Use Scanner
             </Button>
           </div>
+        </div>
+
+        {/* Image Display/Capture Section */}
+        <div className="mb-6">
+          {food.imageUrl ? (
+            <div className="relative aspect-square mb-2">
+              <Image
+                src={food.imageUrl}
+                alt={food.name || "Food image"}
+                fill
+                unoptimized
+                className="object-cover rounded-lg"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                className="absolute bottom-2 right-2"
+                onClick={() => setIsTakingPhoto(true)}
+              >
+                <Camera className="h-4 w-4 mr-1" />
+                Take New Photo
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full aspect-square flex flex-col items-center justify-center gap-2"
+              onClick={() => setIsTakingPhoto(true)}
+            >
+              <Camera className="h-8 w-8" />
+              Take Photo
+            </Button>
+          )}
         </div>
 
         {validationErrors.length > 0 && (

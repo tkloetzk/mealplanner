@@ -2,7 +2,7 @@
 import React, { useRef, useState } from "react";
 import { Camera, X, RotateCcw, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
+import Image from "next/image";
 interface ImageCaptureProps {
   onCapture: (imageData: string) => void;
   onCancel: () => void;
@@ -81,7 +81,7 @@ export function ImageCapture({ onCapture, onCancel }: ImageCaptureProps) {
           <div className="p-6 text-center text-red-500">{error}</div>
         ) : capturedImage ? (
           <div className="relative">
-            <img
+            <Image
               src={capturedImage}
               alt="Captured food"
               className="w-full aspect-square object-cover"
