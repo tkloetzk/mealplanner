@@ -3,9 +3,10 @@ import React, { useState } from "react";
 import { Result, useZxing } from "react-zxing";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { Food } from "@/types/food";
 
 interface BarcodeScannerProps {
-  onScan: (upc: string) => void;
+  onScan: (upc: Food) => void;
   onClose: () => void;
 }
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
@@ -15,6 +16,11 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
   const handleScan = async (result: Result) => {
     setScanning(false);
+    console.log(
+      "Im right here",
+      result.getText(),
+      `/api/upc?upc=${result.getText()}`
+    );
     try {
       const response = await fetch(`/api/upc?upc=${result.getText()}`);
       if (!response.ok) {
@@ -28,6 +34,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
       }
       const data = await response.json();
       onScan(data); // Now we're actually using the data
+      onClose();
     } catch (error) {
       console.log(error);
       setError("Failed to process barcode. Please try again.");

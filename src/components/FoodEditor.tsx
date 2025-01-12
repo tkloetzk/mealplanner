@@ -14,7 +14,6 @@ import { Food, CategoryType, ServingSizeUnit } from "@/types/food";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { ImageCapture } from "./ImageCapture";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Image from "next/image";
 interface FoodEditorProps {
   onSave: (food: Food) => void;
   onCancel: () => void;
@@ -46,23 +45,39 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
   );
   const [loading, setLoading] = useState(false);
 
-  const handleUPCScan = async (upc: string) => {
-    setIsScanning(false);
+  const handleUPC = async (upc: string) => {
+    if (!upc || typeof upc !== "string") {
+      console.error("Invalid UPC:", upc);
+      return;
+    }
+
+    console.log("Fetching product for UPC:", upc);
     setLoading(true);
+
     try {
-      const response = await fetch(`/api/upc?upc=${upc}`);
+      const response = await fetch(`/api/upc?upc=${encodeURIComponent(upc)}`);
       if (response.ok) {
         const data = await response.json();
-        console.log("!data", data);
         setFood((prev) => ({ ...prev, ...data }));
       } else {
-        // Handle error
-        console.error("Failed to fetch product data");
+        console.error("Failed to fetch product data. Status:", response.status);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error fetching product data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUPCEntry = () => {
+    handleUPC(manualUPC);
+  };
+
+  const handleUPCScan = (scannedFood: Food) => {
+    if (scannedFood?.upc) {
+      handleUPC(scannedFood.upc);
+    } else {
+      console.error("Invalid UPC in scanned food:", scannedFood);
     }
   };
 
@@ -141,13 +156,14 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-auto">
+      <div className="bg-white rounded-lg w-full max-w-md p-6 flex flex-col space-y-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold">
             {initialFood ? "Edit Food" : "Add New Food"}
           </h2>
         </div>
+
         <div className="mb-6">
           <label className="block text-sm font-medium mb-2">Manual UPC</label>
           <div className="flex gap-2">
@@ -158,7 +174,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
               onChange={(e) => setManualUPC(e.target.value)}
             />
             <Button
-              onClick={() => handleUPCScan(manualUPC)}
+              onClick={() => handleUPCEntry()}
               disabled={!manualUPC || loading}
             >
               Search
@@ -177,11 +193,12 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
         <div className="mb-6">
           {food.imageUrl ? (
             <div className="relative aspect-square mb-2">
-              <Image
+              <img
                 src={food.imageUrl}
                 alt={food.name || "Food image"}
-                fill
-                unoptimized
+                style={{ width: "100%" }}
+                // fill
+                // unoptimized
                 className="object-cover rounded-lg"
               />
               <Button
@@ -217,7 +234,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-auto mb-12">
           <div>
             <label className="block text-sm font-medium mb-1">Name</label>
             <Input
@@ -271,7 +288,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
                 Protein (g)
               </label>
               <Input
-                type="number"
+                type="text"
                 step="0.1"
                 value={food.protein}
                 onChange={(e) =>
@@ -287,7 +304,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
                 Carbs (g)
               </label>
               <Input
-                type="number"
+                type="text"
                 step="0.1"
                 value={food.carbs}
                 onChange={(e) =>
@@ -301,7 +318,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             <div>
               <label className="block text-sm font-medium mb-1">Fat (g)</label>
               <Input
-                type="number"
+                type="text"
                 step="0.1"
                 value={food.fat}
                 onChange={(e) =>
@@ -338,6 +355,8 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
                   <SelectItem value="g">grams</SelectItem>
                   <SelectItem value="ml">milliliters</SelectItem>
                   <SelectItem value="oz">ounces</SelectItem>
+                  <SelectItem value="tsp">tsp</SelectItem>
+                  <SelectItem value="tbsp">tbsp</SelectItem>
                   <SelectItem value="cup">cups</SelectItem>
                   <SelectItem value="piece">pieces</SelectItem>
                 </SelectContent>
@@ -345,7 +364,8 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-6">
+          {/* Sticky buttons */}
+          <div className="sticky bottom-0 bg-white py-4 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
