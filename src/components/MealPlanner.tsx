@@ -60,6 +60,7 @@ export function MealPlanner() {
   const [mealHistory, setMealHistory] = useState<MealHistoryEntry[]>([]);
   const [pantry, setPantry] = useState([]);
   const [showFoodEditor, setShowFoodEditor] = useState(false);
+  const [output, setOutput] = useState("This is a nextjs project.");
   const [selectedFood, setSelectedFood] = useState<{
     category: CategoryType;
     food: Food;
@@ -103,6 +104,7 @@ export function MealPlanner() {
           setMealHistory(history || []);
           setPantry(foods);
         }
+        generateText();
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -357,13 +359,42 @@ export function MealPlanner() {
     );
   }
 
+  const prompt = "Write quote of the day.";
+
+  // Define an asynchronous function to send POST request to our api
+  const generateText = async () => {
+    try {
+      // use the fetch method to send an http request to /api/generate endpoint
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ body: prompt }),
+      });
+
+      // Waits for the response to be converted to JSON format and stores it in the data variable
+      const data = await response.json();
+
+      //  If successful, updates the output state with the output field from the response data
+      if (response.ok) {
+        setOutput(data.output);
+      } else {
+        setOutput(data.error);
+      }
+
+      // Catches any errors that occur during the fetch request
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Meal Planner</h1>
         <ViewToggle isChildView={isChildView} onToggle={setIsChildView} />
       </div>
-
+      AI: {output}
       {isChildView ? (
         <ChildView
           selectedMeal={selectedMeal}
