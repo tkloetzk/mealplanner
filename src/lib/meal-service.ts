@@ -8,85 +8,99 @@ export interface MealPlan {
 }
 
 export class MealService {
-  static async getUserMealPlan(userId: string) {
+  // static async getUserMealPlan(userId: string) {
+  //   const client = await clientPromise;
+  //   const db = client.db("mealplanner");
+
+  //   const mealPlan = await db.collection("mealPlans").findOne({ userId });
+  //   return (
+  //     mealPlan?.selections || {
+  //       monday: {
+  //         breakfast: {
+  //           grains: null,
+  //           fruits: null,
+  //           proteins: null,
+  //           vegetables: null,
+  //         },
+  //         lunch: {
+  //           grains: null,
+  //           fruits: null,
+  //           proteins: null,
+  //           vegetables: null,
+  //         },
+  //         dinner: {
+  //           grains: null,
+  //           fruits: null,
+  //           proteins: null,
+  //           vegetables: null,
+  //         },
+  //         snack: {
+  //           grains: null,
+  //           fruits: null,
+  //           proteins: null,
+  //           vegetables: null,
+  //         },
+  //       },
+  //       tuesday: {
+  //         breakfast: {
+  //           grains: null,
+  //           fruits: null,
+  //           proteins: null,
+  //           vegetables: null,
+  //         },
+  //         lunch: {
+  //           grains: null,
+  //           fruits: null,
+  //           proteins: null,
+  //           vegetables: null,
+  //         },
+  //         dinner: {
+  //           grains: null,
+  //           fruits: null,
+  //           proteins: null,
+  //           vegetables: null,
+  //         },
+  //         snack: {
+  //           grains: null,
+  //           fruits: null,
+  //           proteins: null,
+  //           vegetables: null,
+  //         },
+  //       },
+  //     }
+  //   );
+  // }
+
+  // static async saveMealPlan(userId: string, selections: SelectedFood[]) {
+  //   const client = await clientPromise;
+  //   const db = client.db("mealplanner");
+
+  //   await db.collection("mealPlans").updateOne(
+  //     { userId },
+  //     {
+  //       $set: {
+  //         selections,
+  //         updatedAt: new Date(),
+  //       },
+  //     },
+  //     { upsert: true }
+  //   );
+  // }
+
+  // In your meal-service.ts
+  static async getUserMealPlan(kidId: string) {
     const client = await clientPromise;
     const db = client.db("mealplanner");
-
-    const mealPlan = await db.collection("mealPlans").findOne({ userId });
-    return (
-      mealPlan?.selections || {
-        monday: {
-          breakfast: {
-            grains: null,
-            fruits: null,
-            proteins: null,
-            vegetables: null,
-          },
-          lunch: {
-            grains: null,
-            fruits: null,
-            proteins: null,
-            vegetables: null,
-          },
-          dinner: {
-            grains: null,
-            fruits: null,
-            proteins: null,
-            vegetables: null,
-          },
-          snack: {
-            grains: null,
-            fruits: null,
-            proteins: null,
-            vegetables: null,
-          },
-        },
-        tuesday: {
-          breakfast: {
-            grains: null,
-            fruits: null,
-            proteins: null,
-            vegetables: null,
-          },
-          lunch: {
-            grains: null,
-            fruits: null,
-            proteins: null,
-            vegetables: null,
-          },
-          dinner: {
-            grains: null,
-            fruits: null,
-            proteins: null,
-            vegetables: null,
-          },
-          snack: {
-            grains: null,
-            fruits: null,
-            proteins: null,
-            vegetables: null,
-          },
-        },
-      }
-    );
+    return await db.collection("mealPlans").findOne({ kidId });
   }
 
-  static async saveMealPlan(userId: string, selections: SelectedFood[]) {
+  static async saveMealPlan(kidId: string, selections: MealPlan) {
     const client = await clientPromise;
     const db = client.db("mealplanner");
-
-    await db.collection("mealPlans").updateOne(
-      { userId },
-      {
-        $set: {
-          selections,
-          updatedAt: new Date(),
-        },
-      },
-      { upsert: true }
-    );
+    await db
+      .collection("mealPlans")
+      .updateOne({ kidId }, { $set: { selections } }, { upsert: true });
   }
-
   static async getMealHistory(userId: string) {
     const client = await clientPromise;
     const db = client.db("mealplanner");
@@ -106,7 +120,6 @@ export class MealService {
     const db = client.db("mealplanner");
 
     const foods = await db.collection("foods").find({ userId }).toArray;
-    console.log("from service file", foods);
     return foods;
   }
 
