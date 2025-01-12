@@ -689,7 +689,13 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 ;
 ;
 ;
-function ChildView({ selectedMeal, foodOptions, selections, selectedDay, onFoodSelect }) {
+function ChildView({ selectedMeal, foodOptions, selections, selectedDay, onFoodSelect, onMealSelect }) {
+    const MEAL_TYPES = [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "snack"
+    ];
     if (!selectedMeal) {
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
             className: "text-center py-12",
@@ -699,250 +705,136 @@ function ChildView({ selectedMeal, foodOptions, selections, selectedDay, onFoodS
                     children: "What are you eating?"
                 }, void 0, false, {
                     fileName: "[project]/src/components/ChildView.tsx",
-                    lineNumber: 24,
+                    lineNumber: 28,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                     className: "grid grid-cols-2 gap-4 max-w-md mx-auto",
-                    children: [
-                        "breakfast",
-                        "lunch",
-                        "dinner",
-                        "snack"
-                    ].map((meal)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
+                    children: MEAL_TYPES.map((meal)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
                             className: "p-6 text-center cursor-pointer hover:bg-blue-50 transition-colors",
-                            onClick: ()=>onFoodSelect("meal", {
-                                    name: meal
-                                }),
+                            onClick: ()=>onMealSelect(meal),
                             children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "text-xl capitalize",
                                 children: meal
                             }, void 0, false, {
                                 fileName: "[project]/src/components/ChildView.tsx",
-                                lineNumber: 32,
+                                lineNumber: 36,
                                 columnNumber: 15
                             }, this)
                         }, meal, false, {
                             fileName: "[project]/src/components/ChildView.tsx",
-                            lineNumber: 27,
+                            lineNumber: 31,
                             columnNumber: 13
                         }, this))
                 }, void 0, false, {
                     fileName: "[project]/src/components/ChildView.tsx",
-                    lineNumber: 25,
+                    lineNumber: 29,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/ChildView.tsx",
-            lineNumber: 23,
+            lineNumber: 27,
             columnNumber: 7
         }, this);
     }
-    // Helper function to check if category is complete
-    const getCategoryStatus = (category)=>{
-        const isSelected = !!selections[selectedDay][selectedMeal][category];
-        return {
-            isSelected,
-            className: isSelected ? "bg-green-50" : "bg-white"
-        };
-    };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "space-y-8",
+        className: "p-4",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                 className: "text-2xl font-bold text-center mb-6 capitalize",
-                children: [
-                    "Let's build your ",
-                    selectedMeal,
-                    "!"
-                ]
-            }, void 0, true, {
+                children: selectedMeal
+            }, void 0, false, {
                 fileName: "[project]/src/components/ChildView.tsx",
-                lineNumber: 48,
+                lineNumber: 46,
                 columnNumber: 7
             }, this),
-            Object.entries(foodOptions).map(([category, foods])=>{
-                const { isSelected, className } = getCategoryStatus(category);
-                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                    className: `p-4 rounded-lg ${className}`,
-                    children: [
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
-                            className: "text-xl font-semibold capitalize mb-4",
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4",
+                children: Object.entries(foodOptions).map(([category, foods])=>foods.map((food)=>{
+                        const isSelected = selections[selectedDay][selectedMeal][category]?.name === food.name;
+                        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
+                            className: `relative cursor-pointer transition-transform hover:scale-105 
+                  ${isSelected ? "ring-2 ring-green-500" : ""}`,
+                            onClick: ()=>onFoodSelect(category, food),
                             children: [
-                                "Choose your ",
-                                category,
-                                isSelected && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                    className: "text-green-500 ml-2",
-                                    children: "✓"
-                                }, void 0, false, {
-                                    fileName: "[project]/src/components/ChildView.tsx",
-                                    lineNumber: 63,
-                                    columnNumber: 32
-                                }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/src/components/ChildView.tsx",
-                            lineNumber: 61,
-                            columnNumber: 15
-                        }, this),
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4",
-                            children: foods.map((food)=>{
-                                const isThisFoodSelected = selections[selectedDay][selectedMeal][category]?.name === food.name;
-                                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
-                                    className: `relative cursor-pointer transition-transform hover:scale-105 
-                      ${isThisFoodSelected ? "ring-2 ring-green-500" : ""}`,
-                                    onClick: ()=>onFoodSelect(category, food),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "aspect-square relative overflow-hidden rounded-t-lg",
                                     children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "aspect-square relative overflow-hidden rounded-t-lg",
-                                            children: [
-                                                food.imageUrl ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
-                                                    src: food.imageUrl,
-                                                    alt: food.name,
-                                                    className: "object-cover w-full h-full"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/src/components/ChildView.tsx",
-                                                    lineNumber: 84,
-                                                    columnNumber: 27
-                                                }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                    className: "w-full h-full bg-gray-200 flex items-center justify-center",
-                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "text-4xl",
-                                                        children: category === "fruits" ? "🍎" : category === "vegetables" ? "🥕" : category === "proteins" ? "🥚" : category === "grains" ? "🥖" : "🍽️"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/src/components/ChildView.tsx",
-                                                        lineNumber: 91,
-                                                        columnNumber: 29
-                                                    }, this)
-                                                }, void 0, false, {
-                                                    fileName: "[project]/src/components/ChildView.tsx",
-                                                    lineNumber: 90,
-                                                    columnNumber: 27
-                                                }, this),
-                                                isThisFoodSelected && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                    className: "absolute top-2 right-2 bg-green-500 rounded-full p-2",
-                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Check$3e$__["Check"], {
-                                                        className: "w-5 h-5 text-white"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/src/components/ChildView.tsx",
-                                                        lineNumber: 106,
-                                                        columnNumber: 29
-                                                    }, this)
-                                                }, void 0, false, {
-                                                    fileName: "[project]/src/components/ChildView.tsx",
-                                                    lineNumber: 105,
-                                                    columnNumber: 27
-                                                }, this)
-                                            ]
-                                        }, void 0, true, {
+                                        food.imageUrl ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                            src: food.imageUrl,
+                                            alt: food.name,
+                                            className: "object-cover w-full h-full"
+                                        }, void 0, false, {
                                             fileName: "[project]/src/components/ChildView.tsx",
-                                            lineNumber: 82,
-                                            columnNumber: 23
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "p-3 text-center",
-                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
-                                                className: "font-medium text-lg",
-                                                children: food.name
+                                            lineNumber: 67,
+                                            columnNumber: 21
+                                        }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "w-full h-full bg-gray-200 flex items-center justify-center",
+                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "text-4xl",
+                                                children: category === "fruits" ? "🍎" : category === "vegetables" ? "🥕" : category === "proteins" ? "🥚" : category === "grains" ? "🥖" : "🍽️"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/ChildView.tsx",
-                                                lineNumber: 113,
-                                                columnNumber: 25
+                                                lineNumber: 74,
+                                                columnNumber: 23
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/ChildView.tsx",
-                                            lineNumber: 112,
-                                            columnNumber: 23
-                                        }, this)
-                                    ]
-                                }, food.name, true, {
-                                    fileName: "[project]/src/components/ChildView.tsx",
-                                    lineNumber: 73,
-                                    columnNumber: 21
-                                }, this);
-                            })
-                        }, void 0, false, {
-                            fileName: "[project]/src/components/ChildView.tsx",
-                            lineNumber: 66,
-                            columnNumber: 15
-                        }, this)
-                    ]
-                }, category, true, {
-                    fileName: "[project]/src/components/ChildView.tsx",
-                    lineNumber: 60,
-                    columnNumber: 13
-                }, this);
-            }),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "fixed bottom-4 left-4 right-4",
-                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                    className: "max-w-md mx-auto bg-white rounded-lg shadow-lg p-4",
-                    children: [
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "text-center mb-2",
-                            children: "Complete your plate!"
-                        }, void 0, false, {
-                            fileName: "[project]/src/components/ChildView.tsx",
-                            lineNumber: 127,
-                            columnNumber: 11
-                        }, this),
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "flex justify-around",
-                            children: [
-                                "proteins",
-                                "fruits",
-                                "grains",
-                                "vegetables"
-                            ].map((category)=>{
-                                const isComplete = !!selections[selectedDay][selectedMeal][category];
-                                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: `flex flex-col items-center ${isComplete ? "text-green-500" : "text-gray-400"}`,
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                            className: "text-2xl",
-                                            children: category === "fruits" ? "🍎" : category === "vegetables" ? "🥕" : category === "proteins" ? "🥚" : "🥖"
-                                        }, void 0, false, {
-                                            fileName: "[project]/src/components/ChildView.tsx",
-                                            lineNumber: 139,
-                                            columnNumber: 19
+                                            lineNumber: 73,
+                                            columnNumber: 21
                                         }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                            className: "text-xs capitalize",
-                                            children: category
+                                        isSelected && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "absolute top-2 right-2 bg-green-500 rounded-full p-2",
+                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Check$3e$__["Check"], {
+                                                className: "w-5 h-5 text-white"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/ChildView.tsx",
+                                                lineNumber: 89,
+                                                columnNumber: 23
+                                            }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/ChildView.tsx",
-                                            lineNumber: 148,
-                                            columnNumber: 19
+                                            lineNumber: 88,
+                                            columnNumber: 21
                                         }, this)
                                     ]
-                                }, category, true, {
+                                }, void 0, true, {
                                     fileName: "[project]/src/components/ChildView.tsx",
-                                    lineNumber: 133,
+                                    lineNumber: 65,
                                     columnNumber: 17
-                                }, this);
-                            })
-                        }, void 0, false, {
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "p-3 text-center",
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                        className: "font-medium text-lg",
+                                        children: food.name
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/ChildView.tsx",
+                                        lineNumber: 96,
+                                        columnNumber: 19
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/ChildView.tsx",
+                                    lineNumber: 95,
+                                    columnNumber: 17
+                                }, this)
+                            ]
+                        }, food.name, true, {
                             fileName: "[project]/src/components/ChildView.tsx",
-                            lineNumber: 128,
-                            columnNumber: 11
-                        }, this)
-                    ]
-                }, void 0, true, {
-                    fileName: "[project]/src/components/ChildView.tsx",
-                    lineNumber: 126,
-                    columnNumber: 9
-                }, this)
+                            lineNumber: 58,
+                            columnNumber: 15
+                        }, this);
+                    }))
             }, void 0, false, {
                 fileName: "[project]/src/components/ChildView.tsx",
-                lineNumber: 125,
+                lineNumber: 50,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/ChildView.tsx",
-        lineNumber: 47,
+        lineNumber: 45,
         columnNumber: 5
     }, this);
 }
@@ -1430,8 +1322,9 @@ function BarcodeScanner({ onScan, onClose }) {
                 return;
             }
             const data = await response.json();
-            onScan(result.getText());
+            onScan(data); // Now we're actually using the data
         } catch (error) {
+            console.log(error);
             setError("Failed to process barcode. Please try again.");
         }
     };
@@ -1439,12 +1332,18 @@ function BarcodeScanner({ onScan, onClose }) {
         onDecodeResult: handleScan,
         onError: {
             "BarcodeScanner.useZxing": (error)=>{
-                if (error.message.includes("NotAllowedError")) {
-                    setError("Camera access denied. Please enable camera permissions.");
-                } else if (error.message.includes("NotFoundError")) {
-                    setError("No camera found. Please try on a device with a camera.");
+                if (error instanceof Error) {
+                    // Now TypeScript knows error has a `message` property
+                    if (error.message.includes("NotAllowedError")) {
+                        setError("Camera access denied. Please enable camera permissions.");
+                    } else if (error.message.includes("NotFoundError")) {
+                        setError("No camera found. Please try on a device with a camera.");
+                    } else {
+                        setError("Error accessing camera. Please try again.");
+                    }
                 } else {
-                    setError("Error accessing camera. Please try again.");
+                    // Handle unexpected error types
+                    setError("Unexpected error occurred.");
                 }
             }
         }["BarcodeScanner.useZxing"],
@@ -1469,7 +1368,7 @@ function BarcodeScanner({ onScan, onClose }) {
                             children: "Scan Barcode"
                         }, void 0, false, {
                             fileName: "[project]/src/components/BarcodeScanner.tsx",
-                            lineNumber: 61,
+                            lineNumber: 68,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1480,18 +1379,18 @@ function BarcodeScanner({ onScan, onClose }) {
                                 className: "h-4 w-4"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/BarcodeScanner.tsx",
-                                lineNumber: 63,
+                                lineNumber: 70,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/components/BarcodeScanner.tsx",
-                            lineNumber: 62,
+                            lineNumber: 69,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/BarcodeScanner.tsx",
-                    lineNumber: 60,
+                    lineNumber: 67,
                     columnNumber: 9
                 }, this),
                 error ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1502,7 +1401,7 @@ function BarcodeScanner({ onScan, onClose }) {
                             children: error
                         }, void 0, false, {
                             fileName: "[project]/src/components/BarcodeScanner.tsx",
-                            lineNumber: 69,
+                            lineNumber: 76,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1514,7 +1413,7 @@ function BarcodeScanner({ onScan, onClose }) {
                                     children: "Try Again"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/BarcodeScanner.tsx",
-                                    lineNumber: 71,
+                                    lineNumber: 78,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1522,19 +1421,19 @@ function BarcodeScanner({ onScan, onClose }) {
                                     children: "Close"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/BarcodeScanner.tsx",
-                                    lineNumber: 74,
+                                    lineNumber: 81,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/BarcodeScanner.tsx",
-                            lineNumber: 70,
+                            lineNumber: 77,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/BarcodeScanner.tsx",
-                    lineNumber: 68,
+                    lineNumber: 75,
                     columnNumber: 11
                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                     children: [
@@ -1543,7 +1442,7 @@ function BarcodeScanner({ onScan, onClose }) {
                             className: "w-full aspect-square object-cover"
                         }, void 0, false, {
                             fileName: "[project]/src/components/BarcodeScanner.tsx",
-                            lineNumber: 79,
+                            lineNumber: 86,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1551,7 +1450,7 @@ function BarcodeScanner({ onScan, onClose }) {
                             children: "Position barcode within the camera view"
                         }, void 0, false, {
                             fileName: "[project]/src/components/BarcodeScanner.tsx",
-                            lineNumber: 80,
+                            lineNumber: 87,
                             columnNumber: 13
                         }, this)
                     ]
@@ -1559,12 +1458,12 @@ function BarcodeScanner({ onScan, onClose }) {
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/BarcodeScanner.tsx",
-            lineNumber: 59,
+            lineNumber: 66,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/components/BarcodeScanner.tsx",
-        lineNumber: 58,
+        lineNumber: 65,
         columnNumber: 5
     }, this);
 }
@@ -1619,6 +1518,7 @@ function ImageCapture({ onCapture, onCancel }) {
                 videoRef.current.srcObject = mediaStream;
             }
         } catch (err) {
+            console.error(err);
             setError("Failed to access camera. Please check permissions.");
         }
     };
@@ -1672,7 +1572,7 @@ function ImageCapture({ onCapture, onCancel }) {
                             children: "Take Food Photo"
                         }, void 0, false, {
                             fileName: "[project]/src/components/ImageCapture.tsx",
-                            lineNumber: 73,
+                            lineNumber: 74,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1683,18 +1583,18 @@ function ImageCapture({ onCapture, onCancel }) {
                                 className: "h-4 w-4"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/ImageCapture.tsx",
-                                lineNumber: 75,
+                                lineNumber: 76,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/components/ImageCapture.tsx",
-                            lineNumber: 74,
+                            lineNumber: 75,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/ImageCapture.tsx",
-                    lineNumber: 72,
+                    lineNumber: 73,
                     columnNumber: 9
                 }, this),
                 error ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1702,7 +1602,7 @@ function ImageCapture({ onCapture, onCancel }) {
                     children: error
                 }, void 0, false, {
                     fileName: "[project]/src/components/ImageCapture.tsx",
-                    lineNumber: 80,
+                    lineNumber: 81,
                     columnNumber: 11
                 }, this) : capturedImage ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                     className: "relative",
@@ -1713,7 +1613,7 @@ function ImageCapture({ onCapture, onCancel }) {
                             className: "w-full aspect-square object-cover"
                         }, void 0, false, {
                             fileName: "[project]/src/components/ImageCapture.tsx",
-                            lineNumber: 83,
+                            lineNumber: 84,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1729,14 +1629,14 @@ function ImageCapture({ onCapture, onCancel }) {
                                                 className: "h-4 w-4 mr-2"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/ImageCapture.tsx",
-                                                lineNumber: 91,
+                                                lineNumber: 92,
                                                 columnNumber: 19
                                             }, this),
                                             "Retake"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/ImageCapture.tsx",
-                                        lineNumber: 90,
+                                        lineNumber: 91,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1746,31 +1646,31 @@ function ImageCapture({ onCapture, onCancel }) {
                                                 className: "h-4 w-4 mr-2"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/ImageCapture.tsx",
-                                                lineNumber: 95,
+                                                lineNumber: 96,
                                                 columnNumber: 19
                                             }, this),
                                             "Use Photo"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/ImageCapture.tsx",
-                                        lineNumber: 94,
+                                        lineNumber: 95,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/ImageCapture.tsx",
-                                lineNumber: 89,
+                                lineNumber: 90,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/components/ImageCapture.tsx",
-                            lineNumber: 88,
+                            lineNumber: 89,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/ImageCapture.tsx",
-                    lineNumber: 82,
+                    lineNumber: 83,
                     columnNumber: 11
                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                     className: "relative",
@@ -1782,7 +1682,7 @@ function ImageCapture({ onCapture, onCancel }) {
                             className: "w-full aspect-square object-cover"
                         }, void 0, false, {
                             fileName: "[project]/src/components/ImageCapture.tsx",
-                            lineNumber: 103,
+                            lineNumber: 104,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1796,41 +1696,41 @@ function ImageCapture({ onCapture, onCancel }) {
                                             className: "h-4 w-4 mr-2"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/ImageCapture.tsx",
-                                            lineNumber: 112,
+                                            lineNumber: 113,
                                             columnNumber: 19
                                         }, this),
                                         "Take Photo"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/ImageCapture.tsx",
-                                    lineNumber: 111,
+                                    lineNumber: 112,
                                     columnNumber: 17
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/ImageCapture.tsx",
-                                lineNumber: 110,
+                                lineNumber: 111,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/components/ImageCapture.tsx",
-                            lineNumber: 109,
+                            lineNumber: 110,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/ImageCapture.tsx",
-                    lineNumber: 102,
+                    lineNumber: 103,
                     columnNumber: 11
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/ImageCapture.tsx",
-            lineNumber: 71,
+            lineNumber: 72,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/components/ImageCapture.tsx",
-        lineNumber: 70,
+        lineNumber: 71,
         columnNumber: 5
     }, this);
 }
@@ -2013,6 +1913,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                 ]);
             }
         } catch (error) {
+            console.error(error);
             setValidationErrors([
                 "Error scanning product. Please try again or enter manually."
             ]);
@@ -2039,6 +1940,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                     }));
             }
         } catch (error) {
+            console.error(error);
             setValidationErrors([
                 "Failed to upload image. Please try again."
             ]);
@@ -2070,7 +1972,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                             children: initialFood ? "Edit Food" : "Add New Food"
                         }, void 0, false, {
                             fileName: "[project]/src/components/FoodEditor.tsx",
-                            lineNumber: 152,
+                            lineNumber: 155,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2085,12 +1987,12 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                         className: "h-4 w-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/FoodEditor.tsx",
-                                        lineNumber: 162,
+                                        lineNumber: 165,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 156,
+                                    lineNumber: 159,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -2109,29 +2011,29 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             strokeLinecap: "round"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 176,
+                                            lineNumber: 179,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/FoodEditor.tsx",
-                                        lineNumber: 170,
+                                        lineNumber: 173,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 164,
+                                    lineNumber: 167,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/FoodEditor.tsx",
-                            lineNumber: 155,
+                            lineNumber: 158,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/FoodEditor.tsx",
-                    lineNumber: 151,
+                    lineNumber: 154,
                     columnNumber: 9
                 }, this),
                 validationErrors.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2144,25 +2046,25 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                     className: "h-4 w-4"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 190,
+                                    lineNumber: 193,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$alert$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDescription"], {
                                     children: error
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 191,
+                                    lineNumber: 194,
                                     columnNumber: 17
                                 }, this)
                             ]
                         }, index, true, {
                             fileName: "[project]/src/components/FoodEditor.tsx",
-                            lineNumber: 189,
+                            lineNumber: 192,
                             columnNumber: 15
                         }, this))
                 }, void 0, false, {
                     fileName: "[project]/src/components/FoodEditor.tsx",
-                    lineNumber: 187,
+                    lineNumber: 190,
                     columnNumber: 11
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -2176,7 +2078,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                     children: "Name"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 199,
+                                    lineNumber: 202,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2188,13 +2090,13 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                     required: true
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 200,
+                                    lineNumber: 203,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/FoodEditor.tsx",
-                            lineNumber: 198,
+                            lineNumber: 201,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2207,7 +2109,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             children: "Calories"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 211,
+                                            lineNumber: 214,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2220,13 +2122,13 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             required: true
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 212,
+                                            lineNumber: 215,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 210,
+                                    lineNumber: 213,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2236,7 +2138,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             children: "Category"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 225,
+                                            lineNumber: 228,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Select"], {
@@ -2249,12 +2151,12 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectTrigger"], {
                                                     children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectValue"], {}, void 0, false, {
                                                         fileName: "[project]/src/components/FoodEditor.tsx",
-                                                        lineNumber: 233,
+                                                        lineNumber: 236,
                                                         columnNumber: 19
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                                    lineNumber: 232,
+                                                    lineNumber: 235,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -2264,7 +2166,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "Proteins"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 236,
+                                                            lineNumber: 239,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -2272,7 +2174,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "Grains"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 237,
+                                                            lineNumber: 240,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -2280,7 +2182,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "Fruits"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 238,
+                                                            lineNumber: 241,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -2288,31 +2190,31 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "Vegetables"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 239,
+                                                            lineNumber: 242,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                                    lineNumber: 235,
+                                                    lineNumber: 238,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 226,
+                                            lineNumber: 229,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 224,
+                                    lineNumber: 227,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/FoodEditor.tsx",
-                            lineNumber: 209,
+                            lineNumber: 212,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2325,7 +2227,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             children: "Protein (g)"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 247,
+                                            lineNumber: 250,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2338,13 +2240,13 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                     }))
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 250,
+                                            lineNumber: 253,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 246,
+                                    lineNumber: 249,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2354,7 +2256,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             children: "Carbs (g)"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 263,
+                                            lineNumber: 266,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2367,13 +2269,13 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                     }))
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 266,
+                                            lineNumber: 269,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 262,
+                                    lineNumber: 265,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2383,7 +2285,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             children: "Fat (g)"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 279,
+                                            lineNumber: 282,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2396,19 +2298,19 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                     }))
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 280,
+                                            lineNumber: 283,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 278,
+                                    lineNumber: 281,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/FoodEditor.tsx",
-                            lineNumber: 245,
+                            lineNumber: 248,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2421,7 +2323,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             children: "Serving Size"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 293,
+                                            lineNumber: 296,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -2432,13 +2334,13 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                     }))
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 296,
+                                            lineNumber: 299,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 292,
+                                    lineNumber: 295,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2448,7 +2350,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                             children: "Unit"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 304,
+                                            lineNumber: 307,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Select"], {
@@ -2461,12 +2363,12 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectTrigger"], {
                                                     children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectValue"], {}, void 0, false, {
                                                         fileName: "[project]/src/components/FoodEditor.tsx",
-                                                        lineNumber: 312,
+                                                        lineNumber: 315,
                                                         columnNumber: 19
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                                    lineNumber: 311,
+                                                    lineNumber: 314,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -2476,7 +2378,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "grams"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 315,
+                                                            lineNumber: 318,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -2484,7 +2386,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "milliliters"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 316,
+                                                            lineNumber: 319,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -2492,7 +2394,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "ounces"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 317,
+                                                            lineNumber: 320,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -2500,7 +2402,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "cups"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 318,
+                                                            lineNumber: 321,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -2508,31 +2410,31 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                                             children: "pieces"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                                            lineNumber: 319,
+                                                            lineNumber: 322,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                                    lineNumber: 314,
+                                                    lineNumber: 317,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/FoodEditor.tsx",
-                                            lineNumber: 305,
+                                            lineNumber: 308,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 303,
+                                    lineNumber: 306,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/FoodEditor.tsx",
-                            lineNumber: 291,
+                            lineNumber: 294,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2545,7 +2447,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                     children: "Cancel"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 326,
+                                    lineNumber: 329,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -2554,19 +2456,19 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                                     children: "Save Food"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/FoodEditor.tsx",
-                                    lineNumber: 329,
+                                    lineNumber: 332,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/FoodEditor.tsx",
-                            lineNumber: 325,
+                            lineNumber: 328,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/FoodEditor.tsx",
-                    lineNumber: 197,
+                    lineNumber: 200,
                     columnNumber: 9
                 }, this),
                 isScanning && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$BarcodeScanner$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BarcodeScanner"], {
@@ -2574,7 +2476,7 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                     onClose: ()=>setIsScanning(false)
                 }, void 0, false, {
                     fileName: "[project]/src/components/FoodEditor.tsx",
-                    lineNumber: 341,
+                    lineNumber: 344,
                     columnNumber: 11
                 }, this),
                 isTakingPhoto && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ImageCapture$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ImageCapture"], {
@@ -2582,18 +2484,18 @@ function FoodEditor({ onSave, onCancel, initialFood }) {
                     onCancel: ()=>setIsTakingPhoto(false)
                 }, void 0, false, {
                     fileName: "[project]/src/components/FoodEditor.tsx",
-                    lineNumber: 348,
+                    lineNumber: 351,
                     columnNumber: 11
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/FoodEditor.tsx",
-            lineNumber: 150,
+            lineNumber: 153,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/components/FoodEditor.tsx",
-        lineNumber: 149,
+        lineNumber: 152,
         columnNumber: 5
     }, this);
 }
@@ -2697,7 +2599,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$progress$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_import__("[project]/src/components/ui/progress.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_import__("[project]/src/components/ui/button.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_import__("[project]/src/constants/meal-goals.ts [app-client] (ecmascript)");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$up$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronUp$3e$__ = __turbopack_import__("[project]/node_modules/lucide-react/dist/esm/icons/chevron-up.js [app-client] (ecmascript) <export default as ChevronUp>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$up$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronUp$3e$__ = __turbopack_import__("[project]/node_modules/lucide-react/dist/esm/icons/chevron-up.js [app-client] (ecmascript) <export default as ChevronUp>"); // using Lucide icons
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$down$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronDown$3e$__ = __turbopack_import__("[project]/node_modules/lucide-react/dist/esm/icons/chevron-down.js [app-client] (ecmascript) <export default as ChevronDown>");
 ;
 var _s = __turbopack_refresh__.signature();
@@ -2710,6 +2612,56 @@ function CompactNutritionProgress({ currentCalories, currentProtein, currentFat,
     _s();
     const [isExpanded, setIsExpanded] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [activeMetric, setActiveMetric] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("calories");
+    const getCalorieProgressColor = (current, target)=>{
+        const percentage = current / target * 100;
+        if (percentage > 100) return "bg-red-500";
+        if (percentage > 90) return "bg-yellow-500";
+        return "bg-green-500";
+    };
+    const getRangeProgressColor = (current, min, max)=>{
+        if (current < min) return "bg-yellow-500";
+        if (current > max) return "bg-red-500";
+        if (current >= min && current <= max) return "bg-emerald-500";
+        return "bg-green-500";
+    };
+    const getProgressValue = (metric)=>{
+        switch(metric){
+            case "calories":
+                {
+                    const target = selectedMeal ? __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].mealCalories[selectedMeal] : __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.calories;
+                    return currentCalories / target * 100;
+                }
+            case "protein":
+                {
+                    const { min } = __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein;
+                    return Math.min(currentProtein / min * 100, 100);
+                }
+            case "fat":
+                {
+                    const { min } = __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat;
+                    return Math.min(currentFat / min * 100, 100);
+                }
+        }
+    };
+    const getProgressBarColor = (metric)=>{
+        if (metric === "calories") {
+            const target = selectedMeal ? __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].mealCalories[selectedMeal] : __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.calories;
+            if (currentCalories > target) return "[&>div]:bg-red-500";
+            if (currentCalories > target * 0.9) return "[&>div]:bg-yellow-500";
+            return "[&>div]:bg-green-500";
+        }
+        if (metric === "protein") {
+            const { min, max } = __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein;
+            if (currentProtein >= min && currentProtein <= max) return "[&>div]:bg-green-500";
+            return "[&>div]:bg-yellow-500";
+        }
+        if (metric === "fat") {
+            const { min, max } = __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat;
+            if (currentFat >= min && currentFat <= max) return "[&>div]:bg-green-500";
+            return "[&>div]:bg-yellow-500";
+        }
+        return "[&>div]:bg-gray-500"; // fallback
+    };
     const getMetricData = (metric)=>{
         switch(metric){
             case "calories":
@@ -2717,29 +2669,23 @@ function CompactNutritionProgress({ currentCalories, currentProtein, currentFat,
                     current: currentCalories,
                     target: selectedMeal ? __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].mealCalories[selectedMeal] : __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.calories,
                     unit: "cal",
-                    color: getProgressColor(currentCalories, selectedMeal ? __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].mealCalories[selectedMeal] : __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.calories)
+                    color: getCalorieProgressColor(currentCalories, selectedMeal ? __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].mealCalories[selectedMeal] : __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.calories)
                 };
             case "protein":
                 return {
                     current: currentProtein,
-                    target: `${__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.min}-${__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.max}`,
+                    target: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.min,
                     unit: "g",
-                    color: getProgressColor(currentProtein, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.max)
+                    color: getRangeProgressColor(currentProtein, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.min, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.max)
                 };
             case "fat":
                 return {
                     current: currentFat,
-                    target: `${__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.min}-${__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.max}`,
+                    target: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.min,
                     unit: "g",
-                    color: getProgressColor(currentFat, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.max)
+                    color: getRangeProgressColor(currentFat, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.min, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.max)
                 };
         }
-    };
-    const getProgressColor = (current, target)=>{
-        const percentage = current / (typeof target === "string" ? parseInt(target.split("-")[1]) : target) * 100;
-        if (percentage > 100) return "bg-red-500";
-        if (percentage > 90) return "bg-yellow-500";
-        return "bg-green-500";
     };
     const handleMetricClick = ()=>{
         const metrics = [
@@ -2751,8 +2697,18 @@ function CompactNutritionProgress({ currentCalories, currentProtein, currentFat,
         const nextIndex = (currentIndex + 1) % metrics.length;
         setActiveMetric(metrics[nextIndex]);
     };
+    // Add label mapping
+    const getMetricLabel = (metric)=>{
+        switch(metric){
+            case "calories":
+                return "Cal";
+            case "protein":
+                return "Protein";
+            case "fat":
+                return "Fat";
+        }
+    };
     const currentMetricData = getMetricData(activeMetric);
-    const progressValue = currentMetricData.current / (typeof currentMetricData.target === "string" ? parseInt(currentMetricData.target.split("-")[1]) : currentMetricData.target) * 100;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg",
         children: [
@@ -2768,54 +2724,77 @@ function CompactNutritionProgress({ currentCalories, currentProtein, currentFat,
                             className: "h-4 w-4"
                         }, void 0, false, {
                             fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                            lineNumber: 104,
+                            lineNumber: 166,
                             columnNumber: 13
                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$up$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronUp$3e$__["ChevronUp"], {
                             className: "h-4 w-4"
                         }, void 0, false, {
                             fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                            lineNumber: 106,
+                            lineNumber: 168,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                        lineNumber: 97,
+                        lineNumber: 159,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "flex-1 mx-4",
+                        className: "flex-1 mx-4 relative",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$progress$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Progress"], {
-                            value: progressValue,
-                            className: `h-2 ${currentMetricData.color}`
+                            value: getProgressValue(activeMetric),
+                            className: `h-2 [&>div]:transition-colors ${getProgressBarColor(activeMetric)}`
                         }, void 0, false, {
                             fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                            lineNumber: 111,
+                            lineNumber: 173,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                        lineNumber: 110,
+                        lineNumber: 172,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                         onClick: handleMetricClick,
-                        className: "text-sm font-medium whitespace-nowrap px-2 py-1 rounded hover:bg-gray-100",
-                        children: [
-                            currentMetricData.current,
-                            "/",
-                            currentMetricData.target,
-                            " ",
-                            currentMetricData.unit
-                        ]
-                    }, void 0, true, {
+                        className: "flex items-center gap-2 text-sm font-medium whitespace-nowrap px-2 py-1 rounded hover:bg-gray-100",
+                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex flex-col items-end",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    className: "text-xs text-gray-500",
+                                    children: getMetricLabel(activeMetric)
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/CompactNutritionProgress.tsx",
+                                    lineNumber: 186,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    children: [
+                                        currentMetricData.current,
+                                        "/",
+                                        currentMetricData.target,
+                                        " ",
+                                        currentMetricData.unit
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/src/components/CompactNutritionProgress.tsx",
+                                    lineNumber: 189,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/components/CompactNutritionProgress.tsx",
+                            lineNumber: 185,
+                            columnNumber: 11
+                        }, this)
+                    }, void 0, false, {
                         fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                        lineNumber: 117,
+                        lineNumber: 181,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                lineNumber: 96,
+                lineNumber: 158,
                 columnNumber: 7
             }, this),
             isExpanded && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2826,16 +2805,22 @@ function CompactNutritionProgress({ currentCalories, currentProtein, currentFat,
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "text-xs text-gray-600 mb-1",
-                                    children: [
-                                        "Calories: ",
-                                        currentCalories,
-                                        "/",
-                                        getMetricData("calories").target
-                                    ]
-                                }, void 0, true, {
+                                    className: "flex items-center gap-1 text-xs text-gray-600 mb-1",
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        children: [
+                                            "Calories: ",
+                                            currentCalories,
+                                            "/",
+                                            getMetricData("calories").target
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/components/CompactNutritionProgress.tsx",
+                                        lineNumber: 202,
+                                        columnNumber: 17
+                                    }, this)
+                                }, void 0, false, {
                                     fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                                    lineNumber: 131,
+                                    lineNumber: 201,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$progress$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Progress"], {
@@ -2843,90 +2828,102 @@ function CompactNutritionProgress({ currentCalories, currentProtein, currentFat,
                                     className: `h-1.5 ${getMetricData("calories").color}`
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                                    lineNumber: 134,
+                                    lineNumber: 206,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                            lineNumber: 130,
+                            lineNumber: 200,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "text-xs text-gray-600 mb-1",
-                                    children: [
-                                        "Protein: ",
-                                        currentProtein,
-                                        "g/",
-                                        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.max,
-                                        "g"
-                                    ]
-                                }, void 0, true, {
+                                    className: "flex items-center gap-1 text-xs text-gray-600 mb-1",
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        children: [
+                                            "Protein: ",
+                                            currentProtein,
+                                            "/",
+                                            __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.min,
+                                            "g"
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/components/CompactNutritionProgress.tsx",
+                                        lineNumber: 217,
+                                        columnNumber: 17
+                                    }, this)
+                                }, void 0, false, {
                                     fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                                    lineNumber: 144,
+                                    lineNumber: 216,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$progress$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Progress"], {
-                                    value: currentProtein / __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.protein.max * 100,
+                                    value: getProgressValue("protein"),
                                     className: `h-1.5 ${getMetricData("protein").color}`
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                                    lineNumber: 148,
+                                    lineNumber: 222,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                            lineNumber: 143,
+                            lineNumber: 215,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "text-xs text-gray-600 mb-1",
-                                    children: [
-                                        "Fat: ",
-                                        currentFat,
-                                        "g/",
-                                        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.max,
-                                        "g"
-                                    ]
-                                }, void 0, true, {
+                                    className: "flex items-center gap-1 text-xs text-gray-600 mb-1",
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        children: [
+                                            "Fat: ",
+                                            currentFat,
+                                            "/",
+                                            __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.min,
+                                            "g"
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/components/CompactNutritionProgress.tsx",
+                                        lineNumber: 229,
+                                        columnNumber: 17
+                                    }, this)
+                                }, void 0, false, {
                                     fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                                    lineNumber: 156,
+                                    lineNumber: 228,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$progress$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Progress"], {
-                                    value: currentFat / __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$meal$2d$goals$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DAILY_GOALS"].dailyTotals.fat.max * 100,
+                                    value: getProgressValue("fat"),
                                     className: `h-1.5 ${getMetricData("fat").color}`
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                                    lineNumber: 159,
+                                    lineNumber: 233,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                            lineNumber: 155,
+                            lineNumber: 227,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                    lineNumber: 129,
+                    lineNumber: 199,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-                lineNumber: 128,
+                lineNumber: 198,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/CompactNutritionProgress.tsx",
-        lineNumber: 94,
+        lineNumber: 157,
         columnNumber: 5
     }, this);
 }

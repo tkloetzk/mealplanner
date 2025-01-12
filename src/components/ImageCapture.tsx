@@ -1,6 +1,6 @@
 // components/ImageCapture.tsx
 import React, { useRef, useState } from "react";
-import { Camera, X, Image as ImageIcon, RotateCcw, Check } from "lucide-react";
+import { Camera, X, RotateCcw, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ImageCaptureProps {

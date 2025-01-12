@@ -16,7 +16,6 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const handleScan = async (result: Result) => {
     setScanning(false);
     try {
-      console.log("SCAN TEXT", result.getText());
       const response = await fetch(`/api/upc?upc=${result.getText()}`);
       if (!response.ok) {
         const data = await response.json();
@@ -28,9 +27,9 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         return;
       }
       const data = await response.json();
-      onScan(result.getText());
+      onScan(data); // Now we're actually using the data
     } catch (error) {
-      console.error(error);
+      console.log(error);
       setError("Failed to process barcode. Please try again.");
     }
   };

@@ -9,8 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Camera, X, AlertCircle } from "lucide-react";
-import { Food, CategoryType } from "@/types/food";
+import { Camera, AlertCircle } from "lucide-react";
+import { Food, CategoryType, ServingSizeUnit } from "@/types/food";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { ImageCapture } from "./ImageCapture";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -307,7 +307,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
               <label className="block text-sm font-medium mb-1">Unit</label>
               <Select
                 value={food.servingSizeUnit}
-                onValueChange={(value) =>
+                onValueChange={(value: ServingSizeUnit) =>
                   setFood((prev) => ({ ...prev, servingSizeUnit: value }))
                 }
               >
