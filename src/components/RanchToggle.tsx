@@ -1,9 +1,9 @@
 // components/RanchToggle.tsx
+import { useState } from "react";
+import { Minus, Plus, Droplets, ChevronDown, ChevronUp } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Droplets, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
 
 export const RANCH_OPTION = {
   name: "Ranch Dressing",
@@ -12,8 +12,9 @@ export const RANCH_OPTION = {
   carbs: 0.5,
   fat: 6.5,
   servingSize: "1",
-  servingSizeUnit: "tbsp",
+  servingSizeUnit: "tbsp" as const,
   category: "condiments" as const,
+  meal: ["breakfast", "lunch", "dinner", "snack"], // Add meal compatibility
   score: "e",
   upc: "071100005509",
   novaGroup: 4,
@@ -25,13 +26,33 @@ export const RANCH_OPTION = {
   },
   ingredients:
     "vegetable oil (soybean and/or canola), water, sugar, salt, nonfat buttermilk, egg yolk, natural flavors, less than 1% of: spices, garlic*, onion*, vinegar, phosphoric acid, xanthan gum, modified food starch, monosodium glutamate, artificial flavors, disodium phosphate, sorbic acid and calcium disodium edta added to preserve freshness, disodium inosinate , guanylate,",
-};
+} as const;
 
 interface RanchToggleProps {
   isSelected: boolean;
   servings: number;
   onChange: (value: boolean, servings: number) => void;
 }
+
+const getNutritionForServings = (servings: number) => ({
+  calories: RANCH_OPTION.calories * servings,
+  protein: RANCH_OPTION.protein * servings,
+  carbs: RANCH_OPTION.carbs * servings,
+  fat: RANCH_OPTION.fat * servings,
+});
+
+const getServingVisual = (servings: number) => (
+  <div className="flex gap-1">
+    {[...Array(3)].map((_, index) => (
+      <Droplets
+        key={index}
+        className={`h-4 w-4 ${
+          index < servings ? "text-blue-500" : "text-gray-200"
+        }`}
+      />
+    ))}
+  </div>
+);
 
 export function RanchToggle({
   isSelected,
@@ -46,27 +67,7 @@ export function RanchToggle({
     }
   };
 
-  const getNutritionForServings = (servings: number) => ({
-    calories: RANCH_OPTION.calories * servings,
-    protein: RANCH_OPTION.protein * servings,
-    carbs: RANCH_OPTION.carbs * servings,
-    fat: RANCH_OPTION.fat * servings,
-  });
-
-  const getServingVisual = () => {
-    return (
-      <div className="flex gap-1">
-        {[...Array(3)].map((_, index) => (
-          <Droplets
-            key={index}
-            className={`h-4 w-4 ${
-              index < servings ? "text-blue-500" : "text-gray-200"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
+  const nutrition = getNutritionForServings(servings);
 
   return (
     <div className="space-y-2">
@@ -94,7 +95,7 @@ export function RanchToggle({
                   </Button>
                   <div className="flex flex-col items-center">
                     <span className="w-8 text-center">{servings}</span>
-                    {getServingVisual()}
+                    {getServingVisual(servings)}
                   </div>
                   <Button
                     variant="outline"
@@ -146,26 +147,24 @@ export function RanchToggle({
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex justify-between p-2 bg-white rounded shadow-sm">
                   <span className="text-gray-600">Calories:</span>
-                  <span className="font-medium">
-                    {getNutritionForServings(servings).calories}
-                  </span>
+                  <span className="font-medium">{nutrition.calories}</span>
                 </div>
                 <div className="flex justify-between p-2 bg-white rounded shadow-sm">
                   <span className="text-gray-600">Protein:</span>
                   <span className="font-medium">
-                    {getNutritionForServings(servings).protein.toFixed(1)}g
+                    {nutrition.protein.toFixed(1)}g
                   </span>
                 </div>
                 <div className="flex justify-between p-2 bg-white rounded shadow-sm">
                   <span className="text-gray-600">Carbs:</span>
                   <span className="font-medium">
-                    {getNutritionForServings(servings).carbs.toFixed(1)}g
+                    {nutrition.carbs.toFixed(1)}g
                   </span>
                 </div>
                 <div className="flex justify-between p-2 bg-white rounded shadow-sm">
                   <span className="text-gray-600">Fat:</span>
                   <span className="font-medium">
-                    {getNutritionForServings(servings).fat.toFixed(1)}g
+                    {nutrition.fat.toFixed(1)}g
                   </span>
                 </div>
               </div>

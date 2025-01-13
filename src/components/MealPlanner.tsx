@@ -14,10 +14,7 @@ import {
   CategoryType,
   MealPlan,
   MealHistoryEntry,
-  // MealSelection,
-  // NutritionSummary,
   MILK_OPTION,
-  // DailyGoals,
   MealSelection,
 } from "@/types/food";
 import { ChildView } from "./ChildView";
@@ -29,9 +26,9 @@ import {
   DAYS_OF_WEEK,
   DEFAULT_MEAL_PLAN,
   defaultObj,
+  MEAL_TYPES,
 } from "@/constants/meal-goals";
 import { KidSelector } from "./KidSelector";
-import { FavoriteMeal, FavoriteMeals } from "./FavoriteMeals";
 import { RANCH_OPTION, RanchToggle } from "./RanchToggle";
 import { NutritionSummary } from "./NutritionSummary";
 
@@ -40,7 +37,14 @@ const MEAL_CALORIE_TARGET = {
   lunch: 400,
   dinner: 400,
   snacks: 200,
-};
+} as const;
+
+interface NutritionTotals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 
 const getCurrentDay = (): DayType => {
   const days = [
@@ -51,14 +55,10 @@ const getCurrentDay = (): DayType => {
     "thursday",
     "friday",
     "saturday",
-  ];
+  ] as const;
   const currentDay = days[new Date().getDay()];
   return currentDay as DayType;
 };
-// const DAILY_NUTRITION_GOALS: DailyGoals = {
-//   totalProtein: { min: 20, max: 25 },
-//   totalFat: { min: 33, max: 62 },
-// };
 
 const createEmptyMealPlan = (): MealPlan => {
   return DAYS_OF_WEEK.reduce((plan, day) => {
@@ -100,7 +100,6 @@ export function MealPlanner() {
     dinner: { has: false, servings: 1 },
     snack: { has: false, servings: 1 },
   });
-  const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
   const [kids] = useState<Kid[]>([
     { id: "1", name: "Presley" },
     { id: "2", name: "Evy" },
@@ -161,21 +160,6 @@ export function MealPlanner() {
     loadData();
   }, []);
 
-  const handleSaveFavorite = (
-    name: string,
-    mealType: MealType,
-    selections: MealSelection
-  ) => {
-    const newFavorite: FavoriteMeal = {
-      id: crypto.randomUUID(),
-      kidId: selectedKid!,
-      name,
-      mealType,
-      selections,
-    };
-    setFavoriteMeals((prev) => [...prev, newFavorite]);
-  };
-
   const handleSaveFood = async (food: Food) => {
     try {
       const response = await fetch("/api/foods", {
@@ -184,12 +168,90 @@ export function MealPlanner() {
         body: JSON.stringify(food),
       });
       if (response.ok) {
-        // Refresh food options
-        // Close editor
         setShowFoodEditor(false);
       }
     } catch (error) {
       console.error("Error saving food:", error);
+    }
+  };
+
+  // Then rewrite the handleFoodSelect function
+  const handleFoodSelect = (category: CategoryType, food: Food) => {
+    if (!selectedMeal || !selectedDay || !selectedKid) {
+      console.log("Missing required selection:", {
+        selectedMeal,
+        selectedDay,
+        selectedKid,
+      });
+      return;
+    }
+
+    setSelections((prev) => {
+      // Start with a clean copy of the previous state
+      const newState = { ...prev };
+
+      // Make sure we have the proper nested structure
+      if (!newState[selectedKid]) {
+        newState[selectedKid] = createEmptyMealPlan();
+      }
+
+      // Get current selection for comparison
+      const currentSelection =
+        newState[selectedKid][selectedDay][selectedMeal][category];
+
+      // Create the new food object if we're selecting a new item
+      const newFoodSelection =
+        currentSelection?.name === food.name
+          ? null
+          : {
+              ...food,
+              servings: 1,
+              adjustedCalories: food.calories,
+              adjustedProtein: food.protein,
+              adjustedCarbs: food.carbs,
+              adjustedFat: food.fat,
+            };
+
+      // Update the specific selection while maintaining the structure
+      newState[selectedKid] = {
+        ...newState[selectedKid],
+        [selectedDay]: {
+          ...newState[selectedKid][selectedDay],
+          [selectedMeal]: {
+            ...newState[selectedKid][selectedDay][selectedMeal],
+            [category]: newFoodSelection,
+          },
+        },
+      };
+
+      console.log("Updated state structure:", {
+        hasKidId: Boolean(newState[selectedKid]),
+        hasDay: Boolean(newState[selectedKid]?.[selectedDay]),
+        hasMeal: Boolean(newState[selectedKid]?.[selectedDay]?.[selectedMeal]),
+        hasCategory: Boolean(
+          newState[selectedKid]?.[selectedDay]?.[selectedMeal]?.[category]
+        ),
+      });
+
+      return newState;
+    });
+  };
+  // When opening the serving selector, pass the current servings
+  const handleServingClick = (
+    e: React.MouseEvent,
+    category: CategoryType,
+    food: Food
+  ) => {
+    e.stopPropagation();
+    if (selectedDay && selectedMeal && selectedKid) {
+      // First access the kid's selections, then the day, then the meal, then the category
+      const currentFood =
+        selections[selectedKid]?.[selectedDay]?.[selectedMeal]?.[category];
+      setSelectedFood({
+        category,
+        food,
+        currentServings: currentFood?.servings || 1,
+      });
     }
   };
 
@@ -205,7 +267,6 @@ export function MealPlanner() {
       [mealType]: { has: value, servings },
     }));
 
-    // Update selections to include/remove ranch
     setSelections((prev) => {
       const newSelections = { ...prev };
       if (!newSelections[selectedKid]) {
@@ -217,6 +278,8 @@ export function MealPlanner() {
           newSelections[selectedKid][selectedDay][mealType].ranch = {
             ...RANCH_OPTION,
             servings,
+            // @ts-expect-error IDK how to fix
+            meal: RANCH_OPTION.meal,
             adjustedCalories: RANCH_OPTION.calories * servings,
             adjustedProtein: RANCH_OPTION.protein * servings,
             adjustedCarbs: RANCH_OPTION.carbs * servings,
@@ -233,160 +296,77 @@ export function MealPlanner() {
     });
   };
 
-  const handleFoodSelect = (
-    kidId: string,
-    category: CategoryType,
-    food: Food
-  ) => {
-    console.log("handleFoodSelect called with:", { kidId, category, food });
-
-    if (!selectedMeal || !selectedDay || !kidId || !food) {
-      console.log("Missing required data:", {
-        selectedMeal,
-        selectedDay,
-        kidId,
-        food,
-      });
-      return;
-    }
-
-    setSelections((prev) => {
-      const newSelections = JSON.parse(JSON.stringify(prev)) as Record<
-        string,
-        MealPlan
-      >;
-
-      if (!newSelections[kidId]) {
-        newSelections[kidId] = createEmptyMealPlan();
-      }
-
-      try {
-        const currentSelection =
-          newSelections[kidId]?.[selectedDay]?.[selectedMeal]?.[category];
-
-        // Toggle the selection
-        if (currentSelection && currentSelection.name === food.name) {
-          newSelections[kidId][selectedDay][selectedMeal][category] = null;
-        } else {
-          // Create the selected food object with default values if properties are missing
-          const selectedFood: SelectedFood = {
-            ...food,
-            category, // Use the category passed in as parameter
-            name: food.name || "",
-            calories: food.calories || 0,
-            protein: food.protein || 0,
-            carbs: food.carbs || 0,
-            fat: food.fat || 0,
-            servings: 1,
-            adjustedCalories: food.calories || 0,
-            adjustedProtein: food.protein || 0,
-            adjustedCarbs: food.carbs || 0,
-            adjustedFat: food.fat || 0,
-          };
-
-          newSelections[kidId][selectedDay][selectedMeal][category] =
-            selectedFood;
-        }
-
-        return newSelections;
-      } catch (error) {
-        console.error("Error in handleFoodSelect:", error);
-        return prev;
-      }
-    });
-  };
-
-  // When opening the serving selector, pass the current servings
-  const handleServingClick = (
-    e: React.MouseEvent,
-    category: CategoryType,
-    food: Food
-  ) => {
-    e.stopPropagation();
-    if (selectedDay && selectedMeal) {
-      const currentFood = selections[selectedDay][selectedMeal][category];
-      setSelectedFood({
-        category,
-        food,
-        currentServings: currentFood?.servings || 1,
-      });
-    }
-  };
-
   const handleMilkToggle = (mealType: MealType, value: boolean) => {
     setIncludesMilk((prev) => ({
       ...prev,
       [mealType]: value,
     }));
 
-    // Update selections to include/remove milk
-    const newSelections = { ...selections };
-    if (value) {
-      newSelections[selectedDay][mealType].milk = {
-        ...MILK_OPTION,
-        servings: 1,
-        adjustedCalories: MILK_OPTION.calories,
-        adjustedProtein: MILK_OPTION.protein,
-        adjustedCarbs: MILK_OPTION.carbs,
-        adjustedFat: MILK_OPTION.fat,
-      };
-    } else {
-      newSelections[selectedDay][mealType].milk = null;
-    }
-    setSelections(newSelections);
+    if (!selectedKid || !selectedDay) return;
+
+    setSelections((prev) => {
+      const newSelections = { ...prev };
+      if (!newSelections[selectedKid]) {
+        newSelections[selectedKid] = createEmptyMealPlan();
+      }
+
+      try {
+        if (value) {
+          newSelections[selectedKid][selectedDay][mealType].milk = {
+            ...MILK_OPTION,
+            servings: 1, // Add the required servings property
+            adjustedCalories: MILK_OPTION.calories,
+            adjustedProtein: MILK_OPTION.protein,
+            adjustedCarbs: MILK_OPTION.carbs,
+            adjustedFat: MILK_OPTION.fat,
+          };
+        } else {
+          newSelections[selectedKid][selectedDay][mealType].milk = null;
+        }
+        return newSelections;
+      } catch (error) {
+        console.error("Error in handleMilkToggle:", error);
+        return prev;
+      }
+    });
   };
 
-  // const saveToHistory = async (mealSelections: MealSelection) => {
-  //   const historyEntry: MealHistoryEntry = {
-  //     date: new Date().toISOString(),
-  //     meal: selectedMeal!,
-  //     selections: { ...mealSelections },
-  //   };
+  const calculateDailyTotals = (): NutritionTotals => {
+    const emptyTotals: NutritionTotals = {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+    };
 
-  //   try {
-  //     await fetch("/api/history", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(historyEntry),
-  //     });
-
-  //     setMealHistory((prev) => [historyEntry, ...prev.slice(0, 9)]);
-  //   } catch (error) {
-  //     console.error("Error saving to history:", error);
-  //   }
-  // };
-
-  const calculateDailyTotals = () => {
     if (
       !selectedKid ||
       !selectedDay ||
       !selections[selectedKid]?.[selectedDay]
     ) {
-      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      return emptyTotals;
     }
 
     const daySelections = selections[selectedKid][selectedDay];
-    return Object.values(daySelections).reduce(
-      (totals, mealSelections) => {
+    return Object.values(daySelections).reduce<NutritionTotals>(
+      (totals, mealSelections: MealSelection | null) => {
         if (!mealSelections) return totals;
 
-        Object.values(mealSelections).forEach((food) => {
+        Object.values(mealSelections).forEach((food: SelectedFood | null) => {
           if (food) {
-            totals.calories += food.adjustedCalories || food.calories;
-            totals.protein += food.adjustedProtein || food.protein;
-            totals.carbs += food.adjustedCarbs || food.carbs;
-            totals.fat += food.adjustedFat || food.fat;
+            totals.calories += food.adjustedCalories ?? food.calories ?? 0;
+            totals.protein += food.adjustedProtein ?? food.protein ?? 0;
+            totals.carbs += food.adjustedCarbs ?? food.carbs ?? 0;
+            totals.fat += food.adjustedFat ?? food.fat ?? 0;
           }
         });
         return totals;
       },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      structuredClone(emptyTotals)
     );
   };
 
-  const calculateMealNutrition = (meal: MealType) => {
+  const calculateMealNutrition = (meal: MealType): NutritionTotals => {
     if (
       !selectedKid ||
       !selectedDay ||
@@ -396,19 +376,21 @@ export function MealPlanner() {
     }
 
     const mealSelections = selections[selectedKid][selectedDay][meal];
-    return Object.values(mealSelections).reduce(
+    return Object.values(mealSelections).reduce<NutritionTotals>(
       (sum, item) => {
         if (!item) return sum;
         return {
-          calories: sum.calories + (item.adjustedCalories || item.calories),
-          protein: sum.protein + (item.adjustedProtein || item.protein),
-          carbs: sum.carbs + (item.adjustedCarbs || item.carbs),
-          fat: sum.fat + (item.adjustedFat || item.fat),
+          calories:
+            sum.calories + (item.adjustedCalories ?? item.calories ?? 0),
+          protein: sum.protein + (item.adjustedProtein ?? item.protein ?? 0),
+          carbs: sum.carbs + (item.adjustedCarbs ?? item.carbs ?? 0),
+          fat: sum.fat + (item.adjustedFat ?? item.fat ?? 0),
         };
       },
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
   };
+
   const handleServingConfirm = (
     category: CategoryType,
     adjustedFood: SelectedFood
@@ -530,11 +512,9 @@ export function MealPlanner() {
         <ChildView
           selectedMeal={selectedMeal}
           foodOptions={foodOptions}
-          selections={selections[selectedKid]}
+          selections={selections[selectedKid] ?? DEFAULT_MEAL_PLAN} // Use nullish coalescing
           selectedDay={selectedDay}
-          onFoodSelect={(category, food) =>
-            handleFoodSelect(selectedKid, category, food)
-          }
+          onFoodSelect={handleFoodSelect} // Pass the function directly
           onMealSelect={setSelectedMeal}
         />
       ) : (
@@ -564,43 +544,39 @@ export function MealPlanner() {
             </div>
             {/* Meal Selection */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              {(["breakfast", "lunch", "dinner", "snack"] as MealType[]).map(
-                (meal) => (
-                  <button
-                    key={meal}
-                    onClick={() => setSelectedMeal(meal)}
-                    className={`p-4 rounded-lg text-lg capitalize ${
-                      selectedMeal === meal
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-100 hover:bg-gray-200"
-                    }`}
-                  >
-                    {meal}
-                  </button>
-                )
-              )}
+              {MEAL_TYPES.map((meal) => (
+                <button
+                  key={meal}
+                  onClick={() => setSelectedMeal(meal)}
+                  className={`p-4 rounded-lg text-lg capitalize ${
+                    selectedMeal === meal
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`}
+                >
+                  {meal}
+                </button>
+              ))}
             </div>
-            {selectedMeal && selectedKid && (
-              <FavoriteMeals
-                kidId={selectedKid}
-                currentMeal={selectedMeal}
-                currentSelections={
-                  selections[selectedKid]?.[selectedDay]?.[selectedMeal]
+            {selectedFood && selectedKid && selectedDay && selectedMeal && (
+              <ServingSelector
+                food={selectedFood.food}
+                currentServings={
+                  (
+                    selections[selectedKid]?.[selectedDay]?.[
+                      selectedMeal
+                    ] as Record<CategoryType, SelectedFood | null>
+                  )?.[selectedFood.category]?.servings || 1
                 }
-                favorites={favoriteMeals}
-                onSaveFavorite={handleSaveFavorite}
-                onSelectFavorite={(selections) => {
-                  const newSelections = { ...selections };
-                  newSelections[selectedKid][selectedDay][selectedMeal] =
-                    selections;
-                  setSelections(newSelections);
-                }}
+                onConfirm={(adjustedFood) =>
+                  handleServingConfirm(selectedFood.category, adjustedFood)
+                }
+                onCancel={() => setSelectedFood(null)}
               />
             )}
             {selectedMeal && (
               <>
                 {/* Nutrition Summary */}
-
                 <NutritionSummary
                   mealNutrition={calculateMealNutrition(selectedMeal)}
                   dailyNutrition={calculateDailyTotals()}
@@ -625,20 +601,6 @@ export function MealPlanner() {
                   </div>
                 )}
 
-                {selectedFood && (
-                  <ServingSelector
-                    food={selectedFood.food}
-                    currentServings={
-                      selections[selectedDay][selectedMeal][
-                        selectedFood.category
-                      ]?.servings || 1
-                    }
-                    onConfirm={(adjustedFood) =>
-                      handleServingConfirm(selectedFood.category, adjustedFood)
-                    }
-                    onCancel={() => setSelectedFood(null)}
-                  />
-                )}
                 {selectedMeal && selectedMeal !== "snack" && (
                   <div className="mb-6">
                     <MilkToggle
@@ -700,9 +662,11 @@ export function MealPlanner() {
                           <div className="space-y-2">
                             {compatibleFoods.map((food) => {
                               const selectedFoodInCategory =
-                                selections[selectedKid]?.[selectedDay]?.[
-                                  selectedMeal
-                                ]?.[category];
+                                selectedKid && selectedDay && selectedMeal
+                                  ? selections[selectedKid]?.[selectedDay]?.[
+                                      selectedMeal
+                                    ]?.[category]
+                                  : null;
                               const isSelected =
                                 selectedFoodInCategory?.name === food.name;
 
@@ -713,11 +677,7 @@ export function MealPlanner() {
                                 >
                                   <button
                                     onClick={() =>
-                                      handleFoodSelect(
-                                        selectedKid,
-                                        category,
-                                        food
-                                      )
+                                      handleFoodSelect(category, food)
                                     }
                                     className={`w-full p-2 text-left rounded hover:bg-gray-100 ${
                                       isSelected ? "bg-blue-100" : ""
@@ -768,25 +728,24 @@ export function MealPlanner() {
                                   </button>
                                 </div>
                               );
-                            })}{" "}
-                            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-                              <CompactNutritionProgress
-                                currentCalories={
-                                  selectedMeal
-                                    ? calculateMealNutrition(selectedMeal)
-                                        .calories
-                                    : calculateDailyTotals().calories
-                                }
-                                currentProtein={calculateDailyTotals().protein}
-                                currentFat={calculateDailyTotals().fat}
-                                selectedMeal={selectedMeal}
-                              />
-                            </div>
+                            })}
                           </div>
                         </CardContent>
                       </Card>
                     );
                   })}
+                </div>
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+                  <CompactNutritionProgress
+                    currentCalories={
+                      selectedMeal
+                        ? calculateMealNutrition(selectedMeal).calories
+                        : calculateDailyTotals().calories
+                    }
+                    currentProtein={calculateDailyTotals().protein}
+                    currentFat={calculateDailyTotals().fat}
+                    selectedMeal={selectedMeal}
+                  />
                 </div>
               </>
             )}
@@ -800,10 +759,7 @@ export function MealPlanner() {
                     {day}
                   </h3>
                   {Object.entries(selections[day]).map(([meal]) => {
-                    const nutrition = calculateMealNutrition(
-                      meal as MealType,
-                      day
-                    );
+                    const nutrition = calculateMealNutrition(meal as MealType);
                     if (nutrition.calories > 0) {
                       return (
                         <div key={meal} className="mb-4 p-2 bg-gray-50 rounded">

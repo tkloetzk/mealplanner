@@ -1,4 +1,6 @@
-import { DayType, MealPlan } from "@/types/food";
+import { DayType, MealPlan, MealType } from "@/types/food";
+
+export const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
 // constants/meal-goals.ts
 export const DAILY_GOALS = {

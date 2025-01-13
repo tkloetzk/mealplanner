@@ -1,5 +1,11 @@
 // src/types/food.ts
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+export type CategoryType =
+  | "grains"
+  | "fruits"
+  | "proteins"
+  | "vegetables"
+  | "milk";
 export type DayType =
   | "monday"
   | "tuesday"
@@ -8,13 +14,25 @@ export type DayType =
   | "friday"
   | "saturday"
   | "sunday";
+export interface MealSelection {
+  grains: SelectedFood | null;
+  fruits: SelectedFood | null;
+  proteins: SelectedFood | null;
+  vegetables: SelectedFood | null;
+  milk: SelectedFood | null;
+  ranch: SelectedFood | null;
+}
 
-export type CategoryType =
-  | "grains"
-  | "fruits"
-  | "proteins"
-  | "vegetables"
-  | "milk";
+export interface DayMeals {
+  breakfast: MealSelection;
+  lunch: MealSelection;
+  dinner: MealSelection;
+  snack: MealSelection;
+}
+
+export interface MealPlan {
+  [key: string]: DayMeals;
+}
 export type ServingSizeUnit =
   | "g"
   | "ml"
@@ -79,24 +97,11 @@ export interface SelectedFood extends Food {
   adjustedFat: number;
 }
 
-export interface MealSelection {
-  grains: SelectedFood | null;
-  fruits: SelectedFood | null;
-  proteins: SelectedFood | null;
-  vegetables: SelectedFood | null;
-  milk: SelectedFood | null;
-  ranch: SelectedFood | null; // Adding ranch to the MealSelection type
-}
-
 export interface DayMeals {
   breakfast: MealSelection;
   lunch: MealSelection;
   dinner: MealSelection;
   snack: MealSelection;
-}
-
-export interface MealPlan {
-  [key: string]: DayMeals;
 }
 
 export interface MealHistoryEntry {
