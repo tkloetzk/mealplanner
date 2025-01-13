@@ -31,6 +31,7 @@ import {
 import { KidSelector } from "./KidSelector";
 import { RANCH_OPTION, RanchToggle } from "./RanchToggle";
 import { NutritionSummary } from "./NutritionSummary";
+import FoodItem from "./FoodItem";
 
 const MEAL_CALORIE_TARGET = {
   breakfast: 400,
@@ -671,62 +672,21 @@ export function MealPlanner() {
                                 selectedFoodInCategory?.name === food.name;
 
                               return (
-                                <div
+                                <FoodItem
                                   key={food.name}
-                                  className="relative flex flex-col"
-                                >
-                                  <button
-                                    onClick={() =>
-                                      handleFoodSelect(category, food)
-                                    }
-                                    className={`w-full p-2 text-left rounded hover:bg-gray-100 ${
-                                      isSelected ? "bg-blue-100" : ""
-                                    }`}
-                                  >
-                                    <div className="flex justify-between items-start">
-                                      <div>
-                                        <div>{food.name}</div>
-                                        <div className="text-sm text-gray-600">
-                                          {food.servingSize}{" "}
-                                          {food.servingSizeUnit}
-                                        </div>
-                                      </div>
-                                      <div className="text-right">
-                                        <div>{food.calories} cal</div>
-                                        <div className="text-sm text-gray-600">
-                                          P: {food.protein}g | C: {food.carbs}g
-                                          | F: {food.fat}g
-                                        </div>
-                                      </div>
-                                    </div>
-                                    {isSelected && selectedFoodInCategory && (
-                                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-                                        <div className="text-sm text-blue-600">
-                                          {selectedFoodInCategory.servings}{" "}
-                                          serving(s) •{" "}
-                                          {Math.round(
-                                            selectedFoodInCategory.adjustedCalories
-                                          )}{" "}
-                                          cal total
-                                        </div>
-                                        <div
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleServingClick(
-                                              e,
-                                              category,
-                                              food
-                                            );
-                                          }}
-                                          className="p-1 rounded hover:bg-blue-200 transition-colors"
-                                          title="Adjust serving size"
-                                        >
-                                          <Sliders className="h-4 w-4 text-blue-600" />
-                                        </div>
-                                      </div>
-                                    )}
-                                  </button>
-                                </div>
+                                  food={food}
+                                  isSelected={isSelected}
+                                  selectedFoodInCategory={
+                                    selectedFoodInCategory
+                                  }
+                                  onSelect={() =>
+                                    handleFoodSelect(category, food)
+                                  }
+                                  onServingClick={(e) => {
+                                    e.stopPropagation();
+                                    handleServingClick(e, category, food);
+                                  }}
+                                />
                               );
                             })}
                           </div>

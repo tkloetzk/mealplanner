@@ -16,6 +16,7 @@ import { BarcodeScanner } from "./BarcodeScanner";
 import { ImageCapture } from "./ImageCapture";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
+import { NutriScore } from "./NutriScore";
 
 interface FoodEditorProps {
   onSave: (food: Food) => void;
@@ -191,51 +192,59 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-auto">
-      <div className="bg-white rounded-lg w-full max-w-md p-6 flex flex-col space-y-4">
-        <div className="flex justify-between items-center mb-6">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onCancel();
+        }
+      }}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 z-50 overflow-auto"
+    >
+      <div className="bg-white rounded-lg w-full max-w-md p-4 flex flex-col space-y-3 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">
             {initialFood ? "Edit Food" : "Add New Food"}
           </h2>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Manual UPC</label>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={manualUPC}
-              placeholder="Enter UPC code"
-              onChange={(e) => setManualUPC(e.target.value)}
-            />
-            <Button
-              onClick={() => handleUPCEntry()}
-              disabled={!manualUPC || loading}
-            >
-              Search
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsScanning(true)}
-              disabled={loading}
-            >
-              Use Scanner
-            </Button>
-          </div>
+        <div className="flex gap-2 items-center">
+          <Input
+            type="text"
+            value={manualUPC}
+            placeholder="Enter UPC code"
+            onChange={(e) => setManualUPC(e.target.value)}
+            className="flex-1"
+          />
+          <Button
+            size="sm"
+            onClick={() => handleUPCEntry()}
+            disabled={!manualUPC || loading}
+          >
+            Search
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setIsScanning(true)}
+            disabled={loading}
+          >
+            Scan
+          </Button>
         </div>
 
-        {/* Image Display/Capture Section */}
-        <div className="mb-6">
+        {/* Image Section */}
+        <div className="mb-2">
           {food.imageUrl ? (
-            <div className="relative aspect-square mb-2">
-              <img
-                src={food.imageUrl}
-                alt={food.name || "Food image"}
-                style={{ width: "100%" }}
-                // fill
-                // unoptimized
-                className="object-cover rounded-lg"
-              />
+            <div className="relative max-w-sm mx-auto">
+              <div className="w-full max-h-[320px] rounded-lg overflow-hidden">
+                <div className="relative pb-[75%]">
+                  <img
+                    src={food.imageUrl}
+                    alt={food.name || "Food image"}
+                    className="absolute inset-0 w-full h-full object-contain bg-gray-50"
+                  />
+                </div>
+              </div>
               <Button
                 variant="secondary"
                 size="sm"
@@ -247,21 +256,69 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
               </Button>
             </div>
           ) : (
-            <Button
-              variant="outline"
-              className="w-full aspect-square flex flex-col items-center justify-center gap-2"
-              onClick={() => setIsTakingPhoto(true)}
-            >
-              <Camera className="h-8 w-8" />
-              Take Photo
-            </Button>
+            <div className="max-w-sm mx-auto">
+              <Button
+                variant="outline"
+                className="w-full h-[240px] flex flex-col items-center justify-center gap-2"
+                onClick={() => setIsTakingPhoto(true)}
+              >
+                <Camera className="h-8 w-8" />
+                Take Photo
+              </Button>
+            </div>
           )}
         </div>
 
+        {food.score && (
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div>
+                <h4 className="text-sm font-medium">Nutrition Score</h4>
+                <p className="text-xs text-gray-600">
+                  Based on nutritional quality
+                </p>
+              </div>
+              <NutriScore score={food.score} size="medium" />
+            </div>
+            {food.novaGroup && (
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <div className="text-sm">
+                  <span className="font-medium">Processing Level: </span>
+                  Group {food.novaGroup}
+                </div>
+              </div>
+            )}
+            {food.nutrientLevels && (
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <h4 className="text-sm font-medium mb-1">Nutrient Levels</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {Object.entries(food.nutrientLevels).map(
+                    ([nutrient, level]) => (
+                      <div key={nutrient} className="flex items-center gap-1">
+                        <span className="capitalize">
+                          {nutrient.replace("-", " ")}:
+                        </span>
+                        <span
+                          className={`font-medium
+                        ${level === "low" ? "text-green-600" : ""}
+                        ${level === "moderate" ? "text-yellow-600" : ""}
+                        ${level === "high" ? "text-red-600" : ""}`}
+                        >
+                          {level}
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {validationErrors.length > 0 && (
-          <div className="mb-4">
+          <div>
             {validationErrors.map((error, index) => (
-              <Alert variant="destructive" key={index} className="mb-2">
+              <Alert variant="destructive" key={index} className="mb-2 py-2">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -269,9 +326,9 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 overflow-auto mb-12">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Name</label>
+            <Label className="text-sm">Name</Label>
             <Input
               value={food.name}
               onChange={(e) =>
@@ -281,9 +338,9 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Calories</label>
+              <Label className="text-sm">Calories</Label>
               <Input
                 type="number"
                 value={food.calories}
@@ -297,7 +354,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
+              <Label className="text-sm">Category</Label>
               <Select
                 value={food.category}
                 onValueChange={(value: CategoryType) =>
@@ -317,14 +374,11 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             </div>
           </div>
 
-          {food?.score && <div>{food.score}</div>}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Protein (g)
-              </label>
+              <Label className="text-sm">Protein (g)</Label>
               <Input
-                type="text"
+                type="number"
                 step="0.1"
                 value={food.protein}
                 onChange={(e) =>
@@ -336,11 +390,9 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Carbs (g)
-              </label>
+              <Label className="text-sm">Carbs (g)</Label>
               <Input
-                type="text"
+                type="number"
                 step="0.1"
                 value={food.carbs}
                 onChange={(e) =>
@@ -352,9 +404,9 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Fat (g)</label>
+              <Label className="text-sm">Fat (g)</Label>
               <Input
-                type="text"
+                type="number"
                 step="0.1"
                 value={food.fat}
                 onChange={(e) =>
@@ -364,11 +416,9 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Serving Size
-              </label>
+              <Label className="text-sm">Serving Size</Label>
               <Input
                 value={food.servingSize}
                 onChange={(e) =>
@@ -377,7 +427,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Unit</label>
+              <Label className="text-sm">Unit</Label>
               <Select
                 value={food.servingSizeUnit}
                 onValueChange={(value: ServingSizeUnit) =>
@@ -400,9 +450,9 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Compatible Meals</Label>
-            <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label className="text-sm">Compatible Meals</Label>
+            <div className="grid grid-cols-2 gap-2 mt-1">
               {MEAL_TYPES.map(({ label, value }) => (
                 <div key={value} className="flex items-center space-x-2">
                   <Checkbox
@@ -420,8 +470,8 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
               ))}
             </div>
           </div>
-          {/* Sticky buttons */}
-          <div className="sticky bottom-0 bg-white py-4 flex justify-end gap-2">
+
+          <div className="sticky bottom-0 bg-white pt-2 flex justify-end gap-2 border-t">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
