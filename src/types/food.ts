@@ -15,7 +15,14 @@ export type CategoryType =
   | "proteins"
   | "vegetables"
   | "milk";
-export type ServingSizeUnit = "g" | "ml" | "piece" | "cup" | "tbsp";
+export type ServingSizeUnit =
+  | "g"
+  | "ml"
+  | "piece"
+  | "cup"
+  | "tbsp"
+  | "oz"
+  | "tsp";
 
 export const MILK_OPTION: Food = {
   name: "1% Milk",
@@ -26,7 +33,8 @@ export const MILK_OPTION: Food = {
   servingSize: "1",
   servingSizeUnit: "cup",
   category: "milk",
-  imageUrl: "/milk.png", // Add appropriate image path
+  imageUrl: "/milk.png",
+  meal: ["breakfast", "lunch", "dinner"],
 };
 
 export interface Food {
@@ -38,6 +46,7 @@ export interface Food {
   servingSize: string;
   servingSizeUnit: ServingSizeUnit;
   category: CategoryType;
+  meal: MealType[]; // New field for meal compatibility
   imagePath?: string;
   imageUrl?: string;
   upc?: string;
@@ -51,6 +60,8 @@ export interface Food {
   };
   score?: string;
 }
+
+// ... rest of the file remains the same
 
 export interface SelectedFood extends Food {
   servings: number;
@@ -66,6 +77,7 @@ export interface MealSelection {
   proteins: SelectedFood | null;
   vegetables: SelectedFood | null;
   milk: SelectedFood | null;
+  ranch: SelectedFood | null; // Adding ranch to the MealSelection type
 }
 
 export interface DayMeals {

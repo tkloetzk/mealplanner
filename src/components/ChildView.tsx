@@ -44,6 +44,21 @@ export function ChildView({
     );
   }
 
+  const getCategoryEmoji = (category: CategoryType) => {
+    switch (category) {
+      case "fruits":
+        return "🍎";
+      case "vegetables":
+        return "🥕";
+      case "proteins":
+        return "🥚";
+      case "grains":
+        return "🥖";
+      default:
+        return "🍽️";
+    }
+  };
+
   // Add multiple border style options for each category
   const getCategoryStyles = (category: CategoryType) => {
     switch (category) {
@@ -79,104 +94,102 @@ export function ChildView({
       {/* Increased spacing between groups */}
       <div className="space-y-10">
         {(Object.entries(foodOptions) as [CategoryType, Food[]][]).map(
-          ([category, foods]) => (
-            <div key={category} className="relative animate-fade-in">
-              <div
-                className={`rounded-xl bg-white shadow-sm ${getCategoryStyles(
-                  category
-                )}`}
-              >
+          ([category, foods]) => {
+            // Filter foods based on the selected meal
+            const compatibleFoods = selectedMeal
+              ? foods.filter((food) => food.meal?.includes(selectedMeal))
+              : foods;
+
+            // Only render the category if it has compatible foods
+            if (compatibleFoods.length === 0) {
+              return null;
+            }
+            return (
+              <div key={category} className="relative animate-fade-in">
                 <div
-                  className={`px-6 py-3 border-b rounded-t-xl
-              ${
-                category === "fruits"
-                  ? "bg-red-50"
-                  : category === "vegetables"
-                  ? "bg-green-50"
-                  : category === "proteins"
-                  ? "bg-blue-50"
-                  : "bg-yellow-50"
-              }`}
+                  className={`rounded-xl bg-white shadow-sm ${getCategoryStyles(
+                    category
+                  )}`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">
-                      {category === "fruits"
-                        ? "🍎"
-                        : category === "vegetables"
-                        ? "🥕"
-                        : category === "proteins"
-                        ? "🥚"
-                        : category === "grains"
-                        ? "🥖"
-                        : "🍽️"}
-                    </span>
-                    <h3 className="text-xl font-semibold capitalize">
-                      Choose your {category}
-                    </h3>
+                  <div
+                    className={`px-6 py-3 border-b rounded-t-xl ${getCategoryStyles(
+                      category
+                    )}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">
+                        {getCategoryEmoji(category)}
+                      </span>
+                      <h3 className="text-xl font-semibold capitalize">
+                        Choose your {category}
+                      </h3>
+                    </div>
                   </div>
-                </div>
 
-                {/* Food grid with padding */}
-                <div className="p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {foods.map((food) => {
-                      const isSelected =
-                        selections?.[selectedDay]?.[selectedMeal]?.[category]
-                          ?.name === food.name;
-                      const imageSource = getImageSource(food);
+                  {/* Food grid with padding */}
+                  <div className="p-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {compatibleFoods.map((food) => {
+                        const isSelected =
+                          selections?.[selectedDay]?.[selectedMeal]?.[category]
+                            ?.name === food.name;
+                        const imageSource = getImageSource(food);
 
-                      return (
-                        <Card
-                          key={food.name}
-                          className={`relative cursor-pointer transition-transform hover:scale-105 
+                        return (
+                          <Card
+                            key={food.name}
+                            className={`relative cursor-pointer transition-transform hover:scale-105 
                         ${
                           isSelected
                             ? "ring-2 ring-green-500"
                             : "hover:shadow-md"
                         }`}
-                          onClick={() => onFoodSelect(category, food)}
-                        >
-                          <div className="aspect-square relative overflow-hidden rounded-t-lg">
-                            {imageSource ? (
-                              <img
-                                src={imageSource}
-                                alt={food.name}
-                                className="object-cover w-full h-full"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                <span className="text-4xl">
-                                  {category === "fruits"
-                                    ? "🍎"
-                                    : category === "vegetables"
-                                    ? "🥕"
-                                    : category === "proteins"
-                                    ? "🥚"
-                                    : category === "grains"
-                                    ? "🥖"
-                                    : "🍽️"}
-                                </span>
-                              </div>
-                            )}
-                            {isSelected && (
-                              <div className="absolute top-2 right-2 bg-green-500 rounded-full p-2">
-                                <Check className="w-5 h-5 text-white" />
-                              </div>
-                            )}
-                          </div>
+                            onClick={() => onFoodSelect(category, food)}
+                          >
+                            <div className="aspect-square relative overflow-hidden rounded-t-lg">
+                              {imageSource ? (
+                                <img
+                                  src={imageSource}
+                                  alt={food.name}
+                                  className="object-cover w-full h-full"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                  <span className="text-4xl">
+                                    {category === "fruits"
+                                      ? "🍎"
+                                      : category === "vegetables"
+                                      ? "🥕"
+                                      : category === "proteins"
+                                      ? "🥚"
+                                      : category === "grains"
+                                      ? "🥖"
+                                      : "🍽️"}
+                                  </span>
+                                </div>
+                              )}
+                              {isSelected && (
+                                <div className="absolute top-2 right-2 bg-green-500 rounded-full p-2">
+                                  <Check className="w-5 h-5 text-white" />
+                                </div>
+                              )}
+                            </div>
 
-                          {/* Food Info */}
-                          <div className="p-3 text-center">
-                            <h3 className="font-medium text-lg">{food.name}</h3>
-                          </div>
-                        </Card>
-                      );
-                    })}
+                            {/* Food Info */}
+                            <div className="p-3 text-center">
+                              <h3 className="font-medium text-lg">
+                                {food.name}
+                              </h3>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )
+            );
+          }
         )}
       </div>
     </div>

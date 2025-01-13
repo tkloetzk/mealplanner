@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -10,10 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Camera, AlertCircle } from "lucide-react";
-import { Food, CategoryType, ServingSizeUnit } from "@/types/food";
+import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { ImageCapture } from "./ImageCapture";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+
 interface FoodEditorProps {
   onSave: (food: Food) => void;
   onCancel: () => void;
@@ -27,9 +30,16 @@ const CALORIES_PER_FAT = 9;
 const MAX_CALORIES_PER_SERVING = 1000;
 const MIN_CALORIES_PER_SERVING = 0;
 
+const MEAL_TYPES: { label: string; value: MealType }[] = [
+  { label: "Breakfast", value: "breakfast" },
+  { label: "Lunch", value: "lunch" },
+  { label: "Dinner", value: "dinner" },
+  { label: "Snack", value: "snack" },
+];
+
 export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
   const [isScanning, setIsScanning] = useState(false);
-  const [manualUPC, setManualUPC] = useState(""); // State for manual UPC entry
+  const [manualUPC, setManualUPC] = useState("");
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
   const [food, setFood] = useState<Partial<Food>>(
     initialFood || {
@@ -41,9 +51,25 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
       servingSize: "1",
       servingSizeUnit: "g",
       category: "proteins",
+      meal: [], // Initialize empty meal compatibility array
     }
   );
   const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const handleMealCompatibilityChange = (mealType: MealType) => {
+    setFood((prev) => {
+      const currentCompatibility = prev.meal || [];
+      const newCompatibility = currentCompatibility.includes(mealType)
+        ? currentCompatibility.filter((meal) => meal !== mealType)
+        : [...currentCompatibility, mealType];
+
+      return {
+        ...prev,
+        meal: newCompatibility,
+      };
+    });
+  };
 
   const handleUPC = async (upc: string) => {
     if (!upc || typeof upc !== "string") {
@@ -103,7 +129,6 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
       setLoading(false);
     }
   };
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const validateNutrition = (foodData: Partial<Food>): string[] => {
     const errors: string[] = [];
@@ -138,6 +163,11 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
       errors.push("Serving size must be greater than 0");
     }
 
+    // Validate meal compatibility
+    if (!foodData.meal?.length) {
+      errors.push("Select at least one compatible meal type");
+    }
+
     return errors;
   };
 
@@ -146,14 +176,18 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
     const errors = validateNutrition(food);
     setValidationErrors(errors);
 
-    // if (errors.length === 0 && isValidFood(food)) {
-    console.log(food);
-    onSave(food as Food);
-    //}
+    if (errors.length === 0 && isValidFood(food)) {
+      onSave(food as Food);
+    }
   };
 
   const isValidFood = (food: Partial<Food>): food is Food => {
-    return !!(food.name && food.calories !== undefined && food.category);
+    return !!(
+      food.name &&
+      food.calories !== undefined &&
+      food.category &&
+      food.meal?.length
+    );
   };
 
   return (
@@ -366,6 +400,26 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Compatible Meals</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {MEAL_TYPES.map(({ label, value }) => (
+                <div key={value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`meal-${value}`}
+                    checked={food.meal?.includes(value)}
+                    onCheckedChange={() => handleMealCompatibilityChange(value)}
+                  />
+                  <Label
+                    htmlFor={`meal-${value}`}
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    {label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
           {/* Sticky buttons */}
           <div className="sticky bottom-0 bg-white py-4 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>

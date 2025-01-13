@@ -25,9 +25,15 @@ import { ViewToggle } from "./ViewToggle";
 import { MilkToggle } from "./MilkToggle";
 import { FoodEditor } from "./FoodEditor";
 import { CompactNutritionProgress } from "./CompactNutritionProgress";
-import { DAYS_OF_WEEK, DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
+import {
+  DAYS_OF_WEEK,
+  DEFAULT_MEAL_PLAN,
+  defaultObj,
+} from "@/constants/meal-goals";
 import { KidSelector } from "./KidSelector";
 import { FavoriteMeal, FavoriteMeals } from "./FavoriteMeals";
+import { RANCH_OPTION, RanchToggle } from "./RanchToggle";
+import { NutritionSummary } from "./NutritionSummary";
 
 const MEAL_CALORIE_TARGET = {
   breakfast: 400,
@@ -57,34 +63,10 @@ const getCurrentDay = (): DayType => {
 const createEmptyMealPlan = (): MealPlan => {
   return DAYS_OF_WEEK.reduce((plan, day) => {
     plan[day] = {
-      breakfast: {
-        grains: null,
-        fruits: null,
-        proteins: null,
-        vegetables: null,
-        milk: null,
-      },
-      lunch: {
-        grains: null,
-        fruits: null,
-        proteins: null,
-        vegetables: null,
-        milk: null,
-      },
-      dinner: {
-        grains: null,
-        fruits: null,
-        proteins: null,
-        vegetables: null,
-        milk: null,
-      },
-      snack: {
-        grains: null,
-        fruits: null,
-        proteins: null,
-        vegetables: null,
-        milk: null,
-      },
+      breakfast: defaultObj,
+      lunch: defaultObj,
+      dinner: defaultObj,
+      snack: defaultObj,
     };
     return plan;
   }, {} as MealPlan);
@@ -110,6 +92,14 @@ export function MealPlanner() {
   });
   const [showFoodEditor, setShowFoodEditor] = useState(false);
   const [selectedKid, setSelectedKid] = useState<string | null>("1");
+  const [includesRanch, setIncludesRanch] = useState<
+    Record<MealType, { has: boolean; servings: number }>
+  >({
+    breakfast: { has: false, servings: 1 },
+    lunch: { has: false, servings: 1 },
+    dinner: { has: false, servings: 1 },
+    snack: { has: false, servings: 1 },
+  });
   const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
   const [kids] = useState<Kid[]>([
     { id: "1", name: "Presley" },
@@ -145,6 +135,7 @@ export function MealPlanner() {
 
         if (!foodsRes.ok) throw new Error("Failed to fetch foods");
         const foods = await foodsRes.json();
+
         setFoodOptions(foods);
 
         if (mealPlanRes.ok && historyRes.ok) {
@@ -185,31 +176,6 @@ export function MealPlanner() {
     setFavoriteMeals((prev) => [...prev, newFavorite]);
   };
 
-  const calculateMealNutrition = (
-    meal: MealType,
-    day: DayType = selectedDay
-  ) => {
-    if (!selectedKid || !selections[selectedKid]) {
-      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    }
-
-    const mealSelections = selections[selectedKid][day][meal];
-    if (!mealSelections) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-
-    return Object.values(mealSelections).reduce(
-      (sum, item) => {
-        if (!item) return sum;
-        return {
-          calories: sum.calories + (item.adjustedCalories || item.calories),
-          protein: sum.protein + (item.adjustedProtein || item.protein),
-          carbs: sum.carbs + (item.adjustedCarbs || item.carbs),
-          fat: sum.fat + (item.adjustedFat || item.fat),
-        };
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-  };
-
   const handleSaveFood = async (food: Food) => {
     try {
       const response = await fetch("/api/foods", {
@@ -225,6 +191,46 @@ export function MealPlanner() {
     } catch (error) {
       console.error("Error saving food:", error);
     }
+  };
+
+  const handleRanchToggle = (
+    mealType: MealType,
+    value: boolean,
+    servings: number
+  ) => {
+    if (!selectedKid || !selectedDay) return;
+
+    setIncludesRanch((prev) => ({
+      ...prev,
+      [mealType]: { has: value, servings },
+    }));
+
+    // Update selections to include/remove ranch
+    setSelections((prev) => {
+      const newSelections = { ...prev };
+      if (!newSelections[selectedKid]) {
+        newSelections[selectedKid] = createEmptyMealPlan();
+      }
+
+      try {
+        if (value) {
+          newSelections[selectedKid][selectedDay][mealType].ranch = {
+            ...RANCH_OPTION,
+            servings,
+            adjustedCalories: RANCH_OPTION.calories * servings,
+            adjustedProtein: RANCH_OPTION.protein * servings,
+            adjustedCarbs: RANCH_OPTION.carbs * servings,
+            adjustedFat: RANCH_OPTION.fat * servings,
+          };
+        } else {
+          newSelections[selectedKid][selectedDay][mealType].ranch = null;
+        }
+        return newSelections;
+      } catch (error) {
+        console.error("Error in handleRanchToggle:", error);
+        return prev;
+      }
+    });
   };
 
   const handleFoodSelect = (
@@ -352,26 +358,55 @@ export function MealPlanner() {
   //   }
   // };
 
-  const calculateDailyTotals = (): {
-    calories: number;
-    protein: number;
-    fat: number;
-  } => {
-    return Object.values(selections[selectedDay]).reduce(
-      (totals, meal) => {
-        Object.values(meal as Record<string, SelectedFood | null>).forEach(
-          (food) => {
-            if (food) {
-              // Check for null or undefined
-              totals.calories += food.adjustedCalories || food.calories;
-              totals.protein += food.adjustedProtein || food.protein;
-              totals.fat += food.adjustedFat || food.fat;
-            }
+  const calculateDailyTotals = () => {
+    if (
+      !selectedKid ||
+      !selectedDay ||
+      !selections[selectedKid]?.[selectedDay]
+    ) {
+      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    }
+
+    const daySelections = selections[selectedKid][selectedDay];
+    return Object.values(daySelections).reduce(
+      (totals, mealSelections) => {
+        if (!mealSelections) return totals;
+
+        Object.values(mealSelections).forEach((food) => {
+          if (food) {
+            totals.calories += food.adjustedCalories || food.calories;
+            totals.protein += food.adjustedProtein || food.protein;
+            totals.carbs += food.adjustedCarbs || food.carbs;
+            totals.fat += food.adjustedFat || food.fat;
           }
-        );
+        });
         return totals;
       },
-      { calories: 0, protein: 0, fat: 0 }
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+  };
+
+  const calculateMealNutrition = (meal: MealType) => {
+    if (
+      !selectedKid ||
+      !selectedDay ||
+      !selections[selectedKid]?.[selectedDay]?.[meal]
+    ) {
+      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    }
+
+    const mealSelections = selections[selectedKid][selectedDay][meal];
+    return Object.values(mealSelections).reduce(
+      (sum, item) => {
+        if (!item) return sum;
+        return {
+          calories: sum.calories + (item.adjustedCalories || item.calories),
+          protein: sum.protein + (item.adjustedProtein || item.protein),
+          carbs: sum.carbs + (item.adjustedCarbs || item.carbs),
+          fat: sum.fat + (item.adjustedFat || item.fat),
+        };
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
   };
   const handleServingConfirm = (
@@ -565,27 +600,12 @@ export function MealPlanner() {
             {selectedMeal && (
               <>
                 {/* Nutrition Summary */}
-                <Card className="mb-6">
-                  <CardContent className="p-4">
-                    <h3 className="text-lg font-semibold mb-3">
-                      Nutrition Summary
-                    </h3>
-                    <div className="grid grid-cols-4 gap-4">
-                      {Object.entries(calculateMealNutrition(selectedMeal)).map(
-                        ([nutrient, value]) => (
-                          <div key={nutrient} className="text-center">
-                            <div className="text-2xl font-bold">
-                              {Math.round(value)}
-                            </div>
-                            <div className="text-sm text-gray-600 capitalize">
-                              {nutrient}
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+
+                <NutritionSummary
+                  mealNutrition={calculateMealNutrition(selectedMeal)}
+                  dailyNutrition={calculateDailyTotals()}
+                  selectedMeal={selectedMeal}
+                />
 
                 {/* Meal Suggestion */}
                 {getMealSuggestion() && (
@@ -629,6 +649,17 @@ export function MealPlanner() {
                     />
                   </div>
                 )}
+                {selectedMeal && (
+                  <div className="mb-6">
+                    <RanchToggle
+                      isSelected={includesRanch[selectedMeal].has}
+                      servings={includesRanch[selectedMeal].servings}
+                      onChange={(value, servings) =>
+                        handleRanchToggle(selectedMeal, value, servings)
+                      }
+                    />
+                  </div>
+                )}
                 <div className="fixed right-4 bottom-20 z-50">
                   <Button
                     onClick={() => setShowFoodEditor(true)}
@@ -647,97 +678,115 @@ export function MealPlanner() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-14">
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
-                  ).map(([category, foods]) => (
-                    <Card key={category}>
-                      <CardContent className="p-4">
-                        <h3 className="text-lg font-semibold capitalize mb-3">
-                          {category}
-                        </h3>
-                        <div className="space-y-2">
-                          {foods.map((food) => {
-                            const selectedFoodInCategory =
-                              selections[selectedKid]?.[selectedDay]?.[
-                                selectedMeal
-                              ]?.[category];
-                            const isSelected =
-                              selectedFoodInCategory?.name === food.name;
+                  ).map(([category, foods]) => {
+                    // Filter foods based on the selected meal
+                    const compatibleFoods = selectedMeal
+                      ? foods.filter((food) =>
+                          food.meal?.includes(selectedMeal)
+                        )
+                      : foods;
 
-                            return (
-                              <div
-                                key={food.name}
-                                className="relative flex flex-col"
-                              >
-                                <button
-                                  onClick={() =>
-                                    handleFoodSelect(
-                                      selectedKid,
-                                      category,
-                                      food
-                                    )
-                                  }
-                                  className={`w-full p-2 text-left rounded hover:bg-gray-100 ${
-                                    isSelected ? "bg-blue-100" : ""
-                                  }`}
+                    // Only render the category if it has compatible foods
+                    if (compatibleFoods.length === 0) {
+                      return null;
+                    }
+
+                    return (
+                      <Card key={category}>
+                        <CardContent className="p-4">
+                          <h3 className="text-lg font-semibold capitalize mb-3">
+                            {category}
+                          </h3>
+                          <div className="space-y-2">
+                            {compatibleFoods.map((food) => {
+                              const selectedFoodInCategory =
+                                selections[selectedKid]?.[selectedDay]?.[
+                                  selectedMeal
+                                ]?.[category];
+                              const isSelected =
+                                selectedFoodInCategory?.name === food.name;
+
+                              return (
+                                <div
+                                  key={food.name}
+                                  className="relative flex flex-col"
                                 >
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <div>{food.name}</div>
-                                      <div className="text-sm text-gray-600">
-                                        {food.servingSize}{" "}
-                                        {food.servingSizeUnit}
+                                  <button
+                                    onClick={() =>
+                                      handleFoodSelect(
+                                        selectedKid,
+                                        category,
+                                        food
+                                      )
+                                    }
+                                    className={`w-full p-2 text-left rounded hover:bg-gray-100 ${
+                                      isSelected ? "bg-blue-100" : ""
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <div>{food.name}</div>
+                                        <div className="text-sm text-gray-600">
+                                          {food.servingSize}{" "}
+                                          {food.servingSizeUnit}
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div>{food.calories} cal</div>
+                                        <div className="text-sm text-gray-600">
+                                          P: {food.protein}g | C: {food.carbs}g
+                                          | F: {food.fat}g
+                                        </div>
                                       </div>
                                     </div>
-                                    <div className="text-right">
-                                      <div>{food.calories} cal</div>
-                                      <div className="text-sm text-gray-600">
-                                        P: {food.protein}g | C: {food.carbs}g |
-                                        F: {food.fat}g
+                                    {isSelected && selectedFoodInCategory && (
+                                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
+                                        <div className="text-sm text-blue-600">
+                                          {selectedFoodInCategory.servings}{" "}
+                                          serving(s) •{" "}
+                                          {Math.round(
+                                            selectedFoodInCategory.adjustedCalories
+                                          )}{" "}
+                                          cal total
+                                        </div>
+                                        <div
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleServingClick(
+                                              e,
+                                              category,
+                                              food
+                                            );
+                                          }}
+                                          className="p-1 rounded hover:bg-blue-200 transition-colors"
+                                          title="Adjust serving size"
+                                        >
+                                          <Sliders className="h-4 w-4 text-blue-600" />
+                                        </div>
                                       </div>
-                                    </div>
-                                  </div>
-                                  {isSelected && selectedFoodInCategory && (
-                                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-                                      <div className="text-sm text-blue-600">
-                                        {selectedFoodInCategory.servings}{" "}
-                                        serving(s) •{" "}
-                                        {Math.round(
-                                          selectedFoodInCategory.adjustedCalories
-                                        )}{" "}
-                                        cal total
-                                      </div>
-                                      <div
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleServingClick(e, category, food);
-                                        }}
-                                        className="p-1 rounded hover:bg-blue-200 transition-colors"
-                                        title="Adjust serving size"
-                                      >
-                                        <Sliders className="h-4 w-4 text-blue-600" />
-                                      </div>
-                                    </div>
-                                  )}
-                                </button>
-                              </div>
-                            );
-                          })}{" "}
-                          <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-                            <CompactNutritionProgress
-                              currentCalories={
-                                selectedMeal
-                                  ? calculateMealNutrition(selectedMeal)
-                                      .calories
-                                  : calculateDailyTotals().calories
-                              }
-                              currentProtein={calculateDailyTotals().protein}
-                              currentFat={calculateDailyTotals().fat}
-                              selectedMeal={selectedMeal}
-                            />
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })}{" "}
+                            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+                              <CompactNutritionProgress
+                                currentCalories={
+                                  selectedMeal
+                                    ? calculateMealNutrition(selectedMeal)
+                                        .calories
+                                    : calculateDailyTotals().calories
+                                }
+                                currentProtein={calculateDailyTotals().protein}
+                                currentFat={calculateDailyTotals().fat}
+                                selectedMeal={selectedMeal}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </>
             )}

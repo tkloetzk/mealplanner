@@ -36,6 +36,7 @@ export const defaultObj = {
   proteins: null,
   vegetables: null,
   milk: null,
+  ranch: null,
 };
 
 export const DEFAULT_MEAL_PLAN: MealPlan = DAYS_OF_WEEK.reduce((plan, day) => {
