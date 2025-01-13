@@ -121,7 +121,7 @@ export function ChildView({
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {foods.map((food) => {
                       const isSelected =
-                        selections[selectedDay][selectedMeal][category]
+                        selections?.[selectedDay]?.[selectedMeal]?.[category]
                           ?.name === food.name;
                       const imageSource = getImageSource(food);
 

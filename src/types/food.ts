@@ -41,6 +41,15 @@ export interface Food {
   imagePath?: string;
   imageUrl?: string;
   upc?: string;
+  ingredients?: string;
+  novaGroup?: number;
+  nutrientLevels?: {
+    fat: string;
+    salt: string;
+    ["saturated-fat"]: string;
+    sugars: string;
+  };
+  score?: string;
 }
 
 export interface SelectedFood extends Food {

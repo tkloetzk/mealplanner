@@ -15,9 +15,10 @@ import {
   MealPlan,
   MealHistoryEntry,
   // MealSelection,
-  NutritionSummary,
+  // NutritionSummary,
   MILK_OPTION,
   // DailyGoals,
+  MealSelection,
 } from "@/types/food";
 import { ChildView } from "./ChildView";
 import { ViewToggle } from "./ViewToggle";
@@ -26,6 +27,7 @@ import { FoodEditor } from "./FoodEditor";
 import { CompactNutritionProgress } from "./CompactNutritionProgress";
 import { DAYS_OF_WEEK, DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 import { KidSelector } from "./KidSelector";
+import { FavoriteMeal, FavoriteMeals } from "./FavoriteMeals";
 
 const MEAL_CALORIE_TARGET = {
   breakfast: 400,
@@ -100,11 +102,15 @@ export function MealPlanner() {
   const [selectedDay, setSelectedDay] = useState<DayType>(getCurrentDay());
   const [selections, setSelections] =
     useState<Record<string, MealPlan>>(initialSelections);
-  const [mealHistory, setMealHistory] = useState<MealHistoryEntry[]>([]);
-  const [pantry, setPantry] = useState([]);
+  const [mealHistory, setMealHistory] = useState<
+    Record<string, MealHistoryEntry[]>
+  >({
+    "1": [],
+    "2": [],
+  });
   const [showFoodEditor, setShowFoodEditor] = useState(false);
-  const [output, setOutput] = useState("This is a nextjs project.");
-  const [selectedKid, setSelectedKid] = useState<string | null>(null);
+  const [selectedKid, setSelectedKid] = useState<string | null>("1");
+  const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
   const [kids] = useState<Kid[]>([
     { id: "1", name: "Presley" },
     { id: "2", name: "Evy" },
@@ -128,44 +134,6 @@ export function MealPlanner() {
     milk: [],
   });
 
-  const prompt = "Can you evaluate this meal for a 5 year old girl?";
-
-  // Define an asynchronous function to send POST request to our api
-  const generateText = async () => {
-    try {
-      const test =
-        "Would you consider this healthy or unhealthy? Keep response simple and short. : " +
-        getSelectedFoods()?.map(
-          (meal) =>
-            `${meal.name} which has ${meal.adjustedCalories} calories, ${meal.adjustedCarbs} grams of carbs, ${meal.adjustedFat} grams of fat, and ${meal.adjustedProtein} grams of protein. `
-        );
-      console.log(test);
-      // use the fetch method to send an http request to /api/generate endpoint
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ body: prompt + " " + test }),
-      });
-
-      // Waits for the response to be converted to JSON format and stores it in the data variable
-      const data = await response.json();
-
-      //  If successful, updates the output state with the output field from the response data
-      if (response.ok) {
-        console.log(data.output);
-        setOutput(data.output);
-      } else {
-        setOutput(data.error);
-      }
-
-      // Catches any errors that occur during the fetch request
-    } catch (error) {
-      console.error("Error:", error);
-    }
-  };
-
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -187,8 +155,10 @@ export function MealPlanner() {
           console.log(mealPlan, mealPlan || DEFAULT_MEAL_PLAN);
 
           setSelections(mealPlan || DEFAULT_MEAL_PLAN);
-          setMealHistory(history || []);
-          setPantry(foods);
+          setMealHistory({
+            "1": history?.["1"] || [],
+            "2": history?.["2"] || [],
+          });
         }
       } catch (error) {
         console.error("Error loading data:", error);
@@ -200,16 +170,19 @@ export function MealPlanner() {
     loadData();
   }, []);
 
-  const getSelectedFoods = () => {
-    if (!selectedDay || !selectedMeal) return null;
-
-    const mealSelections = selections[selectedDay][selectedMeal];
-    return Object.entries(mealSelections)
-      .filter(([_, food]) => food !== null) // Filter out unselected categories
-      .map(([category, food]) => ({
-        category,
-        ...food,
-      }));
+  const handleSaveFavorite = (
+    name: string,
+    mealType: MealType,
+    selections: MealSelection
+  ) => {
+    const newFavorite: FavoriteMeal = {
+      id: crypto.randomUUID(),
+      kidId: selectedKid!,
+      name,
+      mealType,
+      selections,
+    };
+    setFavoriteMeals((prev) => [...prev, newFavorite]);
   };
 
   const calculateMealNutrition = (
@@ -405,11 +378,14 @@ export function MealPlanner() {
     category: CategoryType,
     adjustedFood: SelectedFood
   ) => {
-    if (!selectedMeal || !selectedDay) return;
+    if (!selectedMeal || !selectedDay || !selectedKid) return;
 
-    const newSelections = { ...selections };
-    newSelections[selectedDay][selectedMeal][category] = adjustedFood;
-    setSelections(newSelections);
+    setSelections((prev) => {
+      const newSelections = { ...prev };
+      newSelections[selectedKid][selectedDay][selectedMeal][category] =
+        adjustedFood;
+      return newSelections;
+    });
     setSelectedFood(null);
   };
 
@@ -510,7 +486,6 @@ export function MealPlanner() {
         selectedKid={selectedKid}
         onSelect={setSelectedKid}
       />
-      <button onClick={generateText}>AI: {output}</button>
 
       {!selectedKid ? (
         <div className="text-center py-12 text-gray-500">
@@ -552,7 +527,6 @@ export function MealPlanner() {
                 </button>
               ))}
             </div>
-
             {/* Meal Selection */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {(["breakfast", "lunch", "dinner", "snack"] as MealType[]).map(
@@ -571,7 +545,23 @@ export function MealPlanner() {
                 )
               )}
             </div>
-
+            {selectedMeal && selectedKid && (
+              <FavoriteMeals
+                kidId={selectedKid}
+                currentMeal={selectedMeal}
+                currentSelections={
+                  selections[selectedKid]?.[selectedDay]?.[selectedMeal]
+                }
+                favorites={favoriteMeals}
+                onSaveFavorite={handleSaveFavorite}
+                onSelectFavorite={(selections) => {
+                  const newSelections = { ...selections };
+                  newSelections[selectedKid][selectedDay][selectedMeal] =
+                    selections;
+                  setSelections(newSelections);
+                }}
+              />
+            )}
             {selectedMeal && (
               <>
                 {/* Nutrition Summary */}
@@ -705,14 +695,13 @@ export function MealPlanner() {
                                       </div>
                                     </div>
                                   </div>
-                                  {isSelected && (
+                                  {isSelected && selectedFoodInCategory && (
                                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
                                       <div className="text-sm text-blue-600">
-                                        {selectedFoodInCategory.servings || 1}{" "}
+                                        {selectedFoodInCategory.servings}{" "}
                                         serving(s) •{" "}
                                         {Math.round(
-                                          selectedFoodInCategory.adjustedCalories ||
-                                            food.calories
+                                          selectedFoodInCategory.adjustedCalories
                                         )}{" "}
                                         cal total
                                       </div>
@@ -786,40 +775,45 @@ export function MealPlanner() {
 
           <TabsContent value="history">
             <div className="space-y-4">
-              {mealHistory.map((entry, index) => (
-                <Card key={index} className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold capitalize">
-                      {entry.meal} - {new Date(entry.date).toLocaleDateString()}
+              {selectedKid &&
+                Array.isArray(mealHistory[selectedKid]) &&
+                mealHistory[selectedKid].map((entry, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-semibold capitalize">
+                        {entry.meal} -{" "}
+                        {new Date(entry.date).toLocaleDateString()}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedMeal) {
+                            const newSelections = { ...selections };
+                            newSelections[selectedKid][selectedDay][
+                              selectedMeal
+                            ] = {
+                              ...entry.selections,
+                            };
+                            setSelections(newSelections);
+                          }
+                        }}
+                      >
+                        Use Again
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (selectedMeal) {
-                          const newSelections = { ...selections };
-                          newSelections[selectedDay][selectedMeal] = {
-                            ...entry.selections,
-                          };
-                          setSelections(newSelections);
-                        }
-                      }}
-                    >
-                      Use Again
-                    </Button>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {Object.entries(entry.selections)
-                      .filter(([, food]) => food)
-                      .map(([category, food]) => (
-                        <div key={category}>
-                          {food?.name} (
-                          {Math.round(food?.adjustedCalories || 0)} cal)
-                        </div>
-                      ))}
-                  </div>
-                </Card>
-              ))}
+                    <div className="text-sm text-gray-600">
+                      {Object.entries(entry.selections)
+                        .filter(([, food]) => food)
+                        .map(([category, food]) => (
+                          <div key={category}>
+                            {food?.name} (
+                            {Math.round(food?.adjustedCalories || 0)} cal)
+                          </div>
+                        ))}
+                    </div>
+                  </Card>
+                ))}
             </div>
           </TabsContent>
         </Tabs>

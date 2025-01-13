@@ -146,9 +146,10 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
     const errors = validateNutrition(food);
     setValidationErrors(errors);
 
-    if (errors.length === 0 && isValidFood(food)) {
-      onSave(food as Food);
-    }
+    // if (errors.length === 0 && isValidFood(food)) {
+    console.log(food);
+    onSave(food as Food);
+    //}
   };
 
   const isValidFood = (food: Partial<Food>): food is Food => {
@@ -282,6 +283,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             </div>
           </div>
 
+          {food?.score && <div>{food.score}</div>}
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">

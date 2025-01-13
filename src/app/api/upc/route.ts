@@ -1,3 +1,4 @@
+import { calculateNutriScore } from "@/app/utils/nutriscoreCalculator";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -40,6 +41,12 @@ export async function GET(request: Request) {
 
     if (data.status === 1) {
       const product = data.product;
+
+      let score = product.nutriscore_grade;
+      if (score === "unknown") {
+        score = calculateNutriScore(product.nutriscore);
+      }
+
       return NextResponse.json({
         name: product.product_name,
         calories: product.nutriments["energy-kcal"],
@@ -50,6 +57,10 @@ export async function GET(request: Request) {
         servingSizeUnit: product.serving_quantity_unit,
         upc: data.code,
         imageUrl: product.image_front_thumb_url,
+        ingredients: product.ingredients_text,
+        novaGroup: product.nova_group,
+        nutrientLevels: product.nutrient_levels,
+        score,
       });
     } else {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
