@@ -7,13 +7,24 @@ import { useState } from "react";
 
 export const RANCH_OPTION = {
   name: "Ranch Dressing",
-  calories: 63,
-  protein: 0.4,
-  carbs: 1.5,
-  fat: 6.6,
+  calories: 65,
+  protein: 0,
+  carbs: 0.5,
+  fat: 6.5,
   servingSize: "1",
   servingSizeUnit: "tbsp",
   category: "condiments" as const,
+  score: "e",
+  upc: "071100005509",
+  novaGroup: 4,
+  nutrientLevels: {
+    fat: "high",
+    salt: "high",
+    "saturated-fat": "high",
+    sugars: "low",
+  },
+  ingredients:
+    "vegetable oil (soybean and/or canola), water, sugar, salt, nonfat buttermilk, egg yolk, natural flavors, less than 1% of: spices, garlic*, onion*, vinegar, phosphoric acid, xanthan gum, modified food starch, monosodium glutamate, artificial flavors, disodium phosphate, sorbic acid and calcium disodium edta added to preserve freshness, disodium inosinate , guanylate,",
 };
 
 interface RanchToggleProps {

@@ -61,6 +61,7 @@ export async function GET(request: Request) {
         novaGroup: product.nova_group,
         nutrientLevels: product.nutrient_levels,
         score,
+        additives: product.additives_tags,
       });
     } else {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
