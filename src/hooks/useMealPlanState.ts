@@ -10,6 +10,7 @@ import {
 } from "@/types/food";
 import {
   DEFAULT_MEAL_PLAN,
+  defaultObj,
   MILK_OPTION,
   RANCH_OPTION,
 } from "@/constants/meal-goals";
@@ -50,6 +51,11 @@ const getCurrentDay = (): DayType => {
   return DAYS[new Date().getDay()];
 };
 
+// Deep clone utility function
+const deepClone = <T>(obj: T): T => {
+  return JSON.parse(JSON.stringify(obj));
+};
+
 // Utility function to create a deep clone of the default meal plan
 const createInitialMealPlan = (
   initialKids: Kid[]
@@ -58,7 +64,7 @@ const createInitialMealPlan = (
     throw new Error("At least one kid is required to initialize meal plan");
   }
   return initialKids.reduce<Record<string, MealPlan>>((acc, kid) => {
-    acc[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
+    acc[kid.id] = deepClone(DEFAULT_MEAL_PLAN);
     return acc;
   }, {});
 };
@@ -83,7 +89,7 @@ export function useMealPlanState(initialKids: Kid[]) {
     // Ensure all kids have a meal plan
     initialKids.forEach((kid) => {
       if (!savedSelections[kid.id]) {
-        savedSelections[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
+        savedSelections[kid.id] = deepClone(DEFAULT_MEAL_PLAN);
       }
     });
 
@@ -164,61 +170,44 @@ export function useMealPlanState(initialKids: Kid[]) {
   // Advanced food selection method with comprehensive validation
   const handleFoodSelect = useCallback(
     (category: CategoryType, food: Food) => {
-      // Validate selection context
       if (!selectedMeal || !selectedDay || !selectedKid) {
-        console.warn("Incomplete selection context", {
-          meal: selectedMeal,
-          day: selectedDay,
-          kid: selectedKid,
-        });
-        return;
-      }
-
-      // Validate food compatibility with selected meal
-      if (!food.meal.includes(selectedMeal)) {
-        console.warn(
-          `Food ${food.name} is not compatible with ${selectedMeal}`
-        );
         return;
       }
 
       setSelections((prev) => {
-        // Create a deep copy of previous selections
-        const newSelections = structuredClone(prev);
+        const newSelections = { ...prev };
 
-        // Ensure kid's meal plan exists
+        // Initialize structure if it doesn't exist
         if (!newSelections[selectedKid]) {
-          newSelections[selectedKid] = structuredClone(DEFAULT_MEAL_PLAN);
+          newSelections[selectedKid] = deepClone(DEFAULT_MEAL_PLAN);
         }
 
-        // Get current selection for the specific category
-        const currentSelection =
-          newSelections[selectedKid][selectedDay][selectedMeal][category];
+        // Create the selection
+        const foodSelection = {
+          ...food,
+          servings: 1,
+          adjustedCalories: food.calories,
+          adjustedProtein: food.protein,
+          adjustedCarbs: food.carbs,
+          adjustedFat: food.fat,
+        };
 
-        // Determine new food selection (toggle logic)
-        const newFoodSelection =
-          currentSelection?.name === food.name
-            ? null
-            : {
-                ...food,
-                servings: 1,
-                adjustedCalories: food.calories,
-                adjustedProtein: food.protein,
-                adjustedCarbs: food.carbs,
-                adjustedFat: food.fat,
-              };
+        // Ensure all nested objects exist and set the food
+        newSelections[selectedKid][selectedDay] = {
+          ...deepClone(DEFAULT_MEAL_PLAN[selectedDay]),
+          ...newSelections[selectedKid][selectedDay],
+        };
 
-        // Update the specific selection
-        newSelections[selectedKid][selectedDay][selectedMeal][category] =
-          newFoodSelection;
+        newSelections[selectedKid][selectedDay][selectedMeal] = {
+          ...deepClone(defaultObj),
+          ...newSelections[selectedKid][selectedDay][selectedMeal],
+          [category]: foodSelection,
+        };
 
         return newSelections;
       });
-
-      // Optionally add to meal history
-      addToMealHistory(food);
     },
-    [selectedMeal, selectedDay, selectedKid, addToMealHistory]
+    [selectedKid, selectedDay, selectedMeal]
   );
 
   // Serving adjustment method
@@ -227,7 +216,7 @@ export function useMealPlanState(initialKids: Kid[]) {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
 
       setSelections((prev) => {
-        const newSelections = structuredClone(prev);
+        const newSelections = deepClone(prev);
 
         if (adjustedFood && adjustedFood.servings > 0) {
           newSelections[selectedKid][selectedDay][selectedMeal][category] = {
@@ -248,11 +237,7 @@ export function useMealPlanState(initialKids: Kid[]) {
   // Memoized nutrition calculation methods
   const calculateMealNutrition = useCallback(
     (meal: MealType) => {
-      if (
-        !selectedKid ||
-        !selectedDay ||
-        !selections[selectedKid]?.[selectedDay]?.[meal]
-      ) {
+      if (!selectedKid || !selectedDay || !meal) {
         return {
           calories: 0,
           protein: 0,
@@ -261,16 +246,34 @@ export function useMealPlanState(initialKids: Kid[]) {
         };
       }
 
-      const mealSelections = selections[selectedKid][selectedDay][meal];
+      const mealSelections = selections[selectedKid]?.[selectedDay]?.[meal];
+
+      if (!mealSelections) {
+        return {
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+        };
+      }
+
       return Object.values(mealSelections).reduce(
-        (sum, item) => {
-          if (!item) return sum;
+        (sum, food) => {
+          if (!food) return sum;
+
+          // Use adjusted values if they exist, otherwise use base values
+          const calories =
+            food.adjustedCalories ?? food.calories * (food.servings ?? 1);
+          const protein =
+            food.adjustedProtein ?? food.protein * (food.servings ?? 1);
+          const carbs = food.adjustedCarbs ?? food.carbs * (food.servings ?? 1);
+          const fat = food.adjustedFat ?? food.fat * (food.servings ?? 1);
+
           return {
-            calories:
-              sum.calories + (item.adjustedCalories ?? item.calories ?? 0),
-            protein: sum.protein + (item.adjustedProtein ?? item.protein ?? 0),
-            carbs: sum.carbs + (item.adjustedCarbs ?? item.carbs ?? 0),
-            fat: sum.fat + (item.adjustedFat ?? item.fat ?? 0),
+            calories: sum.calories + calories,
+            protein: sum.protein + protein,
+            carbs: sum.carbs + carbs,
+            fat: sum.fat + fat,
           };
         },
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -321,11 +324,11 @@ export function useMealPlanState(initialKids: Kid[]) {
       if (!selectedKid || !selectedDay) return;
 
       setSelections((prev) => {
-        const newSelections = structuredClone(prev);
+        const newSelections = deepClone(prev);
 
         // Ensure kid's meal plan exists
         if (!newSelections[selectedKid]) {
-          newSelections[selectedKid] = structuredClone(DEFAULT_MEAL_PLAN);
+          newSelections[selectedKid] = deepClone(DEFAULT_MEAL_PLAN);
         }
 
         // Toggle milk
@@ -355,11 +358,11 @@ export function useMealPlanState(initialKids: Kid[]) {
       if (!selectedKid || !selectedDay) return;
 
       setSelections((prev) => {
-        const newSelections = structuredClone(prev);
+        const newSelections = deepClone(prev);
 
         // Ensure kid's meal plan exists
         if (!newSelections[selectedKid]) {
-          newSelections[selectedKid] = structuredClone(DEFAULT_MEAL_PLAN);
+          newSelections[selectedKid] = deepClone(DEFAULT_MEAL_PLAN);
         }
 
         // Toggle ranch

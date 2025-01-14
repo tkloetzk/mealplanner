@@ -1,8 +1,9 @@
 // components/ImageCapture.tsx
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Camera, X, RotateCcw, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+
 interface ImageCaptureProps {
   onCapture: (imageData: string) => void;
   onCancel: () => void;
@@ -10,62 +11,97 @@ interface ImageCaptureProps {
 
 export function ImageCapture({ onCapture, onCancel }: ImageCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const startCamera = async () => {
+  const initializeCamera = useCallback(async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
+      // Stop existing stream if any
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+
+      // Request camera access
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
-      setStream(mediaStream);
+
+      streamRef.current = stream;
+
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+        videoRef.current.srcObject = stream;
+
+        // Wait for metadata and play
+        await new Promise<void>((resolve) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = () => resolve();
+          }
+        });
+
+        await videoRef.current.play();
       }
+
+      setError("");
+      setIsLoading(false);
     } catch (err) {
       console.error(err);
       setError("Failed to access camera. Please check permissions.");
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
-  };
-
-  const captureImage = () => {
+  const captureImage = useCallback(() => {
     if (videoRef.current) {
       const canvas = document.createElement("canvas");
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const ctx = canvas.getContext("2d");
+
       if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         const imageData = canvas.toDataURL("image/jpeg");
         setCapturedImage(imageData);
-        stopCamera();
+
+        // Stop video tracks, but keep stream reference
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+        }
       }
     }
-  };
+  }, []);
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     setCapturedImage(null);
-    startCamera();
-  };
+    initializeCamera();
+  }, [initializeCamera]);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     if (capturedImage) {
       onCapture(capturedImage);
     }
-  };
+  }, [capturedImage, onCapture]);
 
-  React.useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, []);
+  // Initial camera setup
+  useEffect(() => {
+    initializeCamera();
+
+    // Cleanup function
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [initializeCamera]);
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -84,6 +120,8 @@ export function ImageCapture({ onCapture, onCancel }: ImageCaptureProps) {
             <Image
               src={capturedImage}
               alt="Captured food"
+              width={400}
+              height={400}
               className="w-full aspect-square object-cover"
             />
             <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/50 to-transparent">

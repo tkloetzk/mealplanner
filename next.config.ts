@@ -9,6 +9,14 @@ const nextConfig = {
   },
   images: {
     domains: ["images.openfoodfacts.org"], // Add the domain here
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        port: "",
+        pathname: "/dk39fabs6/**",
+      },
+    ],
   },
   webpack: (config: Configuration) => {
     if (config.resolve?.alias) {
