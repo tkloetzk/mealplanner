@@ -69,7 +69,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Unexpected error:", error);
     return NextResponse.json(
-      { error: `Failed to fetch product data: ${error.message}` },
+      { error: `Failed to fetch product data: ${(error as Error).message}` },
       { status: 500 }
     );
   }

@@ -1,121 +1,45 @@
 "use client";
 // src/components/MealPlanner.tsx
-import React, { useState, useEffect } from "react";
+import React, { MouseEvent, useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, Plus, Sliders } from "lucide-react";
+import { MessageCircle, Plus } from "lucide-react";
+
+// Import custom hook
+import { useMealPlanState } from "@/hooks/useMealPlanState";
+
+// Import components
 import { ServingSelector } from "./ServingSelector";
+import { ViewToggle } from "./ViewToggle";
+import { MilkToggle } from "./MilkToggle";
+import { FoodEditor } from "./FoodEditor/FoodEditor";
+import { CompactNutritionProgress } from "./CompactNutritionProgress";
+import { KidSelector } from "./KidSelector";
+import { RanchToggle } from "./RanchToggle";
+import { NutritionSummary } from "./NutritionSummary";
+import FoodItem from "./FoodItem";
+
+// Import types and constants
 import {
   Food,
   SelectedFood,
   MealType,
   DayType,
   CategoryType,
-  MealPlan,
-  MealHistoryEntry,
-  MILK_OPTION,
-  MealSelection,
+  // MealSelection,
 } from "@/types/food";
-import { ChildView } from "./ChildView";
-import { ViewToggle } from "./ViewToggle";
-import { MilkToggle } from "./MilkToggle";
-import { FoodEditor } from "./FoodEditor";
-import { CompactNutritionProgress } from "./CompactNutritionProgress";
 import {
   DAYS_OF_WEEK,
   DEFAULT_MEAL_PLAN,
-  defaultObj,
   MEAL_TYPES,
 } from "@/constants/meal-goals";
-import { KidSelector } from "./KidSelector";
-import { RANCH_OPTION, RanchToggle } from "./RanchToggle";
-import { NutritionSummary } from "./NutritionSummary";
-import FoodItem from "./FoodItem";
-
-const MEAL_CALORIE_TARGET = {
-  breakfast: 400,
-  lunch: 400,
-  dinner: 400,
-  snacks: 200,
-} as const;
-
-interface NutritionTotals {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-}
-
-const getCurrentDay = (): DayType => {
-  const days = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ] as const;
-  const currentDay = days[new Date().getDay()];
-  return currentDay as DayType;
-};
-
-const createEmptyMealPlan = (): MealPlan => {
-  return DAYS_OF_WEEK.reduce((plan, day) => {
-    plan[day] = {
-      breakfast: defaultObj,
-      lunch: defaultObj,
-      dinner: defaultObj,
-      snack: defaultObj,
-    };
-    return plan;
-  }, {} as MealPlan);
-};
-
-const initialSelections: Record<string, MealPlan> = {
-  "1": createEmptyMealPlan(),
-  "2": createEmptyMealPlan(),
-};
+import { Kid } from "@/types/user";
+import { ChildView } from "./ChildView";
 
 export function MealPlanner() {
-  const [isChildView, setIsChildView] = useState(false);
+  // State for food options and loading
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedMeal, setSelectedMeal] = useState<MealType | null>(null);
-  const [selectedDay, setSelectedDay] = useState<DayType>(getCurrentDay());
-  const [selections, setSelections] =
-    useState<Record<string, MealPlan>>(initialSelections);
-  const [mealHistory, setMealHistory] = useState<
-    Record<string, MealHistoryEntry[]>
-  >({
-    "1": [],
-    "2": [],
-  });
-  const [showFoodEditor, setShowFoodEditor] = useState(false);
-  const [selectedKid, setSelectedKid] = useState<string | null>("1");
-  const [includesRanch, setIncludesRanch] = useState<
-    Record<MealType, { has: boolean; servings: number }>
-  >({
-    breakfast: { has: false, servings: 1 },
-    lunch: { has: false, servings: 1 },
-    dinner: { has: false, servings: 1 },
-    snack: { has: false, servings: 1 },
-  });
-  const [kids] = useState<Kid[]>([
-    { id: "1", name: "Presley" },
-    { id: "2", name: "Evy" },
-  ]);
-  const [selectedFood, setSelectedFood] = useState<{
-    category: CategoryType;
-    food: Food;
-    currentServings: number;
-  } | null>(null);
-  const [includesMilk, setIncludesMilk] = useState<Record<MealType, boolean>>({
-    breakfast: false,
-    lunch: false,
-    dinner: false,
-    snack: false,
-  });
   const [foodOptions, setFoodOptions] = useState<Record<CategoryType, Food[]>>({
     grains: [],
     fruits: [],
@@ -124,33 +48,51 @@ export function MealPlanner() {
     milk: [],
   });
 
+  // Kids configuration
+  const [kids] = useState<Kid[]>([
+    { id: "1", name: "Presley" },
+    { id: "2", name: "Evy" },
+  ]);
+
+  // Use the custom hook for state management
+  const {
+    selectedKid,
+    selectedDay,
+    selectedMeal,
+    selections,
+    mealHistory,
+    setSelectedKid,
+    setSelectedDay,
+    setSelectedMeal,
+    setSelections,
+    handleFoodSelect,
+    calculateMealNutrition,
+    handleServingAdjustment,
+    calculateDailyTotals,
+    handleMilkToggle, // Add this
+    handleRanchToggle, // Add this
+    // addToMealHistory,
+  } = useMealPlanState(kids);
+
+  // Additional local states
+  const [isChildView, setIsChildView] = useState(false);
+  const [showFoodEditor, setShowFoodEditor] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<{
+    category: CategoryType;
+    food: Food;
+    currentServings: number;
+  } | null>(null);
+
+  // Data loading effect
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [mealPlanRes, historyRes, foodsRes] = await Promise.all([
-          fetch("/api/meals"),
-          fetch("/api/history"),
-          fetch("/api/foods"),
-        ]);
+        const [foodsRes] = await Promise.all([fetch("/api/foods")]);
 
         if (!foodsRes.ok) throw new Error("Failed to fetch foods");
+
         const foods = await foodsRes.json();
-
         setFoodOptions(foods);
-
-        if (mealPlanRes.ok && historyRes.ok) {
-          const [mealPlan, history] = await Promise.all([
-            mealPlanRes.json(),
-            historyRes.json(),
-          ]);
-          console.log(mealPlan, mealPlan || DEFAULT_MEAL_PLAN);
-
-          setSelections(mealPlan || DEFAULT_MEAL_PLAN);
-          setMealHistory({
-            "1": history?.["1"] || [],
-            "2": history?.["2"] || [],
-          });
-        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -161,91 +103,14 @@ export function MealPlanner() {
     loadData();
   }, []);
 
-  const handleSaveFood = async (food: Food) => {
-    try {
-      const response = await fetch("/api/foods", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(food),
-      });
-      if (response.ok) {
-        setShowFoodEditor(false);
-      }
-    } catch (error) {
-      console.error("Error saving food:", error);
-    }
-  };
-
-  // Then rewrite the handleFoodSelect function
-  const handleFoodSelect = (category: CategoryType, food: Food) => {
-    if (!selectedMeal || !selectedDay || !selectedKid) {
-      console.log("Missing required selection:", {
-        selectedMeal,
-        selectedDay,
-        selectedKid,
-      });
-      return;
-    }
-
-    setSelections((prev) => {
-      // Start with a clean copy of the previous state
-      const newState = { ...prev };
-
-      // Make sure we have the proper nested structure
-      if (!newState[selectedKid]) {
-        newState[selectedKid] = createEmptyMealPlan();
-      }
-
-      // Get current selection for comparison
-      const currentSelection =
-        newState[selectedKid][selectedDay][selectedMeal][category];
-
-      // Create the new food object if we're selecting a new item
-      const newFoodSelection =
-        currentSelection?.name === food.name
-          ? null
-          : {
-              ...food,
-              servings: 1,
-              adjustedCalories: food.calories,
-              adjustedProtein: food.protein,
-              adjustedCarbs: food.carbs,
-              adjustedFat: food.fat,
-            };
-
-      // Update the specific selection while maintaining the structure
-      newState[selectedKid] = {
-        ...newState[selectedKid],
-        [selectedDay]: {
-          ...newState[selectedKid][selectedDay],
-          [selectedMeal]: {
-            ...newState[selectedKid][selectedDay][selectedMeal],
-            [category]: newFoodSelection,
-          },
-        },
-      };
-
-      console.log("Updated state structure:", {
-        hasKidId: Boolean(newState[selectedKid]),
-        hasDay: Boolean(newState[selectedKid]?.[selectedDay]),
-        hasMeal: Boolean(newState[selectedKid]?.[selectedDay]?.[selectedMeal]),
-        hasCategory: Boolean(
-          newState[selectedKid]?.[selectedDay]?.[selectedMeal]?.[category]
-        ),
-      });
-
-      return newState;
-    });
-  };
-  // When opening the serving selector, pass the current servings
+  // Serving adjustment handler
   const handleServingClick = (
-    e: React.MouseEvent,
+    e: MouseEvent<HTMLDivElement>,
     category: CategoryType,
     food: Food
   ) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevents event from bubbling up
     if (selectedDay && selectedMeal && selectedKid) {
-      // First access the kid's selections, then the day, then the meal, then the category
       const currentFood =
         selections[selectedKid]?.[selectedDay]?.[selectedMeal]?.[category];
       setSelectedFood({
@@ -256,234 +121,129 @@ export function MealPlanner() {
     }
   };
 
-  const handleRanchToggle = (
-    mealType: MealType,
-    value: boolean,
-    servings: number
-  ) => {
-    if (!selectedKid || !selectedDay) return;
+  // Save food handler
+  const handleSaveFood = async (food: Food) => {
+    try {
+      const response = await fetch("/api/foods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(food),
+      });
 
-    setIncludesRanch((prev) => ({
-      ...prev,
-      [mealType]: { has: value, servings },
-    }));
-
-    setSelections((prev) => {
-      const newSelections = { ...prev };
-      if (!newSelections[selectedKid]) {
-        newSelections[selectedKid] = createEmptyMealPlan();
+      if (response.ok) {
+        // Optionally update local food options
+        setFoodOptions((prev) => ({
+          ...prev,
+          [food.category]: [...prev[food.category], food],
+        }));
+        setShowFoodEditor(false);
       }
-
-      try {
-        if (value) {
-          newSelections[selectedKid][selectedDay][mealType].ranch = {
-            ...RANCH_OPTION,
-            servings,
-            // @ts-expect-error IDK how to fix
-            meal: RANCH_OPTION.meal,
-            adjustedCalories: RANCH_OPTION.calories * servings,
-            adjustedProtein: RANCH_OPTION.protein * servings,
-            adjustedCarbs: RANCH_OPTION.carbs * servings,
-            adjustedFat: RANCH_OPTION.fat * servings,
-          };
-        } else {
-          newSelections[selectedKid][selectedDay][mealType].ranch = null;
-        }
-        return newSelections;
-      } catch (error) {
-        console.error("Error in handleRanchToggle:", error);
-        return prev;
-      }
-    });
-  };
-
-  const handleMilkToggle = (mealType: MealType, value: boolean) => {
-    setIncludesMilk((prev) => ({
-      ...prev,
-      [mealType]: value,
-    }));
-
-    if (!selectedKid || !selectedDay) return;
-
-    setSelections((prev) => {
-      const newSelections = { ...prev };
-      if (!newSelections[selectedKid]) {
-        newSelections[selectedKid] = createEmptyMealPlan();
-      }
-
-      try {
-        if (value) {
-          newSelections[selectedKid][selectedDay][mealType].milk = {
-            ...MILK_OPTION,
-            servings: 1, // Add the required servings property
-            adjustedCalories: MILK_OPTION.calories,
-            adjustedProtein: MILK_OPTION.protein,
-            adjustedCarbs: MILK_OPTION.carbs,
-            adjustedFat: MILK_OPTION.fat,
-          };
-        } else {
-          newSelections[selectedKid][selectedDay][mealType].milk = null;
-        }
-        return newSelections;
-      } catch (error) {
-        console.error("Error in handleMilkToggle:", error);
-        return prev;
-      }
-    });
-  };
-
-  const calculateDailyTotals = (): NutritionTotals => {
-    const emptyTotals: NutritionTotals = {
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-    };
-
-    if (
-      !selectedKid ||
-      !selectedDay ||
-      !selections[selectedKid]?.[selectedDay]
-    ) {
-      return emptyTotals;
+    } catch (error) {
+      console.error("Error saving food:", error);
     }
-
-    const daySelections = selections[selectedKid][selectedDay];
-    return Object.values(daySelections).reduce<NutritionTotals>(
-      (totals, mealSelections: MealSelection | null) => {
-        if (!mealSelections) return totals;
-
-        Object.values(mealSelections).forEach((food: SelectedFood | null) => {
-          if (food) {
-            totals.calories += food.adjustedCalories ?? food.calories ?? 0;
-            totals.protein += food.adjustedProtein ?? food.protein ?? 0;
-            totals.carbs += food.adjustedCarbs ?? food.carbs ?? 0;
-            totals.fat += food.adjustedFat ?? food.fat ?? 0;
-          }
-        });
-        return totals;
-      },
-      structuredClone(emptyTotals)
-    );
   };
 
-  const calculateMealNutrition = (meal: MealType): NutritionTotals => {
-    if (
-      !selectedKid ||
-      !selectedDay ||
-      !selections[selectedKid]?.[selectedDay]?.[meal]
-    ) {
-      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    }
-
-    const mealSelections = selections[selectedKid][selectedDay][meal];
-    return Object.values(mealSelections).reduce<NutritionTotals>(
-      (sum, item) => {
-        if (!item) return sum;
-        return {
-          calories:
-            sum.calories + (item.adjustedCalories ?? item.calories ?? 0),
-          protein: sum.protein + (item.adjustedProtein ?? item.protein ?? 0),
-          carbs: sum.carbs + (item.adjustedCarbs ?? item.carbs ?? 0),
-          fat: sum.fat + (item.adjustedFat ?? item.fat ?? 0),
-        };
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-  };
-
-  const handleServingConfirm = (
-    category: CategoryType,
-    adjustedFood: SelectedFood
-  ) => {
-    if (!selectedMeal || !selectedDay || !selectedKid) return;
-
-    setSelections((prev) => {
-      const newSelections = { ...prev };
-      newSelections[selectedKid][selectedDay][selectedMeal][category] =
-        adjustedFood;
-      return newSelections;
-    });
-    setSelectedFood(null);
-  };
-
+  // Helper function to get ordered days starting from today
   const getOrderedDays = (): DayType[] => {
-    const today = getCurrentDay();
-    const currentIndex = DAYS_OF_WEEK.indexOf(today);
-    const reorderedDays = [
-      ...DAYS_OF_WEEK.slice(currentIndex),
-      ...DAYS_OF_WEEK.slice(0, currentIndex),
+    const days: DayType[] = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
     ];
-    return reorderedDays;
+    const today = new Date().getDay();
+
+    // Reorder the days array to start from the current day
+    return [...days.slice(today), ...days.slice(0, today)] as DayType[];
   };
 
-  const getMealSuggestion = () => {
+  const getMealSuggestion = useMemo(() => {
     if (!selectedMeal) return null;
 
     const nutrition = calculateMealNutrition(selectedMeal);
-    const target =
-      selectedMeal === "snack"
-        ? MEAL_CALORIE_TARGET.snacks
-        : MEAL_CALORIE_TARGET[selectedMeal];
+    const target = {
+      breakfast: 400,
+      lunch: 400,
+      dinner: 400,
+      snack: 200,
+    }[selectedMeal];
+
+    // Define a type for the suggestion
+    type MealSuggestion = {
+      type: "info" | "warning" | "success";
+      message: string;
+    };
+
+    let suggestion: MealSuggestion | null = null;
 
     if (nutrition.calories === 0) {
-      return {
+      suggestion = {
         type: "info",
         message:
           "Start building your meal! Aim for a balance of proteins, grains, fruits, and vegetables.",
       };
-    }
-
-    // Exact target case
-    if (nutrition.calories === target) {
-      return {
+    } else if (nutrition.calories === target) {
+      suggestion = {
         type: "success",
         message: `Perfect! This is a well-balanced meal within the target range of ${target}.`,
       };
-    }
-
-    // Slightly over target (401 to 425)
-    if (nutrition.calories > target && nutrition.calories <= target + 25) {
-      const percentage = ((target / nutrition.calories) * 100).toFixed(1);
-      return {
-        type: "success",
-        message: `Nice! This is a well-balanced meal within ${percentage}% of the target range of ${target}.`,
-      };
-    }
-
-    // Slightly under target (375 to 399)
-    if (nutrition.calories >= target - 25 && nutrition.calories < target) {
-      const percentage = ((nutrition.calories / target) * 100).toFixed(1);
-      return {
-        type: "success",
-        message: `Nice! This is a well-balanced meal within ${percentage}% of the target range of ${target}.`,
-      };
-    }
-
-    if (nutrition.calories > target + 100) {
-      return {
+    } else if (nutrition.calories > target + 100) {
+      suggestion = {
         type: "warning",
         message:
           "You're significantly over the target calories. Consider removing a high-calorie item.",
       };
-    }
-
-    if (nutrition.calories > target) {
-      return {
-        type: "warning",
-        message:
-          "You're slightly over the target calories. Consider adjusting portions.",
+    } else {
+      suggestion = {
+        type: "info",
+        message: `You have room for ${
+          target - nutrition.calories
+        } more calories.`,
       };
     }
 
-    return {
-      type: "info",
-      message: `You have room for ${
-        target - nutrition.calories
-      } more calories.`,
-    };
-  };
+    return suggestion;
+  }, [selectedMeal, calculateMealNutrition]);
 
+  const includesMilk = useMemo(() => {
+    if (!selectedKid || !selectedDay)
+      return {
+        breakfast: false,
+        lunch: false,
+        dinner: false,
+        snack: false,
+      };
+
+    return MEAL_TYPES.reduce((acc, mealType) => {
+      acc[mealType] =
+        !!selections[selectedKid]?.[selectedDay]?.[mealType]?.milk;
+      return acc;
+    }, {} as Record<MealType, boolean>);
+  }, [selections, selectedKid, selectedDay]);
+
+  const includesRanch = useMemo(() => {
+    if (!selectedKid || !selectedDay)
+      return {
+        breakfast: { has: false, servings: 0 },
+        lunch: { has: false, servings: 0 },
+        dinner: { has: false, servings: 0 },
+        snack: { has: false, servings: 0 },
+      };
+
+    return MEAL_TYPES.reduce((acc, mealType) => {
+      const ranch = selections[selectedKid]?.[selectedDay]?.[mealType]?.ranch;
+      acc[mealType] = {
+        has: !!ranch,
+        servings: ranch?.servings || 0,
+      };
+      return acc;
+    }, {} as Record<MealType, { has: boolean; servings: number }>);
+  }, [selections, selectedKid, selectedDay]);
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -513,9 +273,9 @@ export function MealPlanner() {
         <ChildView
           selectedMeal={selectedMeal}
           foodOptions={foodOptions}
-          selections={selections[selectedKid] ?? DEFAULT_MEAL_PLAN} // Use nullish coalescing
+          selections={selections[selectedKid] ?? DEFAULT_MEAL_PLAN}
           selectedDay={selectedDay}
-          onFoodSelect={handleFoodSelect} // Pass the function directly
+          onFoodSelect={handleFoodSelect}
           onMealSelect={setSelectedMeal}
         />
       ) : (
@@ -559,19 +319,26 @@ export function MealPlanner() {
                 </button>
               ))}
             </div>
-            {selectedFood && selectedKid && selectedDay && selectedMeal && (
+            {selectedFood && (
               <ServingSelector
                 food={selectedFood.food}
                 currentServings={
-                  (
-                    selections[selectedKid]?.[selectedDay]?.[
-                      selectedMeal
-                    ] as Record<CategoryType, SelectedFood | null>
-                  )?.[selectedFood.category]?.servings || 1
+                  // Safe navigation with explicit type handling
+                  selectedKid &&
+                  selectedDay &&
+                  selectedMeal &&
+                  selections[selectedKid]?.[selectedDay]?.[selectedMeal]
+                    ? (
+                        selections[selectedKid][selectedDay][selectedMeal][
+                          selectedFood.category
+                        ] as SelectedFood
+                      )?.servings ?? 1
+                    : 1
                 }
-                onConfirm={(adjustedFood) =>
-                  handleServingConfirm(selectedFood.category, adjustedFood)
-                }
+                onConfirm={(adjustedFood) => {
+                  handleServingAdjustment(selectedFood.category, adjustedFood);
+                  setSelectedFood(null);
+                }}
                 onCancel={() => setSelectedFood(null)}
               />
             )}
@@ -585,19 +352,19 @@ export function MealPlanner() {
                 />
 
                 {/* Meal Suggestion */}
-                {getMealSuggestion() && (
+                {getMealSuggestion && (
                   <div
                     className={`mb-6 p-4 rounded-lg border ${
-                      getMealSuggestion()?.type === "warning"
+                      getMealSuggestion.type === "warning"
                         ? "bg-yellow-50 border-yellow-200 text-yellow-800"
-                        : getMealSuggestion()?.type === "success"
+                        : getMealSuggestion.type === "success"
                         ? "bg-green-50 border-green-200 text-green-800"
                         : "bg-blue-50 border-blue-200 text-blue-800"
                     }`}
                   >
                     <div className="flex items-start space-x-2">
                       <MessageCircle className="w-5 h-5 mt-0.5" />
-                      <p>{getMealSuggestion()?.message}</p>
+                      <p>{getMealSuggestion.message}</p>
                     </div>
                   </div>
                 )}
@@ -682,7 +449,9 @@ export function MealPlanner() {
                                   onSelect={() =>
                                     handleFoodSelect(category, food)
                                   }
-                                  onServingClick={(e) => {
+                                  onServingClick={(
+                                    e: MouseEvent<HTMLDivElement>
+                                  ) => {
                                     e.stopPropagation();
                                     handleServingClick(e, category, food);
                                   }}
@@ -718,7 +487,7 @@ export function MealPlanner() {
                   <h3 className="text-lg font-semibold capitalize mb-3">
                     {day}
                   </h3>
-                  {Object.entries(selections[day]).map(([meal]) => {
+                  {Object.entries(selections[day] ?? {}).map(([meal]) => {
                     const nutrition = calculateMealNutrition(meal as MealType);
                     if (nutrition.calories > 0) {
                       return (

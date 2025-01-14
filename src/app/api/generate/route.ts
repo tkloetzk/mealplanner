@@ -1,13 +1,14 @@
-// Import `GoogleGenerative` from the package we installed earlier.
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
-// Create an asynchronous function POST to handle POST
-// request with parameters request and response.
-export async function POST(req, res) {
+export async function POST(req: Request) {
   try {
     // Access your API key by creating an instance of GoogleGenerativeAI we'll call it GenAI
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not defined in the environment");
+    }
+    const genAI = new GoogleGenerativeAI(apiKey);
 
     // Ininitalise a generative model
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });

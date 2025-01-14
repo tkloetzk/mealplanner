@@ -42,28 +42,6 @@ export type ServingSizeUnit =
   | "oz"
   | "tsp";
 
-export const MILK_OPTION: Food = {
-  name: "2% Milk",
-  calories: 140,
-  protein: 10,
-  carbs: 14,
-  fat: 5,
-  servingSize: "1",
-  servingSizeUnit: "cup",
-  meal: ["breakfast", "lunch", "dinner"],
-  upc: "085239284063",
-  category: "milk",
-  ingredients: "reduced fat milk, vitamin d3, vitamin a palmitate.",
-  novaGroup: 1,
-  nutrientLevels: {
-    fat: "low",
-    salt: "low",
-    "saturated-fat": "low",
-    sugars: "moderate",
-  },
-  score: "c",
-};
-
 export interface Food {
   name: string;
   calories: number;
@@ -95,13 +73,6 @@ export interface SelectedFood extends Food {
   adjustedProtein: number;
   adjustedCarbs: number;
   adjustedFat: number;
-}
-
-export interface DayMeals {
-  breakfast: MealSelection;
-  lunch: MealSelection;
-  dinner: MealSelection;
-  snack: MealSelection;
 }
 
 export interface MealHistoryEntry {

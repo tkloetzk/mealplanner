@@ -1,8 +1,16 @@
 import { Sliders } from "lucide-react";
 import { NutriScore } from "./NutriScore";
+import { Food, SelectedFood } from "@/types/food";
 
-// FoodItem component
-const FoodItem = ({
+interface FoodItemProps {
+  food: Food;
+  isSelected: boolean;
+  selectedFoodInCategory: SelectedFood | null;
+  onSelect: () => void;
+  onServingClick: (e: React.MouseEvent<HTMLDivElement>) => void;
+}
+
+const FoodItem: React.FC<FoodItemProps> = ({
   food,
   isSelected,
   selectedFoodInCategory,

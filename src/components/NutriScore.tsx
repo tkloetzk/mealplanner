@@ -5,7 +5,7 @@ export const NutriScore = ({
   score: string;
   size?: "normal" | "medium" | "large";
 }) => {
-  const scoreConfig = {
+  const scoreConfig: Record<string, { color: string; text: string }> = {
     a: { color: "bg-green-500", text: "Excellent nutritional quality" },
     b: { color: "bg-lime-500", text: "Good nutritional quality" },
     c: { color: "bg-yellow-500", text: "Moderate nutritional quality" },

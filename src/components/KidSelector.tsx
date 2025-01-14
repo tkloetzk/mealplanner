@@ -1,3 +1,5 @@
+import { Kid } from "@/types/user";
+
 // components/KidSelector.tsx
 interface KidSelectorProps {
   kids: Kid[];

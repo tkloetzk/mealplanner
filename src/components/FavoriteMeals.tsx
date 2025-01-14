@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Star, Plus } from "lucide-react";
 import type { MealSelection, MealType } from "@/types/food";
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
 
 export interface FavoriteMeal {
   id: string;

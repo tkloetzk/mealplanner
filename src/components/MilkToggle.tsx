@@ -1,7 +1,7 @@
 // components/MilkToggle.tsx
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { MILK_OPTION } from "@/types/food";
+import { MILK_OPTION } from "@/constants/meal-goals";
 
 interface MilkToggleProps {
   isSelected: boolean;

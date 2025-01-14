@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/select";
 import { Camera, AlertCircle } from "lucide-react";
 import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
-import { BarcodeScanner } from "./BarcodeScanner";
-import { ImageCapture } from "./ImageCapture";
+import { BarcodeScanner } from "../BarcodeScanner";
+import { ImageCapture } from "../ImageCapture";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { NutriScore } from "./NutriScore";
+import { NutriScore } from "../NutriScore";
 
 interface FoodEditorProps {
   onSave: (food: Food) => void;
@@ -78,19 +78,17 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
       return;
     }
 
-    console.log("Fetching product for UPC:", upc);
-    setLoading(true);
-
     try {
       const response = await fetch(`/api/upc?upc=${encodeURIComponent(upc)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFood((prev) => ({ ...prev, ...data }));
-      } else {
-        console.error("Failed to fetch product data. Status:", response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      const data = await response.json();
+      setFood((prev) => ({ ...prev, ...data }));
     } catch (error) {
       console.error("Error fetching product data:", error);
+      // Consider adding user-friendly error handling
+      // For example, show an error toast or message
     } finally {
       setLoading(false);
     }
