@@ -3,84 +3,74 @@ import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
 import { ImageCapture } from "@/components/ImageCapture";
 import Image from "next/image";
+import { getFoodImageSource } from "@/utils/imageUtils";
+import { Food } from "@/types/food";
 
 interface ImageUploaderProps {
+  food?: Partial<Food>;
   imageUrl?: string | null;
-  onUpload: (imageUrl: string) => void;
+  onUpload: (updatedFood: Partial<Food>) => void;
 }
 
-export function ImageUploader({ imageUrl, onUpload }: ImageUploaderProps) {
+export function ImageUploader({
+  food,
+  imageUrl,
+  onUpload,
+}: ImageUploaderProps) {
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleImageCapture = async (imageData: string) => {
-    setIsTakingPhoto(false);
-    setLoading(true);
-    setError(null);
-
     try {
-      // Create a FormData object
       const formData = new FormData();
-
-      // Convert base64 to Blob
       const response = await fetch(imageData);
-      const blob = await response.blob();
 
-      // Create a File object from the Blob
+      if (!response.ok) {
+        throw new Error(`Image fetch failed: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
       const file = new File([blob], "captured-image.jpg", {
         type: "image/jpeg",
       });
 
-      // Append the file to FormData
       formData.append("image", file);
 
-      console.log("Uploading image:", file);
-
-      // Send to upload endpoint
       const uploadResponse = await fetch("/api/upload-image", {
         method: "POST",
         body: formData,
       });
 
-      console.log("Upload response status:", uploadResponse.status);
-
       if (!uploadResponse.ok) {
-        const errorBody = await uploadResponse.text();
-        console.error("Upload error body:", errorBody);
-        throw new Error(
-          `HTTP error! status: ${uploadResponse.status}, body: ${errorBody}`
-        );
+        const errorText = await uploadResponse.text();
+        throw new Error(`Upload failed: ${errorText}`);
       }
 
-      const responseData = await uploadResponse.json();
-      console.log("Upload response data:", responseData);
+      const { url } = await uploadResponse.json();
 
-      if (responseData.url) {
-        onUpload(responseData.url);
-      } else {
-        throw new Error("No URL returned from upload");
-      }
+      onUpload({ cloudinaryUrl: url });
     } catch (error) {
-      console.error("Error uploading image:", error);
-      setError(
-        error instanceof Error ? error.message : "An unknown error occurred"
-      );
+      console.error("Image upload error:", error);
+      setError(error instanceof Error ? error.message : "Upload failed");
     } finally {
       setLoading(false);
     }
   };
 
+  // Determine the image source using the utility function
+  const imageSrc = food ? getFoodImageSource(food as Food) : imageUrl;
+
   return (
     <div className="mb-4">
       {error && <div className="text-red-500 mb-4">Error: {error}</div>}
 
-      {imageUrl ? (
+      {imageSrc ? (
         <div className="relative max-w-sm mx-auto">
           <div className="w-full max-h-[320px] rounded-lg overflow-hidden">
             <div className="relative pb-[75%]">
               <Image
-                src={imageUrl}
+                src={imageSrc}
                 alt="Food"
                 fill
                 style={{ objectFit: "contain" }}

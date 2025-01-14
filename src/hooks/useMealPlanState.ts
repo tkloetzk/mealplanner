@@ -20,10 +20,9 @@ import { Kid } from "@/types/user";
 const safeLocalStorage = {
   getItem: <T>(key: string, defaultValue: T): T => {
     try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-      console.error(`Error reading ${key} from localStorage:`, error);
+      const serializedItem = localStorage.getItem(key);
+      return serializedItem ? JSON.parse(serializedItem) : defaultValue;
+    } catch {
       return defaultValue;
     }
   },
@@ -53,7 +52,20 @@ const getCurrentDay = (): DayType => {
 
 // Deep clone utility function
 const deepClone = <T>(obj: T): T => {
-  return JSON.parse(JSON.stringify(obj));
+  if (obj === null || typeof obj !== "object") return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(deepClone) as T;
+  }
+
+  const clonedObj: Partial<T> = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      clonedObj[key] = deepClone(obj[key]);
+    }
+  }
+
+  return clonedObj as T;
 };
 
 // Utility function to create a deep clone of the default meal plan
@@ -261,7 +273,6 @@ export function useMealPlanState(initialKids: Kid[]) {
         (sum, food) => {
           if (!food) return sum;
 
-          // Use adjusted values if they exist, otherwise use base values
           const calories =
             food.adjustedCalories ?? food.calories * (food.servings ?? 1);
           const protein =

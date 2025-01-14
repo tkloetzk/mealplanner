@@ -1,24 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import { CategoryType, Food, MealType, DayType, MealPlan } from "@/types/food";
-
-// Define type-safe category styles mapping
-const CATEGORY_STYLES: Record<CategoryType, string> = {
-  fruits: "border-l-4 border-red-400 border-r border-t border-b",
-  vegetables: "border-l-4 border-green-400 border-r border-t border-b",
-  proteins: "border-l-4 border-blue-400 border-r border-t border-b",
-  grains: "border-l-4 border-yellow-400 border-r border-t border-b",
-  milk: "border-l-4 border-purple-400 border-r border-t border-b",
-} as const;
-
-// Create type-safe emoji mapping
-const CATEGORY_EMOJIS: Record<CategoryType, string> = {
-  fruits: "🍎",
-  vegetables: "🥕",
-  proteins: "🥚",
-  grains: "🥖",
-  milk: "🥛",
-} as const;
+import { getFoodImageSource } from "@/utils/imageUtils";
+import Image from "next/image";
+import { CATEGORY_EMOJIS, CATEGORY_STYLES } from "@/constants/category-styles";
 
 interface CategoryFoodGridProps {
   category: CategoryType;
@@ -28,14 +13,6 @@ interface CategoryFoodGridProps {
   selections: MealPlan;
   onFoodSelect: (category: CategoryType, food: Food) => void;
 }
-
-// Helper function to get image source with proper typing
-const getImageSource = (food: Food): string | null => {
-  if (food.imagePath) {
-    return `/images/food/${food.imagePath}`;
-  }
-  return food.imageUrl ?? null;
-};
 
 // Helper function to check if a food is selected
 const isFoodSelected = (
@@ -84,7 +61,7 @@ export function CategoryFoodGrid({
                 category,
                 food.name
               );
-              const imageSource = getImageSource(food);
+              const imageSource = getFoodImageSource(food);
 
               return (
                 <Card
@@ -96,9 +73,11 @@ export function CategoryFoodGrid({
                 >
                   <div className="aspect-square relative overflow-hidden rounded-t-lg">
                     {imageSource ? (
-                      <img
+                      <Image
                         src={imageSource}
                         alt={food.name}
+                        fill
+                        style={{ objectFit: "cover" }}
                         className="object-cover w-full h-full"
                       />
                     ) : (

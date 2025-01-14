@@ -13,7 +13,6 @@ import {
 import { AlertCircle } from "lucide-react";
 import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
 import { UPCScanner } from "./UPCScanner";
-import { ImageUploader } from "./ImageUploader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { NutriScore } from "@/components/NutriScore";
@@ -21,6 +20,7 @@ import {
   validateNutrition,
   isValidFood,
 } from "@/components/FoodEditor/NutritionValidator";
+import { ImageUploader } from "./ImageUploader";
 
 const MEAL_TYPES: { label: string; value: MealType }[] = [
   { label: "Breakfast", value: "breakfast" },
@@ -66,10 +66,6 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
     });
   };
 
-  const handleImageUpload = (imageUrl: string) => {
-    setFood((prev) => ({ ...prev, imageUrl }));
-  };
-
   const handleUPCFound = (data: Food) => {
     setFood((prev) => ({ ...prev, ...data }));
   };
@@ -112,8 +108,15 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
           onManualEntry={(upc) => handleUPCFound({ upc } as Food)}
         />
 
-        <ImageUploader imageUrl={food.imageUrl} onUpload={handleImageUpload} />
-
+        <ImageUploader
+          food={food}
+          onUpload={(updatedFood: Partial<Food>) => {
+            setFood((prev) => ({
+              ...prev,
+              ...updatedFood,
+            }));
+          }}
+        />
         {food.score && (
           <div className="p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-3">

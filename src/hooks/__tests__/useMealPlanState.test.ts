@@ -32,10 +32,10 @@ describe("useMealPlanState Hook", () => {
     );
   });
 
-  it("initializes with the first kid selected", () => {
+  it("initializes with first kid selected", () => {
     const { result } = renderHook(() => useMealPlanState(mockKids));
 
-    expect(result.current.selectedKid).toBe("kid1");
+    expect(result.current.selectedKid).toBe(mockKids[0].id);
     expect(result.current.selectedDay).toBeDefined();
     expect(result.current.selectedMeal).toBe("breakfast");
   });

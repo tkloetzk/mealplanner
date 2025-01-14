@@ -52,8 +52,9 @@ export interface Food {
   servingSizeUnit: ServingSizeUnit;
   category: CategoryType;
   meal: readonly MealType[]; // Use readonly to prevent mutation
-  imagePath?: string;
-  imageUrl?: string;
+  cloudinaryUrl?: string;
+  imagePath?: string; // public
+  imageUrl?: string; // openfooddatabase
   upc?: string;
   ingredients?: string;
   novaGroup?: number;
