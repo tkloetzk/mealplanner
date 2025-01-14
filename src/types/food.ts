@@ -51,7 +51,7 @@ export interface Food {
   servingSize: string;
   servingSizeUnit: ServingSizeUnit;
   category: CategoryType;
-  meal: MealType[]; // New field for meal compatibility
+  meal: readonly MealType[]; // Use readonly to prevent mutation
   imagePath?: string;
   imageUrl?: string;
   upc?: string;

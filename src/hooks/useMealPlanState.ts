@@ -1,5 +1,4 @@
-// hooks/useMealPlanState.ts
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   MealType,
   DayType,
@@ -10,91 +9,105 @@ import {
   MealHistoryEntry,
 } from "@/types/food";
 import {
-  //   DAYS_OF_WEEK,
-  //   MEAL_TYPES,
   DEFAULT_MEAL_PLAN,
-  //   DAILY_GOALS,
   MILK_OPTION,
   RANCH_OPTION,
 } from "@/constants/meal-goals";
 import { Kid } from "@/types/user";
 
+// Utility function for safe local storage operations
+const safeLocalStorage = {
+  getItem: <T>(key: string, defaultValue: T): T => {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+      console.error(`Error reading ${key} from localStorage:`, error);
+      return defaultValue;
+    }
+  },
+  setItem: (key: string, value: unknown): void => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error(`Error saving ${key} to localStorage:`, error);
+    }
+  },
+};
+
 // Utility function to get the current day
+const DAYS: readonly DayType[] = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];
+
 const getCurrentDay = (): DayType => {
-  const days = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ] as const;
-  return days[new Date().getDay()] as DayType;
+  return DAYS[new Date().getDay()];
 };
 
 // Utility function to create a deep clone of the default meal plan
 const createInitialMealPlan = (
   initialKids: Kid[]
 ): Record<string, MealPlan> => {
-  const initialPlan: Record<string, MealPlan> = {};
-  initialKids.forEach((kid) => {
-    initialPlan[kid.id] = JSON.parse(JSON.stringify(DEFAULT_MEAL_PLAN));
-  });
-  return initialPlan;
+  if (initialKids.length === 0) {
+    throw new Error("At least one kid is required to initialize meal plan");
+  }
+  return initialKids.reduce<Record<string, MealPlan>>((acc, kid) => {
+    acc[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
+    return acc;
+  }, {});
 };
 
 export function useMealPlanState(initialKids: Kid[]) {
+  if (initialKids.length === 0) {
+    throw new Error("At least one kid is required to use meal plan state");
+  }
+
   // Core selection state
-  const [selectedKid, setSelectedKid] = useState<string | null>(
-    initialKids[0]?.id ?? null
-  );
+  const [selectedKid, setSelectedKid] = useState<string>(initialKids[0].id);
   const [selectedDay, setSelectedDay] = useState<DayType>(getCurrentDay());
-  const [selectedMeal, setSelectedMeal] = useState<MealType | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<MealType>("breakfast");
 
   // Selections state with persistent storage
   const [selections, setSelections] = useState<Record<string, MealPlan>>(() => {
-    try {
-      const savedSelections = localStorage.getItem("meal-selections");
-      if (savedSelections) {
-        const parsed = JSON.parse(savedSelections);
-        // Ensure all kids have a meal plan
-        initialKids.forEach((kid) => {
-          if (!parsed[kid.id]) {
-            parsed[kid.id] = JSON.parse(JSON.stringify(DEFAULT_MEAL_PLAN));
-          }
-        });
-        return parsed;
+    const savedSelections = safeLocalStorage.getItem(
+      "meal-selections",
+      createInitialMealPlan(initialKids)
+    );
+
+    // Ensure all kids have a meal plan
+    initialKids.forEach((kid) => {
+      if (!savedSelections[kid.id]) {
+        savedSelections[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
       }
-      return createInitialMealPlan(initialKids);
-    } catch (error) {
-      console.error("Failed to load saved selections:", error);
-      return createInitialMealPlan(initialKids);
-    }
+    });
+
+    return savedSelections;
   });
 
   // Meal history state
   const [mealHistory, setMealHistory] = useState<
     Record<string, MealHistoryEntry[]>
   >({
-    [initialKids[0]?.id ?? "1"]: [],
+    [initialKids[0].id]: [],
   });
 
   // Synchronize selections with local storage
   useEffect(() => {
-    try {
-      if (selectedKid) {
-        localStorage.setItem("meal-selections", JSON.stringify(selections));
-      }
-    } catch (error) {
-      console.error("Failed to save selections to local storage:", error);
+    if (selectedKid) {
+      safeLocalStorage.setItem("meal-selections", selections);
     }
   }, [selections, selectedKid]);
 
   // Meal history management method
   const addToMealHistory = useCallback(
     (food: Food) => {
-      if (!selectedKid || !selectedMeal || !selectedDay) return;
+      if (!selectedKid || !selectedMeal) return;
 
       setMealHistory((prev) => {
         const kidHistory = prev[selectedKid] || [];
@@ -126,9 +139,8 @@ export function useMealPlanState(initialKids: Kid[]) {
           date: new Date().toISOString(),
           meal: selectedMeal,
           selections: {
-            ...currentSelections, // Spread existing selections
+            ...currentSelections,
             [food.category]: {
-              // Overwrite the specific category
               ...food,
               servings: 1,
               adjustedCalories: food.calories,
@@ -172,11 +184,11 @@ export function useMealPlanState(initialKids: Kid[]) {
 
       setSelections((prev) => {
         // Create a deep copy of previous selections
-        const newSelections = JSON.parse(JSON.stringify(prev));
+        const newSelections = structuredClone(prev);
 
         // Ensure kid's meal plan exists
         if (!newSelections[selectedKid]) {
-          newSelections[selectedKid] = DEFAULT_MEAL_PLAN;
+          newSelections[selectedKid] = structuredClone(DEFAULT_MEAL_PLAN);
         }
 
         // Get current selection for the specific category
@@ -209,13 +221,13 @@ export function useMealPlanState(initialKids: Kid[]) {
     [selectedMeal, selectedDay, selectedKid, addToMealHistory]
   );
 
-  // In useMealPlanState hook
+  // Serving adjustment method
   const handleServingAdjustment = useCallback(
     (category: CategoryType, adjustedFood: SelectedFood) => {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
 
       setSelections((prev) => {
-        const newSelections = JSON.parse(JSON.stringify(prev));
+        const newSelections = structuredClone(prev);
 
         if (adjustedFood && adjustedFood.servings > 0) {
           newSelections[selectedKid][selectedDay][selectedMeal][category] = {
@@ -234,8 +246,8 @@ export function useMealPlanState(initialKids: Kid[]) {
   );
 
   // Memoized nutrition calculation methods
-  const calculateMealNutrition = useMemo(() => {
-    return (meal: MealType) => {
+  const calculateMealNutrition = useCallback(
+    (meal: MealType) => {
       if (
         !selectedKid ||
         !selectedDay ||
@@ -263,45 +275,44 @@ export function useMealPlanState(initialKids: Kid[]) {
         },
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
       );
-    };
-  }, [selections, selectedKid, selectedDay]);
+    },
+    [selections, selectedKid, selectedDay]
+  );
 
   // Calculate daily nutrition totals
-  const calculateDailyTotals = useMemo(() => {
-    return () => {
-      if (
-        !selectedKid ||
-        !selectedDay ||
-        !selections[selectedKid]?.[selectedDay]
-      ) {
-        return {
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
-        };
-      }
+  const calculateDailyTotals = useCallback(() => {
+    if (
+      !selectedKid ||
+      !selectedDay ||
+      !selections[selectedKid]?.[selectedDay]
+    ) {
+      return {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      };
+    }
 
-      const daySelections = selections[selectedKid][selectedDay];
-      return Object.values(daySelections).reduce(
-        (totals, mealSelections) => {
-          if (!mealSelections) return totals;
+    const daySelections = selections[selectedKid][selectedDay];
+    return Object.values(daySelections).reduce(
+      (totals, mealSelections) => {
+        if (!mealSelections) return totals;
 
-          Object.values(
-            mealSelections as Record<string, SelectedFood | null>
-          ).forEach((food: SelectedFood | null) => {
-            if (food) {
-              totals.calories += food.adjustedCalories ?? food.calories ?? 0;
-              totals.protein += food.adjustedProtein ?? food.protein ?? 0;
-              totals.carbs += food.adjustedCarbs ?? food.carbs ?? 0;
-              totals.fat += food.adjustedFat ?? food.fat ?? 0;
-            }
-          });
-          return totals;
-        },
-        { calories: 0, protein: 0, carbs: 0, fat: 0 }
-      );
-    };
+        Object.values(
+          mealSelections as Record<string, SelectedFood | null>
+        ).forEach((food: SelectedFood | null) => {
+          if (food) {
+            totals.calories += food.adjustedCalories ?? food.calories ?? 0;
+            totals.protein += food.adjustedProtein ?? food.protein ?? 0;
+            totals.carbs += food.adjustedCarbs ?? food.carbs ?? 0;
+            totals.fat += food.adjustedFat ?? food.fat ?? 0;
+          }
+        });
+        return totals;
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
   }, [selections, selectedKid, selectedDay]);
 
   // Milk toggle method
@@ -310,23 +321,26 @@ export function useMealPlanState(initialKids: Kid[]) {
       if (!selectedKid || !selectedDay) return;
 
       setSelections((prev) => {
-        const newSelections = JSON.parse(JSON.stringify(prev));
+        const newSelections = structuredClone(prev);
 
         // Ensure kid's meal plan exists
         if (!newSelections[selectedKid]) {
-          newSelections[selectedKid] = DEFAULT_MEAL_PLAN;
+          newSelections[selectedKid] = structuredClone(DEFAULT_MEAL_PLAN);
         }
 
         // Toggle milk
+        const milkFood: SelectedFood = {
+          ...MILK_OPTION,
+          category: "milk",
+          servings: 1,
+          adjustedCalories: MILK_OPTION.calories,
+          adjustedProtein: MILK_OPTION.protein,
+          adjustedCarbs: MILK_OPTION.carbs,
+          adjustedFat: MILK_OPTION.fat,
+        };
+
         newSelections[selectedKid][selectedDay][mealType].milk = value
-          ? {
-              ...MILK_OPTION,
-              servings: 1,
-              adjustedCalories: MILK_OPTION.calories,
-              adjustedProtein: MILK_OPTION.protein,
-              adjustedCarbs: MILK_OPTION.carbs,
-              adjustedFat: MILK_OPTION.fat,
-            }
+          ? milkFood
           : null;
 
         return newSelections;
@@ -341,23 +355,26 @@ export function useMealPlanState(initialKids: Kid[]) {
       if (!selectedKid || !selectedDay) return;
 
       setSelections((prev) => {
-        const newSelections = JSON.parse(JSON.stringify(prev));
+        const newSelections = structuredClone(prev);
 
         // Ensure kid's meal plan exists
         if (!newSelections[selectedKid]) {
-          newSelections[selectedKid] = DEFAULT_MEAL_PLAN;
+          newSelections[selectedKid] = structuredClone(DEFAULT_MEAL_PLAN);
         }
 
         // Toggle ranch
+        const ranchFood: SelectedFood = {
+          ...RANCH_OPTION,
+          category: "vegetables", // Use 'vegetables' category
+          servings,
+          adjustedCalories: RANCH_OPTION.calories * servings,
+          adjustedProtein: RANCH_OPTION.protein * servings,
+          adjustedCarbs: RANCH_OPTION.carbs * servings,
+          adjustedFat: RANCH_OPTION.fat * servings,
+        };
+
         newSelections[selectedKid][selectedDay][mealType].ranch = value
-          ? {
-              ...RANCH_OPTION,
-              servings,
-              adjustedCalories: RANCH_OPTION.calories * servings,
-              adjustedProtein: RANCH_OPTION.protein * servings,
-              adjustedCarbs: RANCH_OPTION.carbs * servings,
-              adjustedFat: RANCH_OPTION.fat * servings,
-            }
+          ? ranchFood
           : null;
 
         return newSelections;

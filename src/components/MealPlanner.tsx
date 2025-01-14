@@ -69,19 +69,19 @@ export function MealPlanner() {
     calculateMealNutrition,
     handleServingAdjustment,
     calculateDailyTotals,
-    handleMilkToggle, // Add this
-    handleRanchToggle, // Add this
+    handleMilkToggle,
+    handleRanchToggle,
     // addToMealHistory,
   } = useMealPlanState(kids);
 
   // Additional local states
   const [isChildView, setIsChildView] = useState(false);
-  const [showFoodEditor, setShowFoodEditor] = useState(false);
   const [selectedFood, setSelectedFood] = useState<{
     category: CategoryType;
     food: Food;
     currentServings: number;
   } | null>(null);
+  const showFoodEditor = selectedFood !== null;
 
   // Data loading effect
   useEffect(() => {
@@ -136,7 +136,7 @@ export function MealPlanner() {
           ...prev,
           [food.category]: [...prev[food.category], food],
         }));
-        setShowFoodEditor(false);
+        setSelectedFood(null); // Update this line
       }
     } catch (error) {
       console.error("Error saving food:", error);
@@ -392,7 +392,23 @@ export function MealPlanner() {
                 )}
                 <div className="fixed right-4 bottom-20 z-50">
                   <Button
-                    onClick={() => setShowFoodEditor(true)}
+                    onClick={() =>
+                      setSelectedFood({
+                        category: "proteins",
+                        food: {
+                          name: "",
+                          calories: 0,
+                          protein: 0,
+                          carbs: 0,
+                          fat: 0,
+                          category: "proteins",
+                          servingSize: "1",
+                          servingSizeUnit: "g",
+                          meal: [],
+                        },
+                        currentServings: 1,
+                      })
+                    }
                     className="rounded-full h-12 w-12 shadow-lg bg-blue-500 hover:bg-blue-600 flex items-center justify-center"
                   >
                     <Plus className="h-6 w-6" />
@@ -401,7 +417,8 @@ export function MealPlanner() {
                 {showFoodEditor && (
                   <FoodEditor
                     onSave={handleSaveFood}
-                    onCancel={() => setShowFoodEditor(false)}
+                    onCancel={() => setSelectedFood(null)}
+                    initialFood={selectedFood?.food}
                   />
                 )}
                 {/* Food Selection Grid */}
