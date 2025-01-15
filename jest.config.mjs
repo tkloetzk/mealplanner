@@ -12,11 +12,19 @@ const config = {
   moduleNameMapper: {
     // Handle module aliases
     "^@/(.*)$": "<rootDir>/src/$1",
+    "\\.css$": "<rootDir>/__mocks__/styleMock.js",
+    "lucide-react": "<rootDir>/__mocks__/lucide-react.js",
   },
-  testPathIgnorePatterns: ["<rootDir>/node_modules/", "<rootDir>/.next/"],
+  testPathIgnorePatterns: [
+    "<rootDir>/node_modules/",
+    "<rootDir>/.next/",
+    "node_modules/(?!lucide-react)/",
+  ],
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
+    "^.+\\.(t|j)sx?$": "@swc/jest",
   },
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 };
 
 export default createJestConfig(config);
