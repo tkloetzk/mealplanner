@@ -1,6 +1,5 @@
-import { DayType, Food, MealPlan, MealType } from "@/types/food";
-
-export const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
+import { Food, MealPlan } from "@/types/food";
+import { DAYS_OF_WEEK } from ".";
 
 // constants/meal-goals.ts
 export const DAILY_GOALS = {
@@ -23,15 +22,6 @@ export const DAILY_GOALS = {
   },
 };
 
-export const DAYS_OF_WEEK: DayType[] = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-];
 export const defaultObj = {
   grains: null,
   fruits: null,

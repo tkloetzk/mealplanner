@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
+import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { Button } from "@/components/ui/button";
-import { X, RefreshCw, Camera } from "lucide-react";
+import { X, Camera } from "lucide-react";
 import { Food } from "@/types/food";
 
 interface BarcodeScannerProps {
@@ -10,148 +11,100 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const mountedRef = useRef(true);
+  const controlsRef = useRef<IScannerControls | null>(null);
   const [error, setError] = useState<string>("");
   const [isInitializing, setIsInitializing] = useState(true);
 
-  const stopStream = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  };
+  useEffect(() => {
+    // Create a new instance of the barcode reader
+    const codeReader = new BrowserMultiFormatReader();
+    let mounted = true;
 
-  const initializeScanner = async () => {
-    try {
-      if (!mountedRef.current) return;
-      setIsInitializing(true);
-      setError("");
+    const startScanning = async () => {
+      try {
+        if (!videoRef.current) return;
 
-      // Stop any existing stream
-      stopStream();
+        // The method accepts three parameters:
+        // 1. deviceId (undefined means use default camera)
+        // 2. video element
+        // 3. callback function for results
+        controlsRef.current = await codeReader.decodeFromVideoDevice(
+          undefined,
+          videoRef.current,
+          async (result) => {
+            if (!result || !mounted) return;
 
-      // Check if BarcodeDetector is supported
-      if (!("BarcodeDetector" in window)) {
-        throw new Error("Barcode scanning is not supported in this browser");
-      }
-
-      // Request camera access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-
-      if (!mountedRef.current) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-
-        // Wait for video to be loadedmetadata before playing
-        await new Promise<void>((resolve) => {
-          if (!videoRef.current) return;
-          videoRef.current.onloadedmetadata = () => resolve();
-        });
-
-        if (!mountedRef.current) {
-          stopStream();
-          return;
-        }
-
-        await videoRef.current.play();
-
-        // Create barcode detector
-        const barcodeDetector = new (window as any).BarcodeDetector({
-          formats: ["ean_13", "ean_8", "upc_a", "upc_e"],
-        });
-
-        // Start scanning loop
-        const scanLoop = async () => {
-          if (!videoRef.current || !mountedRef.current) return;
-
-          try {
-            const barcodes = await barcodeDetector.detect(videoRef.current);
-
-            if (barcodes.length > 0 && mountedRef.current) {
-              const barcode = barcodes[0];
-              const response = await fetch(`/api/upc?upc=${barcode.rawValue}`);
+            try {
+              const response = await fetch(`/api/upc?upc=${result.getText()}`);
               const data = await response.json();
 
               if (!response.ok) {
                 throw new Error(data.error || "Failed to fetch product data");
               }
 
-              if (mountedRef.current) {
-                onScan(data);
-                onClose();
-              }
-            } else if (mountedRef.current) {
-              requestAnimationFrame(scanLoop);
-            }
-          } catch (error) {
-            if (mountedRef.current) {
-              console.error("Scanning error:", error);
-              requestAnimationFrame(scanLoop);
+              onScan(data);
+              onClose();
+            } catch (error) {
+              console.error("Error fetching product data:", error);
+              setError("Product not found. Please try scanning again.");
             }
           }
-        };
+        );
 
-        if (mountedRef.current) {
-          scanLoop();
-          setIsInitializing(false);
+        // Set up video constraints after initializing the scanner
+        if (videoRef.current.srcObject) {
+          const stream = videoRef.current.srcObject as MediaStream;
+          const videoTrack = stream.getVideoTracks()[0];
+
+          // Apply constraints to the video track
+          await videoTrack.applyConstraints({
+            facingMode: "environment",
+            width: { min: 640, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720, max: 1080 },
+          });
         }
+
+        setIsInitializing(false);
+      } catch (error) {
+        console.error("Scanner initialization error:", error);
+        setError(
+          "Unable to access camera. Please check your permissions and try again."
+        );
+        setIsInitializing(false);
       }
-    } catch (error) {
-      if (!mountedRef.current) return;
-
-      if (error instanceof Error) {
-        switch (error.name) {
-          case "NotAllowedError":
-            setError("Camera access denied. Please enable camera permissions.");
-            break;
-          case "NotFoundError":
-            setError("No camera found. Please try on a device with a camera.");
-            break;
-          default:
-            setError(error.message || "Failed to initialize camera");
-        }
-      }
-      setIsInitializing(false);
-    }
-  };
-
-  useEffect(() => {
-    mountedRef.current = true;
-    initializeScanner();
-
-    return () => {
-      mountedRef.current = false;
-      stopStream();
     };
-  }, []);
 
-  const handleRetry = () => {
-    initializeScanner();
-  };
+    startScanning();
 
-  const handleClose = () => {
-    stopStream();
-    onClose();
-  };
+    // Cleanup function
+    return () => {
+      mounted = false;
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+      }
+      // Release video stream
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [onScan, onClose]);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg max-w-lg w-full overflow-hidden">
         <div className="p-4 flex justify-between items-center">
           <h3 className="font-semibold">Scan Barcode</h3>
-          <Button variant="ghost" size="sm" onClick={handleClose}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (controlsRef.current) {
+                controlsRef.current.stop();
+              }
+              onClose();
+            }}
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -159,21 +112,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         {error ? (
           <div className="p-6 text-center">
             <div className="text-red-500 mb-4">{error}</div>
-            <div className="flex justify-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleRetry}
-                disabled={isInitializing}
-              >
-                <RefreshCw
-                  className={`h-4 w-4 mr-2 ${
-                    isInitializing ? "animate-spin" : ""
-                  }`}
-                />
-                Try Again
-              </Button>
-              <Button onClick={handleClose}>Close</Button>
-            </div>
+            <Button onClick={onClose}>Close</Button>
           </div>
         ) : (
           <>
@@ -181,8 +120,8 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
               <video
                 ref={videoRef}
                 className="w-full h-full object-cover"
-                playsInline
-                muted
+                playsInline // Important for iOS
+                muted // Required for autoplay
               />
               {isInitializing && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/10">

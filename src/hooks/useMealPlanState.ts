@@ -10,7 +10,6 @@ import {
 } from "@/types/food";
 import {
   DEFAULT_MEAL_PLAN,
-  defaultObj,
   MILK_OPTION,
   RANCH_OPTION,
 } from "@/constants/meal-goals";
@@ -194,27 +193,34 @@ export function useMealPlanState(initialKids: Kid[]) {
           newSelections[selectedKid] = deepClone(DEFAULT_MEAL_PLAN);
         }
 
-        // Create the selection
-        const foodSelection = {
-          ...food,
-          servings: 1,
-          adjustedCalories: food.calories,
-          adjustedProtein: food.protein,
-          adjustedCarbs: food.carbs,
-          adjustedFat: food.fat,
-        };
-
         // Ensure all nested objects exist and set the food
         newSelections[selectedKid][selectedDay] = {
           ...deepClone(DEFAULT_MEAL_PLAN[selectedDay]),
           ...newSelections[selectedKid][selectedDay],
         };
 
-        newSelections[selectedKid][selectedDay][selectedMeal] = {
-          ...deepClone(defaultObj),
-          ...newSelections[selectedKid][selectedDay][selectedMeal],
-          [category]: foodSelection,
-        };
+        // Check if the food is already selected
+        const currentFood =
+          newSelections[selectedKid][selectedDay][selectedMeal][category];
+
+        // If the food is the same, set to null (toggle off)
+        if (currentFood?.name === food.name) {
+          newSelections[selectedKid][selectedDay][selectedMeal][category] =
+            null;
+        } else {
+          // Otherwise, create the selection
+          const foodSelection = {
+            ...food,
+            servings: 1,
+            adjustedCalories: food.calories,
+            adjustedProtein: food.protein,
+            adjustedCarbs: food.carbs,
+            adjustedFat: food.fat,
+          };
+
+          newSelections[selectedKid][selectedDay][selectedMeal][category] =
+            foodSelection;
+        }
 
         return newSelections;
       });

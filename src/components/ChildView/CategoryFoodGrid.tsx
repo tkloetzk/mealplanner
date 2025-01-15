@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import { CategoryType, Food, MealType, DayType, MealPlan } from "@/types/food";
 import { getFoodImageSource } from "@/utils/imageUtils";
 import Image from "next/image";
-import { CATEGORY_EMOJIS, CATEGORY_STYLES } from "@/constants/category-styles";
+import { CATEGORY_EMOJIS, CATEGORY_STYLES } from "@/constants";
 
 interface CategoryFoodGridProps {
   category: CategoryType;

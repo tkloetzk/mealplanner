@@ -1,7 +1,6 @@
 import { Card } from "@/components/ui/card";
+import { MEAL_TYPES } from "@/constants";
 import { MealType } from "@/types/food";
-
-const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
 
 interface MealSelectorProps {
   onMealSelect: (meal: MealType) => void;

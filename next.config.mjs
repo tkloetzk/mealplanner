@@ -1,4 +1,3 @@
-import type { Configuration } from "webpack";
 import path from "path";
 
 /** @type {import('next').NextConfig} */
@@ -8,7 +7,7 @@ const nextConfig = {
     appIsrStatus: false,
   },
   images: {
-    domains: ["images.openfoodfacts.org"], // Add the domain here
+    domains: ["images.openfoodfacts.org"],
     remotePatterns: [
       {
         protocol: "https",
@@ -18,11 +17,11 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config: Configuration) => {
+  webpack: (config) => {
     if (config.resolve?.alias) {
       config.resolve.alias = {
         ...config.resolve.alias,
-        "@": path.resolve(__dirname, "src"),
+        "@": path.resolve(process.cwd(), "src"),
       };
     }
     return config;

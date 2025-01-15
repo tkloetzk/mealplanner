@@ -1,19 +1,9 @@
+import { CATEGORY_STYLES, DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
+
 // src/types/food.ts
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
-export type CategoryType =
-  | "grains"
-  | "fruits"
-  | "proteins"
-  | "vegetables"
-  | "milk";
-export type DayType =
-  | "monday"
-  | "tuesday"
-  | "wednesday"
-  | "thursday"
-  | "friday"
-  | "saturday"
-  | "sunday";
+export type MealType = (typeof MEAL_TYPES)[number];
+export type DayType = (typeof DAYS_OF_WEEK)[number];
+export type CategoryType = keyof typeof CATEGORY_STYLES;
 export interface MealSelection {
   grains: SelectedFood | null;
   fruits: SelectedFood | null;

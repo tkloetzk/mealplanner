@@ -29,13 +29,10 @@ import {
   CategoryType,
   // MealSelection,
 } from "@/types/food";
-import {
-  DAYS_OF_WEEK,
-  DEFAULT_MEAL_PLAN,
-  MEAL_TYPES,
-} from "@/constants/meal-goals";
+import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 import { Kid } from "@/types/user";
 import { ChildView } from "./ChildView";
+import { DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
 
 export function MealPlanner() {
   // State for food options and loading
