@@ -50,6 +50,7 @@ export function ImageUploader({
       const { url } = await uploadResponse.json();
 
       onUpload({ cloudinaryUrl: url });
+      setIsTakingPhoto(false);
     } catch (error) {
       console.error("Image upload error:", error);
       setError(error instanceof Error ? error.message : "Upload failed");

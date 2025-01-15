@@ -14,7 +14,7 @@ import { ServingSelector } from "./ServingSelector";
 import { ViewToggle } from "./ViewToggle";
 import { MilkToggle } from "./MilkToggle";
 import { FoodEditor } from "./FoodEditor/FoodEditor";
-import { CompactNutritionProgress } from "./CompactNutritionProgress";
+import { CompactNutritionProgress } from "@/components/CompactNutritionProgress";
 import { KidSelector } from "./KidSelector";
 import { RanchToggle } from "./RanchToggle";
 import { NutritionSummary } from "./NutritionSummary";
@@ -34,42 +34,12 @@ import { Kid } from "@/types/user";
 import { ChildView } from "./ChildView";
 import { DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
 
-export function MealPlanner() {
-  // State for food options and loading
-  const [isLoading, setIsLoading] = useState(true);
-  const [foodOptions, setFoodOptions] = useState<Record<CategoryType, Food[]>>({
-    grains: [],
-    fruits: [],
-    proteins: [],
-    vegetables: [],
-    milk: [],
-  });
-
+export const MealPlanner = () => {
   // Kids configuration
   const [kids] = useState<Kid[]>([
     { id: "1", name: "Presley" },
     { id: "2", name: "Evy" },
   ]);
-
-  // Use the custom hook for state management
-  const {
-    selectedKid,
-    selectedDay,
-    selectedMeal,
-    selections,
-    mealHistory,
-    setSelectedKid,
-    setSelectedDay,
-    setSelectedMeal,
-    setSelections,
-    handleFoodSelect,
-    calculateMealNutrition,
-    handleServingAdjustment,
-    calculateDailyTotals,
-    handleMilkToggle,
-    handleRanchToggle,
-    // addToMealHistory,
-  } = useMealPlanState(kids);
 
   // Additional local states
   const [isChildView, setIsChildView] = useState(false);
@@ -78,27 +48,32 @@ export function MealPlanner() {
     food: Food;
     currentServings: number;
   } | null>(null);
+  const [foodOptions, setFoodOptions] = useState<Record<CategoryType, Food[]>>({
+    proteins: [],
+    grains: [],
+    fruits: [],
+    vegetables: [],
+    milk: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const showFoodEditor = selectedFood !== null;
 
-  // Data loading effect
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [foodsRes] = await Promise.all([fetch("/api/foods")]);
+  // Helper function to get ordered days starting from today
+  const getOrderedDays = (): string[] => {
+    const days: string[] = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    const today = new Date().getDay();
 
-        if (!foodsRes.ok) throw new Error("Failed to fetch foods");
-
-        const foods = await foodsRes.json();
-        setFoodOptions(foods);
-      } catch (error) {
-        console.error("Error loading data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+    // Reorder the days array to start from the current day
+    return [...days.slice(today), ...days.slice(0, today)] as DayType[];
+  };
 
   // Serving adjustment handler
   const handleServingClick = (
@@ -140,22 +115,45 @@ export function MealPlanner() {
     }
   };
 
-  // Helper function to get ordered days starting from today
-  const getOrderedDays = (): DayType[] => {
-    const days: DayType[] = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    const today = new Date().getDay();
+  // Use the custom hook for state management
+  const {
+    selectedKid,
+    selectedDay,
+    selectedMeal,
+    selections,
+    mealHistory,
+    setSelectedKid,
+    setSelectedDay,
+    setSelectedMeal,
+    setSelections,
+    handleFoodSelect,
+    calculateMealNutrition,
+    handleServingAdjustment,
+    calculateDailyTotals,
+    handleMilkToggle,
+    handleRanchToggle,
+    // addToMealHistory,
+  } = useMealPlanState(kids || []); // Provide an empty array as default
 
-    // Reorder the days array to start from the current day
-    return [...days.slice(today), ...days.slice(0, today)] as DayType[];
-  };
+  // Data loading effect
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [foodsRes] = await Promise.all([fetch("/api/foods")]);
+
+        if (!foodsRes.ok) throw new Error("Failed to fetch foods");
+
+        const foods = await foodsRes.json();
+        setFoodOptions(foods);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const getMealSuggestion = useMemo(() => {
     if (!selectedMeal) return null;
@@ -240,28 +238,38 @@ export function MealPlanner() {
     }, {} as Record<MealType, { has: boolean; servings: number }>);
   }, [selections, selectedKid, selectedDay]);
 
+  if (!kids) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-red-500">Failed to initialize meal planner</div>
+      </div>
+    );
+  }
+
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div
+        role="status"
+        className="flex justify-center items-center min-h-screen"
+      >
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
+      <h1 className="text-3xl font-bold">Meal Planner</h1>{" "}
+      {/* Ensure this is always rendered */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Meal Planner</h1>
         <ViewToggle isChildView={isChildView} onToggle={setIsChildView} />
       </div>
-
       <KidSelector
         kids={kids}
         selectedKid={selectedKid}
         onSelect={setSelectedKid}
       />
-
       {!selectedKid ? (
         <div className="text-center py-12 text-gray-500">
           Please select a kid to start planning meals
@@ -289,7 +297,7 @@ export function MealPlanner() {
               {getOrderedDays().map((day) => (
                 <button
                   key={day}
-                  onClick={() => setSelectedDay(day)}
+                  onClick={() => setSelectedDay(day as DayType)}
                   className={`px-4 py-2 rounded-lg capitalize ${
                     selectedDay === day
                       ? "bg-blue-500 text-white"
@@ -568,4 +576,4 @@ export function MealPlanner() {
       )}
     </div>
   );
-}
+};

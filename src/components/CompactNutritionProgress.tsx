@@ -151,12 +151,12 @@ const getMetricData = (
   }
 };
 
-export function CompactNutritionProgress({
+export const CompactNutritionProgress = ({
   currentCalories,
   currentProtein,
   currentFat,
   selectedMeal,
-}: CompactNutritionProgressProps) {
+}: CompactNutritionProgressProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeMetric, setActiveMetric] = useState<MetricType>("calories");
 
@@ -258,4 +258,4 @@ export function CompactNutritionProgress({
       )}
     </div>
   );
-}
+};

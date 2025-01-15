@@ -181,46 +181,25 @@ export function useMealPlanState(initialKids: Kid[]) {
   // Advanced food selection method with comprehensive validation
   const handleFoodSelect = useCallback(
     (category: CategoryType, food: Food) => {
-      if (!selectedMeal || !selectedDay || !selectedKid) {
-        return;
-      }
+      if (!selectedMeal || !selectedDay || !selectedKid) return;
 
       setSelections((prev) => {
-        const newSelections = { ...prev };
+        const newSelections = structuredClone(prev);
+        const currentMeal =
+          newSelections[selectedKid][selectedDay][selectedMeal];
 
-        // Initialize structure if it doesn't exist
-        if (!newSelections[selectedKid]) {
-          newSelections[selectedKid] = deepClone(DEFAULT_MEAL_PLAN);
-        }
-
-        // Ensure all nested objects exist and set the food
-        newSelections[selectedKid][selectedDay] = {
-          ...deepClone(DEFAULT_MEAL_PLAN[selectedDay]),
-          ...newSelections[selectedKid][selectedDay],
-        };
-
-        // Check if the food is already selected
-        const currentFood =
-          newSelections[selectedKid][selectedDay][selectedMeal][category];
-
-        // If the food is the same, set to null (toggle off)
-        if (currentFood?.name === food.name) {
-          newSelections[selectedKid][selectedDay][selectedMeal][category] =
-            null;
-        } else {
-          // Otherwise, create the selection
-          const foodSelection = {
-            ...food,
-            servings: 1,
-            adjustedCalories: food.calories,
-            adjustedProtein: food.protein,
-            adjustedCarbs: food.carbs,
-            adjustedFat: food.fat,
-          };
-
-          newSelections[selectedKid][selectedDay][selectedMeal][category] =
-            foodSelection;
-        }
+        // Toggle logic
+        currentMeal[category] =
+          currentMeal[category]?.name === food.name
+            ? null
+            : {
+                ...food,
+                servings: 1,
+                adjustedCalories: food.calories,
+                adjustedProtein: food.protein,
+                adjustedCarbs: food.carbs,
+                adjustedFat: food.fat,
+              };
 
         return newSelections;
       });

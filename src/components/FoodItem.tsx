@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Sliders } from "lucide-react";
 import { NutriScore } from "./NutriScore";
 import { Food, SelectedFood } from "@/types/food";
@@ -13,82 +13,79 @@ interface FoodItemProps {
   onServingClick: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-const FoodItem: React.FC<FoodItemProps> = ({
-  food,
-  isSelected,
-  selectedFoodInCategory,
-  onSelect,
-  onServingClick,
-}) => {
-  const imageSource = useMemo(() => getFoodImageSource(food), [food]);
-
-  const foodDetails = useMemo(() => {
-    return (
-      <div className="flex justify-between items-start">
-        <div className="flex-1 flex items-center gap-2">
-          {imageSource && (
-            <div className="w-16 h-16 relative rounded-lg overflow-hidden mr-2">
-              <Image
-                src={imageSource}
-                alt={food.name}
-                fill
-                style={{ objectFit: "cover" }}
-              />
-            </div>
-          )}
-          <div>
-            <div className="flex items-center gap-2">
-              <span>{food.name}</span>
-              {food.score && <NutriScore score={food.score} />}
-            </div>
-            <div className="text-sm text-gray-600">
-              {food.servingSize} {food.servingSizeUnit}
-            </div>
-          </div>
-        </div>
-        <div className="text-right">
-          <div>{food.calories} cal</div>
-          <div className="text-sm text-gray-600">
-            P: {food.protein}g | C: {food.carbs}g | F: {food.fat}g
-          </div>
-        </div>
-      </div>
-    );
-  }, [food, imageSource]);
-
-  const selectedDetails = useMemo(() => {
-    if (!isSelected || !selectedFoodInCategory) return null;
+const FoodItem = React.memo(
+  ({
+    food,
+    isSelected,
+    selectedFoodInCategory,
+    onSelect,
+    onServingClick,
+  }: FoodItemProps) => {
+    const imageSource = getFoodImageSource(food);
 
     return (
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-        <div className="text-sm text-blue-600">
-          {selectedFoodInCategory.servings} serving(s) •{" "}
-          {Math.round(selectedFoodInCategory.adjustedCalories)} cal total
-        </div>
-        <div
-          onClick={onServingClick}
-          className="p-1 rounded hover:bg-blue-200 transition-colors"
-          title="Adjust serving size"
-        >
-          <Sliders className="h-4 w-4 text-blue-600" />
-        </div>
-      </div>
-    );
-  }, [isSelected, selectedFoodInCategory, onServingClick]);
-
-  return (
-    <div className="relative flex flex-col">
-      <button
-        onClick={onSelect}
-        className={`w-full p-2 text-left rounded hover:bg-gray-100 ${
-          isSelected ? "bg-blue-100" : ""
+      <div
+        className={`relative p-4 rounded-lg transition-all duration-200 cursor-pointer
+        ${
+          isSelected
+            ? "bg-blue-100 ring-2 ring-blue-500"
+            : "hover:bg-gray-50 bg-white"
         }`}
+        onClick={onSelect}
       >
-        {foodDetails}
-        {selectedDetails}
-      </button>
-    </div>
-  );
-};
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex items-start gap-3">
+            {imageSource && (
+              <div className="w-16 h-16 relative rounded-lg overflow-hidden flex-shrink-0">
+                <Image
+                  src={imageSource}
+                  alt={food.name}
+                  fill
+                  style={{ objectFit: "cover" }}
+                />
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium">{food.name}</h4>
+                {food.score && <NutriScore score={food.score} />}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">
+                {food.servingSize} {food.servingSizeUnit}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="font-medium">{food.calories} cal</div>
+            <div className="text-sm text-gray-600 mt-1">
+              P: {food.protein}g | C: {food.carbs}g | F: {food.fat}g
+            </div>
+          </div>
+        </div>
+
+        {isSelected && selectedFoodInCategory && (
+          <div className="flex items-center justify-between mt-3 pt-3 border-t">
+            <div className="text-sm font-medium text-blue-600">
+              {selectedFoodInCategory.servings} serving(s) •{" "}
+              {Math.round(selectedFoodInCategory.adjustedCalories)} cal total
+            </div>
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onServingClick(e);
+              }}
+              className="p-2 rounded-full hover:bg-blue-200 transition-colors"
+            >
+              <Sliders className="h-4 w-4 text-blue-600" />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+FoodItem.displayName = "FoodItem";
 
 export default FoodItem;

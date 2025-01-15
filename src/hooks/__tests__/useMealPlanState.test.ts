@@ -351,7 +351,7 @@ describe("useMealPlanState Hook", () => {
       ]
     ).toBeNull();
   });
-  it("ensures food is selected on first click when no food is currently selected", () => {
+  it.only("ensures food is selected on first click when no food is currently selected", () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Explicitly set the context for the selection
