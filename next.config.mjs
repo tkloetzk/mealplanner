@@ -24,6 +24,7 @@ const nextConfig = {
         "@": path.resolve(process.cwd(), "src"),
       };
     }
+    config.ignoreWarnings = [/DEP0040/];
     return config;
   },
 };
