@@ -1,13 +1,15 @@
 import React from "react";
 import { Sliders } from "lucide-react";
 import { NutriScore } from "./NutriScore";
-import { Food, SelectedFood } from "@/types/food";
+import { CategoryType, Food, SelectedFood } from "@/types/food";
 import { getFoodImageSource } from "@/utils/imageUtils";
 import Image from "next/image";
 
 interface FoodItemProps {
   food: Food;
+  index: number;
   isSelected: boolean;
+  category: CategoryType;
   selectedFoodInCategory: SelectedFood | null;
   onSelect: () => void;
   onServingClick: (e: React.MouseEvent<HTMLDivElement>) => void;
@@ -16,6 +18,8 @@ interface FoodItemProps {
 const FoodItem = React.memo(
   ({
     food,
+    index,
+    category,
     isSelected,
     selectedFoodInCategory,
     onSelect,
@@ -25,6 +29,7 @@ const FoodItem = React.memo(
 
     return (
       <div
+        data-testid={`${category}-${index}`}
         className={`relative p-4 rounded-lg transition-all duration-200 cursor-pointer
         ${
           isSelected

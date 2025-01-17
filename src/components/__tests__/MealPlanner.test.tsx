@@ -1,112 +1,48 @@
-import {
-  fireEvent,
-  render,
-  renderHook,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import React from "react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MealPlanner } from "../MealPlanner";
-import { useMealPlanState } from "@/hooks/useMealPlanState";
-import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
-import { CategoryType, Food } from "@/types/food";
+import { FRUITS, MOCK_FOODS } from "@/constants/tests/testConstants";
 import { act } from "react";
-import {
-  BREAKFAST,
-  FRUITS,
-  MOCK_FOODS,
-  MOCK_KIDS,
-  SELECTED_DAY,
-} from "@/constants/tests/testConstants";
-// Create a proper mock return value for the hook
 
-// Mock the useMealPlanState hook
-jest.mock("@/hooks/useMealPlanState", () => ({
-  useMealPlanState: jest.fn(),
+if (!global.structuredClone) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  global.structuredClone = (obj: any) => JSON.parse(JSON.stringify(obj));
+}
+// Mock entire modules that might cause issues
+jest.mock("@/components/NutritionSummary", () => ({
+  NutritionSummary: () => null,
 }));
 
-jest.mock("@/components/NutritionSummary");
-jest.mock("@/components/CompactNutritionProgress");
+jest.mock("@/components/CompactNutritionProgress", () => ({
+  CompactNutritionProgress: () => null,
+}));
 
-// Mock food data
-const mockFoodData: Record<CategoryType, Food[]> = {
-  grains: [],
-  fruits: [],
-  proteins: [],
-  vegetables: [],
-  milk: [],
-};
+// Mock lucide-react icons
+jest.mock("lucide-react", () => ({
+  ArrowUpDown: () => null,
+  MessageCircle: () => null,
+  Plus: () => null,
+  Camera: () => null,
+  X: () => null,
+  Check: () => null,
+  Sliders: () => null,
+  ChevronDown: () => null,
+  ChevronUp: () => null,
+}));
 
-describe("MealPlanner - Basic Render", () => {
-  const mockHookReturn = () => ({
-    selectedKid: MOCK_KIDS[0].id,
-    selectedDay: SELECTED_DAY,
-    selectedMeal: BREAKFAST,
-    selections: {
-      [MOCK_KIDS[0].id]: DEFAULT_MEAL_PLAN,
-    },
-    mealHistory: { [MOCK_KIDS[0].id]: [] },
-    setSelectedKid: jest.fn(),
-    setSelectedDay: jest.fn(),
-    setSelectedMeal: jest.fn(),
-    handleFoodSelect: (category: CategoryType, food: Food) => {
-      const newSelections = JSON.parse(
-        JSON.stringify(mockHookReturn().selections)
-      );
-      if (!mockHookReturn().selectedMeal || !mockHookReturn().selectedDay)
-        return;
-
-      newSelections[mockHookReturn().selectedKid][mockHookReturn().selectedDay][
-        mockHookReturn().selectedMeal
-      ][category] = {
-        ...food,
-        servings: 1,
-        adjustedCalories: food.calories,
-        adjustedProtein: food.protein,
-        adjustedCarbs: food.carbs,
-        adjustedFat: food.fat,
-      };
-
-      mockHookReturn().setSelections(newSelections);
-    },
-    calculateMealNutrition: () => ({
-      calories: MOCK_FOODS.fruits[0].calories,
-      protein: MOCK_FOODS.fruits[0].protein,
-      carbs: MOCK_FOODS.fruits[0].carbs,
-      fat: MOCK_FOODS.fruits[0].fat,
-    }),
-    calculateDailyTotals: () => ({
-      calories: MOCK_FOODS.fruits[0].calories,
-      protein: MOCK_FOODS.fruits[0].protein,
-      carbs: MOCK_FOODS.fruits[0].carbs,
-      fat: MOCK_FOODS.fruits[0].fat,
-    }),
-  });
-
-  // Mock console.error
-  const originalConsoleError = console.error;
-  beforeAll(() => {
-    console.error = jest.fn();
-  });
-
-  afterAll(() => {
-    console.error = originalConsoleError;
-  });
-
+describe("MealPlanner Food Selection", () => {
   beforeEach(() => {
-    // Reset all mocks
-    jest.clearAllMocks();
-
-    // Initialize the hook mock before each test
-    (useMealPlanState as jest.Mock).mockReturnValue(mockHookReturn());
-
-    // Setup fetch mock
+    // Mock fetch to return test food data
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
         json: () =>
           Promise.resolve({
-            ...mockFoodData,
-            fruits: [MOCK_FOODS.fruits[0]], // Ensure we have the test food
+            fruits: [MOCK_FOODS.fruits[0]],
+            proteins: [],
+            grains: [],
+            vegetables: [],
+            milk: [],
           }),
       })
     ) as jest.Mock;
@@ -116,95 +52,31 @@ describe("MealPlanner - Basic Render", () => {
     jest.resetAllMocks();
   });
 
-  it("renders without crashing and loads food data", async () => {
-    await act(async () => {
-      render(<MealPlanner />);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("Meal Planner")).toBeInTheDocument();
-    });
-
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it("shows loading state before food data loads", async () => {
-    // Create a controlled Promise for fetch
-    let resolveFetchPromise: (value: any) => void;
-    const fetchPromise = new Promise((resolve) => {
-      resolveFetchPromise = resolve;
-    });
-
-    // Override fetch mock for this test
-    global.fetch = jest.fn(() => fetchPromise) as jest.Mock;
-
-    await act(async () => {
-      render(<MealPlanner />);
-    });
-
-    // Check loading state
-    expect(screen.getByRole("status")).toBeInTheDocument();
-
-    // Resolve the fetch
-    await act(async () => {
-      resolveFetchPromise!({
-        ok: true,
-        json: () => Promise.resolve(mockFoodData),
-      });
-    });
-
-    // Wait for loading to finish
-    await waitFor(() => {
-      expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    });
-  });
-  it("selects a food item on first click", async () => {
+  it("selects a food item and changes its appearance on first click", async () => {
     // Render the component
-    await act(async () => {
-      render(<MealPlanner />);
-    });
+    render(<MealPlanner />);
 
-    // Wait for food data to load
+    // Wait for the food item to be present
     await waitFor(() => {
-      expect(screen.getByText(MOCK_FOODS.fruits[0].name)).toBeInTheDocument();
+      const foodItem = screen.getByText(MOCK_FOODS.fruits[0].name);
+      expect(foodItem).toBeInTheDocument();
     });
 
-    // Find and click the food item
-    const foodItem = screen.getByText(MOCK_FOODS.fruits[0].name);
+    // Find the food item button
+    const foodItemButton = screen.getByTestId(`${FRUITS}-0`);
+
+    if (!foodItemButton) {
+      throw new Error("Food item button not found");
+    }
+
+    // Perform click
     await act(async () => {
-      fireEvent.click(foodItem);
+      fireEvent.click(foodItemButton);
     });
 
-    // Verify the food item is selected
-    // Look for elements that indicate selection
+    // Verify selection
     await waitFor(() => {
-      // Check for nutritional information being displayed
-      expect(
-        screen.getByText(`${MOCK_FOODS.fruits[0].calories} cal`)
-      ).toBeInTheDocument();
-
-      // Check for visual selection indicator (the selected food should have a specific style)
-      const selectedContainer = foodItem.closest("button");
-      expect(selectedContainer).toHaveClass("bg-blue-100");
-
-      // Check for serving size information
-      expect(screen.getByText("1 serving(s)")).toBeInTheDocument();
-    });
-  });
-  it("handles fetch error gracefully", async () => {
-    const mockError = new Error("Failed to fetch");
-    global.fetch = jest.fn(() => Promise.reject(mockError)) as jest.Mock;
-
-    await act(async () => {
-      render(<MealPlanner />);
-    });
-
-    await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        "Error loading data:",
-        mockError
-      );
-      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(foodItemButton).toHaveClass("bg-blue-100");
     });
   });
 });

@@ -23,6 +23,14 @@ const config = {
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
     "^.+\\.(t|j)sx?$": "@swc/jest",
+    "^.+\\.(css|scss|sass|less)$": "jest-preview/transforms/css",
+    "^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)":
+      "jest-preview/transforms/file",
+  },
+  transformIgnorePatterns: ["^.+\\.module\\.(css|sass|scss)$"],
+  moduleNameMapper: {
+    "^.+\\.module\\.(css|sass|scss)$": "identity-obj-proxy",
+    "^@/(.*)$": "<rootDir>/src/$1",
   },
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 };

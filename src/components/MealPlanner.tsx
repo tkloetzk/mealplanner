@@ -450,7 +450,7 @@ export const MealPlanner = () => {
                             {category}
                           </h3>
                           <div className="space-y-2">
-                            {compatibleFoods.map((food) => {
+                            {compatibleFoods.map((food, index) => {
                               const selectedFoodInCategory =
                                 selectedKid && selectedDay && selectedMeal
                                   ? selections[selectedKid]?.[selectedDay]?.[
@@ -462,8 +462,10 @@ export const MealPlanner = () => {
 
                               return (
                                 <FoodItem
-                                  key={food.name}
+                                  key={index}
+                                  index={index}
                                   food={food}
+                                  category={category}
                                   isSelected={isSelected}
                                   selectedFoodInCategory={
                                     selectedFoodInCategory
