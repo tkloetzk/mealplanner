@@ -203,6 +203,32 @@ export const MealPlanner = () => {
     return suggestion;
   }, [selectedMeal, calculateMealNutrition]);
 
+  const handleDeleteFood = async (foodId: string) => {
+    try {
+      const response = await fetch(`/api/foods/${foodId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete food");
+      }
+
+      // Remove from local state
+      setFoodOptions((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((category) => {
+          updated[category] = updated[category].filter(
+            (food) => food.id !== foodId
+          );
+        });
+        return updated;
+      });
+    } catch (error) {
+      console.error("Error deleting food:", error);
+      // Optionally show user-friendly error message
+    }
+  };
+
   const includesMilk = useMemo(() => {
     if (!selectedKid || !selectedDay)
       return {
@@ -423,6 +449,7 @@ export const MealPlanner = () => {
                   <FoodEditor
                     onSave={handleSaveFood}
                     onCancel={() => setSelectedFood(null)}
+                    onDelete={handleDeleteFood}
                     initialFood={selectedFood?.food}
                   />
                 )}

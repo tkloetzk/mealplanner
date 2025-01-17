@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Trash2 } from "lucide-react";
 import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
 import { UPCScanner } from "./UPCScanner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,6 +21,15 @@ import {
   isValidFood,
 } from "@/components/FoodEditor/NutritionValidator";
 import { ImageUploader } from "./ImageUploader";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 const MEAL_TYPES: { label: string; value: MealType }[] = [
   { label: "Breakfast", value: "breakfast" },
@@ -32,10 +41,18 @@ const MEAL_TYPES: { label: string; value: MealType }[] = [
 interface FoodEditorProps {
   onSave: (food: Food) => Promise<void>;
   onCancel: () => void;
+  onDelete?: (foodId: string) => Promise<void>;
   initialFood?: Partial<Food>;
 }
 
-export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
+export function FoodEditor({
+  onSave,
+  onCancel,
+  onDelete,
+  initialFood,
+}: FoodEditorProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [food, setFood] = useState<Partial<Food>>(
     initialFood || {
       name: "",
@@ -57,6 +74,34 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
   );
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const handleDelete = async () => {
+    if (!initialFood?.id) {
+      setDeleteError("Cannot delete a food that hasn't been saved.");
+      return;
+    }
+
+    setLoading(true);
+    setDeleteError(null);
+
+    try {
+      if (onDelete) {
+        await onDelete(initialFood.id.toString());
+        onCancel(); // Close the editor after successful deletion
+      } else {
+        setDeleteError("Deletion method not provided.");
+      }
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred during deletion."
+      );
+    } finally {
+      setLoading(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
 
   const handleMealCompatibilityChange = (mealType: MealType) => {
     setFood((prev) => {
@@ -155,6 +200,16 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
           <h2 className="text-lg font-semibold">
             {initialFood ? "Edit Food" : "Add New Food"}
           </h2>
+          {initialFood && (
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              disabled={loading}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         <UPCScanner
           onUPCFound={handleUPCFound}
@@ -375,6 +430,41 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             </Button>
           </div>
         </form>
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Food</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this food? This action cannot be
+                undone.
+              </DialogDescription>
+            </DialogHeader>
+
+            {deleteError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{deleteError}</AlertDescription>
+              </Alert>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { FoodsService } from "@/lib/foods-service";
 import { Food } from "@/types/food";
+import { group } from "console";
 
 export async function GET() {
   try {
@@ -15,6 +16,7 @@ export async function GET() {
       return acc;
     }, {} as Record<string, Food[]>);
 
+    console.log(groupedFoods);
     return NextResponse.json(groupedFoods);
   } catch (error) {
     console.error("Error:", error);

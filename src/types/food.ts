@@ -33,6 +33,7 @@ export type ServingSizeUnit =
   | "tsp";
 
 export interface Food {
+  id: string;
   name: string;
   calories: number;
   protein: number;

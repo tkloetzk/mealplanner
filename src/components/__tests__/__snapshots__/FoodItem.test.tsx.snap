@@ -1,0 +1,99 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`FoodItem Component matches snapshot of selected food 1`] = `
+<DocumentFragment>
+  <div
+    class="relative p-4 rounded-lg transition-all duration-200 cursor-pointer
+        bg-blue-100 ring-2 ring-blue-500"
+    data-testid="proteins-0"
+  >
+    <div
+      class="flex justify-between items-start gap-4"
+    >
+      <div
+        class="flex items-start gap-3"
+      >
+        <div>
+          <div
+            class="flex items-center gap-2"
+          >
+            <h4
+              class="font-medium"
+            >
+              Chicken Breast
+            </h4>
+          </div>
+          <div
+            class="text-sm text-gray-600 mt-1"
+          >
+            1 piece
+          </div>
+        </div>
+      </div>
+      <div
+        class="text-right"
+      >
+        <div
+          class="font-medium"
+        >
+          165 cal
+        </div>
+        <div
+          class="text-sm text-gray-600 mt-1"
+        >
+          P: 31g | C: 0g | F: 3.6g
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`FoodItem Component matches snapshot of unselected food 1`] = `
+<DocumentFragment>
+  <div
+    class="relative p-4 rounded-lg transition-all duration-200 cursor-pointer
+        hover:bg-gray-50 bg-white"
+    data-testid="proteins-0"
+  >
+    <div
+      class="flex justify-between items-start gap-4"
+    >
+      <div
+        class="flex items-start gap-3"
+      >
+        <div>
+          <div
+            class="flex items-center gap-2"
+          >
+            <h4
+              class="font-medium"
+            >
+              Chicken Breast
+            </h4>
+          </div>
+          <div
+            class="text-sm text-gray-600 mt-1"
+          >
+            1 piece
+          </div>
+        </div>
+      </div>
+      <div
+        class="text-right"
+      >
+        <div
+          class="font-medium"
+        >
+          165 cal
+        </div>
+        <div
+          class="text-sm text-gray-600 mt-1"
+        >
+          P: 31g | C: 0g | F: 3.6g
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;

@@ -15,6 +15,7 @@ export const MOCK_KIDS: Kid[] = [
 export const MOCK_FOODS = {
   proteins: [
     {
+      id: "1",
       name: "Chicken Breast",
       category: "proteins" as CategoryType,
       calories: 165,
@@ -29,6 +30,7 @@ export const MOCK_FOODS = {
   ],
   fruits: [
     {
+      id: "2",
       name: "Apple",
       category: "fruits" as const,
       calories: 95,
@@ -43,6 +45,7 @@ export const MOCK_FOODS = {
   ],
   vegetables: [
     {
+      id: "3",
       name: "Broccoli",
       category: "vegetables" as CategoryType,
       calories: 55,
