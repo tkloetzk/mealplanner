@@ -22,8 +22,6 @@ interface ServingSelectorProps {
   onCancel: () => void;
 }
 
-// ... rest of the component
-
 export function ServingSelector({
   food,
   currentServings = 1,
@@ -101,6 +99,7 @@ export function ServingSelector({
           <Button
             variant="outline"
             size="icon"
+            data-testid="increment-serving"
             onClick={() => handleServingChange(servings + 0.25)}
           >
             <Plus className="h-4 w-4" />
@@ -111,7 +110,7 @@ export function ServingSelector({
         <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg text-sm">
           <div className="flex justify-between">
             <span>Calories:</span>
-            <span className="font-medium">
+            <span className="font-medium" data-testid="calories-incremented">
               {Math.round(food.calories * servings)}
             </span>
           </div>

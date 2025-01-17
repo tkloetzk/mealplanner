@@ -23,7 +23,6 @@ import FoodItem from "./FoodItem";
 // Import types and constants
 import {
   Food,
-  SelectedFood,
   MealType,
   DayType,
   CategoryType,
@@ -43,11 +42,11 @@ export const MealPlanner = () => {
 
   // Additional local states
   const [isChildView, setIsChildView] = useState(false);
-  const [selectedFood, setSelectedFood] = useState<{
-    category: CategoryType;
-    food: Food;
-    currentServings: number;
-  } | null>(null);
+  // const [selectedFood, setSelectedFood] = useState<{
+  //   category: CategoryType;
+  //   food: Food;
+  //   currentServings: number;
+  // } | null>(null);
   const [foodOptions, setFoodOptions] = useState<Record<CategoryType, Food[]>>({
     proteins: [],
     grains: [],
@@ -55,8 +54,14 @@ export const MealPlanner = () => {
     vegetables: [],
     milk: [],
   });
+  const [selectedFoodContext, setSelectedFoodContext] = useState<{
+    category: CategoryType;
+    food: Food;
+    mode: "serving" | "edit";
+    currentServings?: number;
+  } | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
-  const showFoodEditor = selectedFood !== null;
 
   // Helper function to get ordered days starting from today
   const getOrderedDays = (): string[] => {
@@ -81,16 +86,27 @@ export const MealPlanner = () => {
     category: CategoryType,
     food: Food
   ) => {
-    e.stopPropagation(); // Prevents event from bubbling up
+    e.stopPropagation();
     if (selectedDay && selectedMeal && selectedKid) {
       const currentFood =
         selections[selectedKid]?.[selectedDay]?.[selectedMeal]?.[category];
-      setSelectedFood({
+
+      // Set the context with 'serving' mode
+      setSelectedFoodContext({
         category,
         food,
+        mode: "serving",
         currentServings: currentFood?.servings || 1,
       });
     }
+  };
+
+  const handleEditFood = (category: CategoryType, food: Food) => {
+    setSelectedFoodContext({
+      category,
+      food,
+      mode: "edit",
+    });
   };
 
   // Save food handler
@@ -108,7 +124,7 @@ export const MealPlanner = () => {
           ...prev,
           [food.category]: [...prev[food.category], food],
         }));
-        setSelectedFood(null); // Update this line
+        setSelectedFoodContext(null); // Update this line
       }
     } catch (error) {
       console.error("Error saving food:", error);
@@ -350,29 +366,28 @@ export const MealPlanner = () => {
                 </button>
               ))}
             </div>
-            {selectedFood && (
-              <ServingSelector
-                food={selectedFood.food}
-                currentServings={
-                  // Safe navigation with explicit type handling
-                  selectedKid &&
-                  selectedDay &&
-                  selectedMeal &&
-                  selections[selectedKid]?.[selectedDay]?.[selectedMeal]
-                    ? (
-                        selections[selectedKid][selectedDay][selectedMeal][
-                          selectedFood.category
-                        ] as SelectedFood
-                      )?.servings ?? 1
-                    : 1
-                }
-                onConfirm={(adjustedFood) => {
-                  handleServingAdjustment(selectedFood.category, adjustedFood);
-                  setSelectedFood(null);
-                }}
-                onCancel={() => setSelectedFood(null)}
-              />
-            )}
+            {selectedFoodContext &&
+              (selectedFoodContext.mode === "serving" ? (
+                <ServingSelector
+                  food={selectedFoodContext.food}
+                  currentServings={selectedFoodContext.currentServings}
+                  onConfirm={(adjustedFood) => {
+                    handleServingAdjustment(
+                      selectedFoodContext.category,
+                      adjustedFood
+                    );
+                    setSelectedFoodContext(null);
+                  }}
+                  onCancel={() => setSelectedFoodContext(null)}
+                />
+              ) : (
+                <FoodEditor
+                  onSave={handleSaveFood}
+                  onCancel={() => setSelectedFoodContext(null)}
+                  onDelete={handleDeleteFood}
+                  initialFood={selectedFoodContext.food}
+                />
+              ))}
             {selectedMeal && (
               <>
                 {/* Nutrition Summary */}
@@ -424,7 +439,7 @@ export const MealPlanner = () => {
                 <div className="fixed right-4 bottom-20 z-50">
                   <Button
                     onClick={() =>
-                      setSelectedFood({
+                      setSelectedFoodContext({
                         category: "proteins",
                         food: {
                           name: "",
@@ -445,14 +460,7 @@ export const MealPlanner = () => {
                     <Plus className="h-6 w-6" />
                   </Button>
                 </div>
-                {showFoodEditor && (
-                  <FoodEditor
-                    onSave={handleSaveFood}
-                    onCancel={() => setSelectedFood(null)}
-                    onDelete={handleDeleteFood}
-                    initialFood={selectedFood?.food}
-                  />
-                )}
+
                 {/* Food Selection Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-14">
                   {(
@@ -500,18 +508,11 @@ export const MealPlanner = () => {
                                   onSelect={() =>
                                     handleFoodSelect(category, food)
                                   }
-                                  onServingClick={(
-                                    e: MouseEvent<HTMLDivElement>
-                                  ) => {
-                                    e.stopPropagation();
-                                    handleServingClick(e, category, food);
-                                  }}
+                                  onServingClick={(e) =>
+                                    handleServingClick(e, category, food)
+                                  }
                                   onEditFood={() =>
-                                    setSelectedFood({
-                                      category,
-                                      food,
-                                      currentServings: 1,
-                                    })
+                                    handleEditFood(category, food)
                                   }
                                 />
                               );

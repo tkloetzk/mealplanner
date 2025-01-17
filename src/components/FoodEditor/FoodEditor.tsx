@@ -28,7 +28,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 
 const MEAL_TYPES: { label: string; value: MealType }[] = [
@@ -51,6 +50,7 @@ export function FoodEditor({
   onDelete,
   initialFood,
 }: FoodEditorProps) {
+  console.log("im in foode");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [food, setFood] = useState<Partial<Food>>(
