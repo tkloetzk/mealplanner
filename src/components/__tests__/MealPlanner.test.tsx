@@ -4,10 +4,6 @@ import { MealPlanner } from "../MealPlanner";
 import { FRUITS, MOCK_FOODS } from "@/constants/tests/testConstants";
 import { act } from "react";
 
-if (!global.structuredClone) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  global.structuredClone = (obj: any) => JSON.parse(JSON.stringify(obj));
-}
 // Mock entire modules that might cause issues
 jest.mock("@/components/NutritionSummary", () => ({
   NutritionSummary: () => null,
