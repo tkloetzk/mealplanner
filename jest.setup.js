@@ -18,3 +18,11 @@ if (!global.structuredClone) {
     return JSON.parse(JSON.stringify(obj));
   };
 }
+jest.mock("lucide-react", () => {
+  return new Proxy(
+    {},
+    {
+      get: () => () => null,
+    }
+  );
+});

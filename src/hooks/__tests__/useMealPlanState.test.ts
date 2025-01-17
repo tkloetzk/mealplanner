@@ -122,9 +122,6 @@ describe("useMealPlanState Hook", () => {
     });
 
     const mealNutrition = result.current.calculateMealNutrition(BREAKFAST);
-    console.log("Selections after setting food:", result.current.selections);
-    console.log("Calculated nutrition:", mealNutrition);
-
     expect(mealNutrition).toEqual({
       calories: 95,
       protein: 0.5,
@@ -351,7 +348,7 @@ describe("useMealPlanState Hook", () => {
       ]
     ).toBeNull();
   });
-  it.only("ensures food is selected on first click when no food is currently selected", () => {
+  it("ensures food is selected on first click when no food is currently selected", () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Explicitly set the context for the selection
@@ -390,6 +387,118 @@ describe("useMealPlanState Hook", () => {
   });
 });
 describe("Advanced useMealPlanState Scenarios", () => {
+  beforeEach(() => {
+    // Sunday (index 0) is the default in your current implementation
+    jest.spyOn(Date.prototype, "getDay").mockReturnValue(0);
+    localStorageMock.clear();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+  });
+  it("should select a food item when no food is currently selected", () => {
+    // Render the hook with mock kids
+    const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
+
+    // Prepare the context for selection
+    act(() => {
+      result.current.setSelectedDay(SELECTED_DAY);
+      result.current.setSelectedMeal(BREAKFAST);
+    });
+
+    // Perform food selection
+    act(() => {
+      result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
+    });
+
+    // Retrieve the selected food
+    const selectedFood =
+      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST][
+        FRUITS
+      ];
+
+    // Assertions
+    expect(selectedFood).toBeDefined();
+    expect(selectedFood).not.toBeNull();
+    expect(selectedFood?.name).toBe(MOCK_FOODS.fruits[0].name);
+
+    // Verify the selected food structure
+    expect(selectedFood).toEqual(
+      expect.objectContaining({
+        ...MOCK_FOODS.fruits[0],
+        servings: 1,
+        adjustedCalories: MOCK_FOODS.fruits[0].calories,
+        adjustedProtein: MOCK_FOODS.fruits[0].protein,
+        adjustedCarbs: MOCK_FOODS.fruits[0].carbs,
+        adjustedFat: MOCK_FOODS.fruits[0].fat,
+      })
+    );
+  });
+  it("should toggle food selection when the same food is selected twice", () => {
+    // Render the hook with mock kids
+    const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
+
+    // Prepare the context for selection
+    act(() => {
+      result.current.setSelectedDay(SELECTED_DAY);
+      result.current.setSelectedMeal(BREAKFAST);
+    });
+
+    // First selection
+    act(() => {
+      result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
+    });
+
+    // Second selection (should remove the food)
+    act(() => {
+      result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
+    });
+
+    // Retrieve the selected food
+    const selectedFood =
+      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST][
+        FRUITS
+      ];
+
+    // Verify the food is deselected
+    expect(selectedFood).toBeNull();
+  });
+
+  it("should allow selecting different foods in the same category", () => {
+    // Render the hook with mock kids
+    const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
+
+    // Prepare the context for selection
+    act(() => {
+      result.current.setSelectedDay(SELECTED_DAY);
+      result.current.setSelectedMeal(BREAKFAST);
+    });
+
+    // Select first food
+    act(() => {
+      result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
+    });
+
+    // Select a different food in the same category
+    act(() => {
+      result.current.handleFoodSelect(FRUITS, {
+        ...MOCK_FOODS.fruits[0],
+        name: "Different Fruit",
+      });
+    });
+
+    // Retrieve the selected food
+    const selectedFood =
+      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST][
+        FRUITS
+      ];
+
+    // Verify the new food is selected
+    expect(selectedFood).toBeDefined();
+    expect(selectedFood).not.toBeNull();
+    expect(selectedFood?.name).toBe("Different Fruit");
+  });
   it("handles complex meal selection with multiple interactions", () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 

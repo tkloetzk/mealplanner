@@ -479,6 +479,13 @@ export const MealPlanner = () => {
                                     e.stopPropagation();
                                     handleServingClick(e, category, food);
                                   }}
+                                  onEditFood={() =>
+                                    setSelectedFood({
+                                      category,
+                                      food,
+                                      currentServings: 1,
+                                    })
+                                  }
                                 />
                               );
                             })}

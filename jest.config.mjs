@@ -19,6 +19,7 @@ const config = {
     "<rootDir>/node_modules/",
     "<rootDir>/.next/",
     "node_modules/(?!lucide-react)/",
+    "/test-utils.tsx$",
   ],
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],

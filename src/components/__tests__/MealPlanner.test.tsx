@@ -13,19 +13,6 @@ jest.mock("@/components/CompactNutritionProgress", () => ({
   CompactNutritionProgress: () => null,
 }));
 
-// Mock lucide-react icons
-jest.mock("lucide-react", () => ({
-  ArrowUpDown: () => null,
-  MessageCircle: () => null,
-  Plus: () => null,
-  Camera: () => null,
-  X: () => null,
-  Check: () => null,
-  Sliders: () => null,
-  ChevronDown: () => null,
-  ChevronUp: () => null,
-}));
-
 describe("MealPlanner Food Selection", () => {
   beforeEach(() => {
     // Mock fetch to return test food data
@@ -48,7 +35,7 @@ describe("MealPlanner Food Selection", () => {
     jest.resetAllMocks();
   });
 
-  it("selects a food item and changes its appearance on first click", async () => {
+  it.only("selects a food item and changes its appearance on first click", async () => {
     // Render the component
     render(<MealPlanner />);
 
