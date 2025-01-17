@@ -232,7 +232,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             <div>
               <Label className="text-sm">Calories</Label>
               <Input
-                type="number"
+                type="text"
                 value={food.calories}
                 onChange={(e) =>
                   setFood((prev) => ({
@@ -268,7 +268,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             <div>
               <Label className="text-sm">Protein (g)</Label>
               <Input
-                type="number"
+                type="text"
                 step="0.1"
                 value={food.protein}
                 onChange={(e) =>
@@ -282,7 +282,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             <div>
               <Label className="text-sm">Carbs (g)</Label>
               <Input
-                type="number"
+                type="text"
                 step="0.1"
                 value={food.carbs}
                 onChange={(e) =>
@@ -296,7 +296,7 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             <div>
               <Label className="text-sm">Fat (g)</Label>
               <Input
-                type="number"
+                type="text"
                 step="0.1"
                 value={food.fat}
                 onChange={(e) =>

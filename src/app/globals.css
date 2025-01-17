@@ -78,3 +78,19 @@
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
+
+@keyframes scan {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-scan {
+  animation: scan 2s linear infinite;
+}

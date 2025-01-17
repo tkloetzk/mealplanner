@@ -1,5 +1,6 @@
 // Optional: configure or register global test libraries
 import "@testing-library/jest-dom";
+
 if (!global.structuredClone) {
   global.structuredClone = (obj) => {
     // Handle special cases
