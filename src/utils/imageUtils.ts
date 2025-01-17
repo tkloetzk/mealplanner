@@ -20,3 +20,14 @@ export function getFoodImageSource(food: Food): string | null {
   // No image found
   return null;
 }
+
+// Helper function to validate URL
+export function isValidUrl(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}

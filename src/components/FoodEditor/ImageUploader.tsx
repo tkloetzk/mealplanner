@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+// components/ImageUploader.tsx
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
 import { ImageCapture } from "@/components/ImageCapture";
 import Image from "next/image";
-import { getFoodImageSource } from "@/utils/imageUtils";
+import { getFoodImageSource, isValidUrl } from "@/utils/imageUtils";
 import { Food } from "@/types/food";
 
 interface ImageUploaderProps {
   food?: Partial<Food>;
   imageUrl?: string | null;
-  onUpload: (updatedFood: Partial<Food>) => void;
+  onUpload: (imageData: string) => void;
 }
 
 export function ImageUploader({
@@ -18,54 +19,35 @@ export function ImageUploader({
   onUpload,
 }: ImageUploaderProps) {
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleImageCapture = async (imageData: string) => {
-    try {
-      const formData = new FormData();
-      const response = await fetch(imageData);
+  // Determine initial image source
+  const initialImageSrc = food
+    ? getFoodImageSource(food as Food)
+    : isValidUrl(imageUrl)
+    ? imageUrl
+    : null;
 
-      if (!response.ok) {
-        throw new Error(`Image fetch failed: ${response.statusText}`);
-      }
+  const [imageSrc, setImageSrc] = useState<string | null>(initialImageSrc);
 
-      const blob = await response.blob();
-      const file = new File([blob], "captured-image.jpg", {
-        type: "image/jpeg",
-      });
+  // Update image source when food or imageUrl changes
+  useEffect(() => {
+    const newImageSrc = food
+      ? getFoodImageSource(food as Food)
+      : isValidUrl(imageUrl)
+      ? imageUrl
+      : null;
 
-      formData.append("image", file);
+    setImageSrc(newImageSrc);
+  }, [food, imageUrl]);
 
-      const uploadResponse = await fetch("/api/upload-image", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        throw new Error(`Upload failed: ${errorText}`);
-      }
-
-      const { url } = await uploadResponse.json();
-
-      onUpload({ cloudinaryUrl: url });
-      setIsTakingPhoto(false);
-    } catch (error) {
-      console.error("Image upload error:", error);
-      setError(error instanceof Error ? error.message : "Upload failed");
-    } finally {
-      setLoading(false);
-    }
+  const handleImageCapture = (imageData: string) => {
+    setImageSrc(imageData);
+    onUpload(imageData);
+    setIsTakingPhoto(false);
   };
-
-  // Determine the image source using the utility function
-  const imageSrc = food ? getFoodImageSource(food as Food) : imageUrl;
 
   return (
     <div className="mb-4">
-      {error && <div className="text-red-500 mb-4">Error: {error}</div>}
-
       {imageSrc ? (
         <div className="relative max-w-sm mx-auto">
           <div className="w-full max-h-[320px] rounded-lg overflow-hidden">
@@ -84,7 +66,6 @@ export function ImageUploader({
             size="sm"
             className="absolute bottom-2 right-2"
             onClick={() => setIsTakingPhoto(true)}
-            disabled={loading}
           >
             <Camera className="h-4 w-4 mr-1" />
             Take New Photo
@@ -96,7 +77,6 @@ export function ImageUploader({
             variant="outline"
             className="w-full h-[240px] flex flex-col items-center justify-center gap-2"
             onClick={() => setIsTakingPhoto(true)}
-            disabled={loading}
           >
             <Camera className="h-8 w-8" />
             Take Photo
@@ -107,7 +87,7 @@ export function ImageUploader({
       {isTakingPhoto && (
         <ImageCapture
           onCapture={handleImageCapture}
-          onCancel={() => setIsTakingPhoto(false)}
+          onClose={() => setIsTakingPhoto(false)}
         />
       )}
     </div>

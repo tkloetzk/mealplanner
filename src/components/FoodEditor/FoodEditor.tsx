@@ -49,6 +49,12 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
       meal: [],
     }
   );
+  const [capturedImage, setCapturedImage] = useState<string | null>(
+    initialFood?.cloudinaryUrl ||
+      initialFood?.imageUrl ||
+      initialFood?.imagePath ||
+      null
+  );
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -66,8 +72,50 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
     });
   };
 
+  const uploadImage = async (imageData: string) => {
+    try {
+      const response = await fetch(imageData);
+      if (!response.ok) {
+        throw new Error(`Image fetch failed: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const file = new File([blob], "captured-image.jpg", {
+        type: "image/jpeg",
+      });
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const uploadResponse = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
+
+      const { url } = await uploadResponse.json();
+      return url;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      throw error;
+    }
+  };
+
   const handleUPCFound = (data: Food) => {
     setFood((prev) => ({ ...prev, ...data }));
+  };
+
+  const handleImageCaptured = (imageData: string) => {
+    setCapturedImage(imageData);
+    // Update food state to include the image
+    setFood((prev) => ({
+      ...prev,
+      cloudinaryUrl: imageData,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,15 +126,21 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
     if (errors.length === 0 && isValidFood(food)) {
       setLoading(true);
       try {
+        // Upload image if captured
+        if (capturedImage) {
+          const cloudinaryUrl = await uploadImage(capturedImage);
+          food.cloudinaryUrl = cloudinaryUrl;
+        }
+
         await onSave(food as Food);
       } catch (error) {
         console.error("Error saving food:", error);
+        // Optionally set an error state to show to the user
       } finally {
         setLoading(false);
       }
     }
   };
-
   return (
     <div
       onClick={(e) => {
@@ -102,21 +156,11 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             {initialFood ? "Edit Food" : "Add New Food"}
           </h2>
         </div>
-
         <UPCScanner
           onUPCFound={handleUPCFound}
           onManualEntry={(upc) => handleUPCFound({ upc } as Food)}
         />
-
-        <ImageUploader
-          food={food}
-          onUpload={(updatedFood: Partial<Food>) => {
-            setFood((prev) => ({
-              ...prev,
-              ...updatedFood,
-            }));
-          }}
-        />
+        <ImageUploader food={food} onUpload={handleImageCaptured} />{" "}
         {food.score && (
           <div className="p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-3">
@@ -162,7 +206,6 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             )}
           </div>
         )}
-
         {validationErrors.length > 0 && (
           <div>
             {validationErrors.map((error, index) => (
@@ -173,7 +216,6 @@ export function FoodEditor({ onSave, onCancel, initialFood }: FoodEditorProps) {
             ))}
           </div>
         )}
-
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <Label className="text-sm">Name</Label>
