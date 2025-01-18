@@ -14,16 +14,18 @@ export const MilkToggle = ({ isSelected, onChange }: MilkToggleProps) => {
       <div className="flex items-center space-x-2">
         <span className="text-2xl">🥛</span>
         <div>
-          <Label className="text-base">Include Milk</Label>
+          <Label htmlFor="milk-toggle" className="text-base">
+            Include Milk
+          </Label>
           <p className="text-sm text-gray-600">
             {MILK_OPTION.calories} calories | {MILK_OPTION.protein}g protein
           </p>
         </div>
       </div>
       <Switch
+        id="milk-toggle"
         checked={isSelected}
         onCheckedChange={onChange}
-        data-testid="include-milk-toggle"
       />
     </div>
   );

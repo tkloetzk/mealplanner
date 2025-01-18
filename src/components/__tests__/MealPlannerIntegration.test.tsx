@@ -1,187 +1,217 @@
 // src/components/__tests__/MealPlannerIntegration.test.tsx
-import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MealPlanner } from "../MealPlanner";
 import { MOCK_FOODS } from "@/constants/tests/testConstants";
-import { DAILY_GOALS } from "@/constants/meal-goals";
-
-// Mock fetch to provide test data
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () =>
-      Promise.resolve({
-        proteins: MOCK_FOODS.proteins,
-        fruits: MOCK_FOODS.fruits,
-        vegetables: MOCK_FOODS.vegetables,
-        grains: [],
-        milk: [],
-      }),
-  })
-) as jest.Mock;
+import { DAILY_GOALS, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
 
 describe("MealPlanner Integration Tests", () => {
+  // First, let's improve our beforeEach and add proper cleanup
   beforeEach(() => {
-    (global.fetch as jest.Mock).mockClear();
+    // Clear any previous renders
+    document.body.innerHTML = "";
+
+    // Reset localStorage mock to prevent state persistence
+    localStorage.clear();
+
+    // Reset our fetch mock
+    global.fetch = jest.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockFoodData),
+      })
+    ) as jest.Mock;
+
+    // Reset window event listeners
+    window.matchMedia = jest.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
   });
 
-  it("completes full meal selection workflow", async () => {
-    render(<MealPlanner />);
+  afterEach(() => {
+    // Clean up after each test
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
+  // Improved setup with proper typing and reusable mock data
+  const mockFoodData = {
+    proteins: MOCK_FOODS.proteins,
+    fruits: MOCK_FOODS.fruits,
+    vegetables: MOCK_FOODS.vegetables,
+    grains: [],
+    milk: [],
+  };
 
-    // Select first kid
+  // Reusable render function with common setup
+  const renderMealPlanner = async () => {
+    const result = render(<MealPlanner />);
+    // Wait for initial load
     await waitFor(() => {
-      expect(screen.getByText("Presley")).toBeInTheDocument();
+      expect(screen.getByText("Meal Planner")).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByText("Presley"));
+    return result;
+  };
 
-    // Select breakfast
-    // fireEvent.click(screen.getByText(/lunch/i));
+  beforeEach(() => {
+    // More robust fetch mock with type safety
+    global.fetch = jest.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockFoodData),
+      })
+    ) as jest.Mock;
+  });
 
-    // Select protein
-    await waitFor(() => {
-      const proteinFood = screen.getByText(MOCK_FOODS.proteins[0].name);
-      expect(proteinFood).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByTestId(`${MOCK_FOODS.proteins[0].category}-0`));
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
-    const element = document.querySelector(
+  // Helper functions to make tests more readable and maintainable
+  const selectFood = async (category: string, index: number) => {
+    const foodElement = screen.getByTestId(`${category}-${index}`);
+    fireEvent.click(foodElement);
+    return foodElement;
+  };
+
+  const toggleSwitch = async (name: RegExp) => {
+    const switchElement = screen.getByRole("switch", { name });
+    fireEvent.click(switchElement);
+    return switchElement;
+  };
+
+  // Improved test cases with better structure and assertions
+  it("completes meal selection workflow with nutrition updates", async () => {
+    await renderMealPlanner();
+
+    // Select kid
+    const kidSelector = screen.getByText("Presley");
+    fireEvent.click(kidSelector);
+
+    // Add protein
+    await selectFood(MOCK_FOODS.proteins[0].category, 0);
+
+    // Verify nutrition bar updates
+    const nutritionBar = document.querySelector(
       ".h-full.bg-green-500.transition-all.duration-300"
     );
 
     await waitFor(() => {
-      expect(element.style.width).toBe(
-        `${
-          (MOCK_FOODS.proteins[0].calories /
-            DAILY_GOALS.mealCalories.breakfast) *
-          100
-        }%`
-      );
+      const expectedWidth = `${
+        (MOCK_FOODS.proteins[0].calories / DAILY_GOALS.mealCalories.breakfast) *
+        100
+      }%`;
+      expect(nutritionBar).toHaveStyle({ width: expectedWidth });
     });
 
-    fireEvent.click(screen.getByTestId(`${MOCK_FOODS.fruits[0].category}-0`));
+    // Add fruit and verify combined nutrition
+    await selectFood(MOCK_FOODS.fruits[0].category, 0);
 
     await waitFor(() => {
-      expect(element.style.width).toBe(
-        `${
-          ((MOCK_FOODS.proteins[0].calories + MOCK_FOODS.fruits[0].calories) /
-            DAILY_GOALS.mealCalories.breakfast) *
-          100
-        }%`
-      );
+      const expectedWidth = `${
+        ((MOCK_FOODS.proteins[0].calories + MOCK_FOODS.fruits[0].calories) /
+          DAILY_GOALS.mealCalories.breakfast) *
+        100
+      }%`;
+      expect(nutritionBar).toHaveStyle({ width: expectedWidth });
     });
-    // Select fruit
-    //  fireEvent.click(screen.getByText(MOCK_FOODS.fruits[0].name));
 
-    // Check nutrition summary updates
+    // Verify nutrition summary displays correctly
+    const expectedNutrition = {
+      protein: MOCK_FOODS.proteins[0].protein + MOCK_FOODS.fruits[0].protein,
+      fat: MOCK_FOODS.proteins[0].fat + MOCK_FOODS.fruits[0].fat,
+      carbs: MOCK_FOODS.proteins[0].carbs + MOCK_FOODS.fruits[0].carbs,
+      calories: MOCK_FOODS.proteins[0].calories + MOCK_FOODS.fruits[0].calories,
+    };
+
     await waitFor(() => {
-      const proteinText = screen.getByText(
-        `${MOCK_FOODS.proteins[0].protein + MOCK_FOODS.fruits[0].protein}g`
-      );
-
-      expect(proteinText).toBeInTheDocument();
-      const fatText = screen.getByText(
-        `${MOCK_FOODS.proteins[0].fat + MOCK_FOODS.fruits[0].fat}g`
-      );
-      expect(fatText).toBeInTheDocument();
-      const carbText = screen.getByText(
-        `${MOCK_FOODS.proteins[0].carbs + MOCK_FOODS.fruits[0].carbs}g`
-      );
-      expect(carbText).toBeInTheDocument();
-      const calorie = screen.getByText(
-        `${
-          MOCK_FOODS.proteins[0].calories + MOCK_FOODS.fruits[0].calories
-        } / 400 cal`
-      );
-      expect(calorie).toBeInTheDocument();
+      expect(
+        screen.getByText(`${expectedNutrition.protein}g`)
+      ).toBeInTheDocument();
+      expect(screen.getByText(`${expectedNutrition.fat}g`)).toBeInTheDocument();
+      expect(
+        screen.getByText(`${expectedNutrition.carbs}g`)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(`${expectedNutrition.calories} / 400 cal`)
+      ).toBeInTheDocument();
     });
-
-    // Verify meal history is updated
-    const nutritionSummary = screen.getByText(/Nutrition Summary/i);
-    expect(nutritionSummary).toBeInTheDocument();
   });
 
-  it("tests serving size adjustment", async () => {
-    render(<MealPlanner />);
+  it("handles serving size adjustments correctly", async () => {
+    await renderMealPlanner();
 
-    // Select a food item
-    await waitFor(() => {
-      const proteinFood = screen.getByText(MOCK_FOODS.proteins[0].name);
-      fireEvent.click(proteinFood);
-    });
+    // Select food and open serving selector
+    await selectFood(MOCK_FOODS.proteins[0].category, 0);
+    fireEvent.click(screen.getByTitle("Adjust Servings"));
 
-    // Open serving selector
-    const servingsButton = screen.getByTitle("Adjust Servings");
-    fireEvent.click(servingsButton);
+    const servingInput = screen.getByTestId("custom-serving-input");
+    const initialServingSize = parseFloat(MOCK_FOODS.proteins[0].servingSize);
 
-    // Adjust servings
-    const servingSize = parseFloat(MOCK_FOODS.proteins[0].servingSize);
-    expect(screen.getByTestId("custom-serving-input")).toHaveValue(servingSize);
-    //userEvent.clear(servingsInput);
-    //userEvent.type(servingsInput, "2");
+    expect(servingInput).toHaveValue(initialServingSize);
+
+    // Increment serving and verify
     fireEvent.click(screen.getByTestId("increment-serving"));
-    expect(screen.getByTestId("custom-serving-input")).toHaveValue(
-      servingSize + 0.25
-    );
+    expect(servingInput).toHaveValue(initialServingSize + 0.25);
 
-    // Confirm servings
-    const confirmButton = screen.getByRole("button", { name: /confirm/i });
-    fireEvent.click(confirmButton);
+    // Confirm and verify nutrition updates
+    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
 
-    // Verify nutrition updates
     await waitFor(() => {
-      const adjustedCalories = screen.getByText(
-        new RegExp(String.raw`${servingSize + 0.25} serving\(s\)`, "g")
-      );
-      expect(adjustedCalories).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          new RegExp(`${initialServingSize + 0.25} serving\\(s\\)`)
+        )
+      ).toBeInTheDocument();
     });
   });
 
-  it.skip("tests milk and ranch toggles", async () => {
-    render(<MealPlanner />);
+  it("handles milk and ranch toggles with nutrition updates", async () => {
+    await renderMealPlanner();
 
-    // Select first kid and breakfast
-    // await waitFor(() => {
-    //   fireEvent.click(screen.getByText("Presley"));
-    //   fireEvent.click(screen.getByText(/breakfast/i));
-    // });
+    // Toggle milk and verify nutrition
+    await toggleSwitch(/Include Milk/i);
+    expect(
+      screen.getByText(`${MILK_OPTION.calories} / 400 cal`)
+    ).toBeInTheDocument();
 
-    // Toggle milk
-    const milkSwitch = screen.getByTestId("milk-toggle");
-    await waitFor(() => {
-      expect(milkSwitch).toBeInTheDocument();
-    });
-    fireEvent.click(milkSwitch);
+    // Toggle ranch and verify combined nutrition
+    await toggleSwitch(/Ranch Dressing/i);
+    expect(
+      screen.getByText(
+        `${MILK_OPTION.calories + RANCH_OPTION.calories} / 400 cal`
+      )
+    ).toBeInTheDocument();
 
-    // Toggle ranch
-    const ranchSwitch = screen.getByRole("switch", { name: /ranch dressing/i });
-    fireEvent.click(ranchSwitch);
-
-    // Verify toggles update nutrition
-    await waitFor(() => {
-      expect(screen.getByText(/Milk/i)).toBeInTheDocument();
-      expect(screen.getByText(/Ranch/i)).toBeInTheDocument();
-    });
+    // Test ranch serving increment
+    fireEvent.click(screen.getByTestId("add-ranch-serving"));
+    expect(
+      screen.getByText(
+        `${MILK_OPTION.calories + RANCH_OPTION.calories * 2} / 400 cal`
+      )
+    ).toBeInTheDocument();
   });
 
-  it.skip("tests child view interaction", async () => {
-    render(<MealPlanner />);
+  it("handles view toggling and meal selection correctly", async () => {
+    await renderMealPlanner();
 
-    // Toggle to child view
-    const childViewSwitch = screen.getByRole("switch", { name: /kid's view/i });
-    fireEvent.click(childViewSwitch);
+    const viewToggle = screen.getByRole("switch", { name: /Parent's View/i });
 
-    // Verify child view renders
-    await waitFor(() => {
-      expect(screen.getByText(/What are you eating\?/i)).toBeInTheDocument();
-    });
+    // Toggle to child view and verify
+    fireEvent.click(viewToggle);
+    expect(screen.getByText(/Choose your proteins/i)).toBeInTheDocument();
+    expect(screen.getByText(/Choose your fruits/i)).toBeInTheDocument();
 
-    // Select breakfast
-    fireEvent.click(screen.getByText(/breakfast/i));
+    fireEvent.click(viewToggle);
 
-    // Verify food categories render
-    await waitFor(() => {
-      expect(screen.getByText(/Choose your proteins/i)).toBeInTheDocument();
-    });
+    // Test meal selection persistence across views
+    fireEvent.click(screen.getByText(/Lunch/i));
+    fireEvent.click(viewToggle);
+    expect(screen.getByText(/Lunch/i)).toBeInTheDocument();
   });
 });

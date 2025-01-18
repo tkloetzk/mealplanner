@@ -14,6 +14,8 @@ import {
   RANCH_OPTION,
 } from "@/constants/meal-goals";
 import { Kid } from "@/types/user";
+import { NutritionData } from "@/components/NutritionSummary";
+import { MEAL_TYPES } from "@/constants";
 
 // Utility function for safe local storage operations
 const safeLocalStorage = {
@@ -233,7 +235,7 @@ export function useMealPlanState(initialKids: Kid[]) {
 
   // Memoized nutrition calculation methods
   const calculateMealNutrition = useCallback(
-    (meal: MealType) => {
+    (meal: MealType): NutritionData => {
       if (!selectedKid || !selectedDay || !meal) {
         return {
           calories: 0,
@@ -279,12 +281,8 @@ export function useMealPlanState(initialKids: Kid[]) {
   );
 
   // Calculate daily nutrition totals
-  const calculateDailyTotals = useCallback(() => {
-    if (
-      !selectedKid ||
-      !selectedDay ||
-      !selections[selectedKid]?.[selectedDay]
-    ) {
+  const calculateDailyTotals = (): NutritionData => {
+    if (!selectedKid || !selectedDay) {
       return {
         calories: 0,
         protein: 0,
@@ -293,26 +291,25 @@ export function useMealPlanState(initialKids: Kid[]) {
       };
     }
 
-    const daySelections = selections[selectedKid][selectedDay];
-    return Object.values(daySelections).reduce(
-      (totals, mealSelections) => {
-        if (!mealSelections) return totals;
-
-        Object.values(
-          mealSelections as Record<string, SelectedFood | null>
-        ).forEach((food: SelectedFood | null) => {
-          if (food) {
-            totals.calories += food.adjustedCalories ?? food.calories ?? 0;
-            totals.protein += food.adjustedProtein ?? food.protein ?? 0;
-            totals.carbs += food.adjustedCarbs ?? food.carbs ?? 0;
-            totals.fat += food.adjustedFat ?? food.fat ?? 0;
-          }
-        });
-        return totals;
+    // Calculate totals for all meals in the day
+    return MEAL_TYPES.reduce(
+      (dailyTotals, mealType) => {
+        const mealNutrition = calculateMealNutrition(mealType);
+        return {
+          calories: dailyTotals.calories + mealNutrition.calories,
+          protein: dailyTotals.protein + mealNutrition.protein,
+          carbs: dailyTotals.carbs + mealNutrition.carbs,
+          fat: dailyTotals.fat + mealNutrition.fat,
+        };
       },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      }
     );
-  }, [selections, selectedKid, selectedDay]);
+  };
 
   // Milk toggle method
   const handleMilkToggle = useCallback(

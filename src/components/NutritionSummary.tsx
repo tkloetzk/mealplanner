@@ -5,22 +5,19 @@ import { MealType } from "@/types/food";
 import { DAILY_GOALS } from "@/constants/meal-goals";
 import { ArrowUpDown } from "lucide-react";
 
-interface NutritionSummaryProps {
-  mealNutrition: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  dailyNutrition: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  selectedMeal: MealType;
+export interface NutritionData {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
 }
 
+// Define the props interface for the NutritionSummary component
+interface NutritionSummaryProps {
+  mealNutrition: NutritionData;
+  dailyNutrition: NutritionData;
+  selectedMeal: MealType | null;
+}
 export function NutritionSummary({
   mealNutrition,
   dailyNutrition,
@@ -73,7 +70,8 @@ export function NutritionSummary({
               {showDailyTotal
                 ? "Daily Total"
                 : `${
-                    selectedMeal.charAt(0).toUpperCase() + selectedMeal.slice(1)
+                    selectedMeal?.charAt(0).toUpperCase() +
+                    selectedMeal?.slice(1)
                   } Total`}
             </div>
             <ArrowUpDown

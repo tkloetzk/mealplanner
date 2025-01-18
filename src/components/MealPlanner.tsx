@@ -4,8 +4,13 @@ import React, { MouseEvent, useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, Plus } from "lucide-react";
-
+import { Camera, MessageSquare, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 // Import custom hook
 import { useMealPlanState } from "@/hooks/useMealPlanState";
 
@@ -32,16 +37,61 @@ import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 import { Kid } from "@/types/user";
 import { ChildView } from "./ChildView";
 import { DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
+import { FoodImageAnalysis } from "./FoodImageAnalysis";
+import { MealAnalysis } from "./MealAnalysis";
+// The AnalysisDialog component handles the modal display of AI analysis results
+interface AnalysisDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+}
 
-export const MealPlanner = () => {
+function AnalysisDialog({
+  isOpen,
+  onOpenChange,
+  children,
+}: AnalysisDialogProps) {
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
+      <AlertDialogContent
+        className="max-w-3xl"
+        onEscapeKeyDown={() => onOpenChange(false)}
+      >
+        <div className="flex justify-between items-start mb-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle>AI Analysis</AlertDialogTitle>
+          </AlertDialogHeader>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full h-8 w-8 p-0"
+            onClick={() => onOpenChange(false)}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </Button>
+        </div>
+        {children}
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+export function MealPlanner() {
   // Kids configuration
   const [kids] = useState<Kid[]>([
     { id: "1", name: "Presley" },
     { id: "2", name: "Evy" },
   ]);
 
-  // Additional local states
+  // View state
   const [isChildView, setIsChildView] = useState(false);
+
+  // AI analysis state
+  const [showAiAnalysis, setShowAiAnalysis] = useState(false);
+  const [showImageAnalysis, setShowImageAnalysis] = useState(false);
+
+  // Food options and context state
   const [foodOptions, setFoodOptions] = useState<Record<CategoryType, Food[]>>({
     proteins: [],
     grains: [],
@@ -58,9 +108,28 @@ export const MealPlanner = () => {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  // Use custom hook for meal planning state management
+  const {
+    selectedKid,
+    selectedDay,
+    selectedMeal,
+    selections,
+    mealHistory,
+    setSelectedKid,
+    setSelectedDay,
+    setSelectedMeal,
+    setSelections,
+    handleFoodSelect,
+    calculateMealNutrition,
+    handleServingAdjustment,
+    calculateDailyTotals,
+    handleMilkToggle,
+    handleRanchToggle,
+  } = useMealPlanState(kids);
+
   // Helper function to get ordered days starting from today
-  const getOrderedDays = (): string[] => {
-    const days: string[] = [
+  const getOrderedDays = (): DayType[] => {
+    const days: DayType[] = [
       "sunday",
       "monday",
       "tuesday",
@@ -70,9 +139,7 @@ export const MealPlanner = () => {
       "saturday",
     ];
     const today = new Date().getDay();
-
-    // Reorder the days array to start from the current day
-    return [...days.slice(today), ...days.slice(0, today)] as DayType[];
+    return [...days.slice(today), ...days.slice(0, today)];
   };
 
   // Serving adjustment handler
@@ -84,9 +151,8 @@ export const MealPlanner = () => {
     e.stopPropagation();
     if (selectedDay && selectedMeal && selectedKid) {
       const currentFood =
+        // @ts-expect-error TypeScript doesn't understand the dynamic keys here
         selections[selectedKid]?.[selectedDay]?.[selectedMeal]?.[category];
-
-      // Set the context with 'serving' mode
       setSelectedFoodContext({
         category,
         food,
@@ -114,46 +180,47 @@ export const MealPlanner = () => {
       });
 
       if (response.ok) {
-        // Optionally update local food options
         setFoodOptions((prev) => ({
           ...prev,
           [food.category]: [...prev[food.category], food],
         }));
-        setSelectedFoodContext(null); // Update this line
+        setSelectedFoodContext(null);
       }
     } catch (error) {
       console.error("Error saving food:", error);
     }
   };
 
-  // Use the custom hook for state management
-  const {
-    selectedKid,
-    selectedDay,
-    selectedMeal,
-    selections,
-    mealHistory,
-    setSelectedKid,
-    setSelectedDay,
-    setSelectedMeal,
-    setSelections,
-    handleFoodSelect,
-    calculateMealNutrition,
-    handleServingAdjustment,
-    calculateDailyTotals,
-    handleMilkToggle,
-    handleRanchToggle,
-    // addToMealHistory,
-  } = useMealPlanState(kids || []); // Provide an empty array as default
+  const handleDeleteFood = async (foodId: string) => {
+    try {
+      const response = await fetch(`/api/foods/${foodId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete food");
+      }
+
+      setFoodOptions((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((category) => {
+          updated[category] = updated[category].filter(
+            (food) => food.id !== foodId
+          );
+        });
+        return updated;
+      });
+    } catch (error) {
+      console.error("Error deleting food:", error);
+    }
+  };
 
   // Data loading effect
   useEffect(() => {
     const loadData = async () => {
       try {
         const [foodsRes] = await Promise.all([fetch("/api/foods")]);
-
         if (!foodsRes.ok) throw new Error("Failed to fetch foods");
-
         const foods = await foodsRes.json();
         setFoodOptions(foods);
       } catch (error) {
@@ -166,80 +233,6 @@ export const MealPlanner = () => {
     loadData();
   }, []);
 
-  const getMealSuggestion = useMemo(() => {
-    if (!selectedMeal) return null;
-
-    const nutrition = calculateMealNutrition(selectedMeal);
-    const target = {
-      breakfast: 400,
-      lunch: 400,
-      dinner: 400,
-      snack: 200,
-    }[selectedMeal];
-
-    // Define a type for the suggestion
-    type MealSuggestion = {
-      type: "info" | "warning" | "success";
-      message: string;
-    };
-
-    let suggestion: MealSuggestion | null = null;
-
-    if (nutrition.calories === 0) {
-      suggestion = {
-        type: "info",
-        message:
-          "Start building your meal! Aim for a balance of proteins, grains, fruits, and vegetables.",
-      };
-    } else if (nutrition.calories === target) {
-      suggestion = {
-        type: "success",
-        message: `Perfect! This is a well-balanced meal within the target range of ${target}.`,
-      };
-    } else if (nutrition.calories > target + 100) {
-      suggestion = {
-        type: "warning",
-        message:
-          "You're significantly over the target calories. Consider removing a high-calorie item.",
-      };
-    } else {
-      suggestion = {
-        type: "info",
-        message: `You have room for ${
-          target - nutrition.calories
-        } more calories.`,
-      };
-    }
-
-    return suggestion;
-  }, [selectedMeal, calculateMealNutrition]);
-
-  const handleDeleteFood = async (foodId: string) => {
-    try {
-      const response = await fetch(`/api/foods/${foodId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete food");
-      }
-
-      // Remove from local state
-      setFoodOptions((prev) => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach((category) => {
-          updated[category] = updated[category].filter(
-            (food) => food.id !== foodId
-          );
-        });
-        return updated;
-      });
-    } catch (error) {
-      console.error("Error deleting food:", error);
-      // Optionally show user-friendly error message
-    }
-  };
-
   const includesMilk = useMemo(() => {
     if (!selectedKid || !selectedDay)
       return {
@@ -249,10 +242,13 @@ export const MealPlanner = () => {
         snack: false,
       };
 
-    return MEAL_TYPES.reduce((acc, mealType) => {
+    // @ts-expect-error TypeScript doesn't understand the dynamic keys here
+    return MEAL_TYPES.reduce((acc: Record<MealType, boolean>, mealType) => {
       acc[mealType] =
+        // @ts-expect-error TypeScript doesn't understand the dynamic keys here
         !!selections[selectedKid]?.[selectedDay]?.[mealType]?.milk;
       return acc;
+      // @ts-expect-error TypeScript doesn't understand the dynamic keys here
     }, {} as Record<MealType, boolean>);
   }, [selections, selectedKid, selectedDay]);
 
@@ -265,23 +261,18 @@ export const MealPlanner = () => {
         snack: { has: false, servings: 0 },
       };
 
-    return MEAL_TYPES.reduce((acc, mealType) => {
-      const ranch = selections[selectedKid]?.[selectedDay]?.[mealType]?.ranch;
-      acc[mealType] = {
-        has: !!ranch,
-        servings: ranch?.servings || 0,
-      };
-      return acc;
-    }, {} as Record<MealType, { has: boolean; servings: number }>);
-  }, [selections, selectedKid, selectedDay]);
-
-  if (!kids) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-red-500">Failed to initialize meal planner</div>
-      </div>
+    return MEAL_TYPES.reduce(
+      (acc: Record<MealType, { has: boolean; servings: number }>, mealType) => {
+        const ranch = selections[selectedKid]?.[selectedDay]?.[mealType]?.ranch;
+        acc[mealType] = {
+          has: !!ranch,
+          servings: ranch?.servings || 1,
+        };
+        return acc;
+      },
+      {} as Record<MealType, { has: boolean; servings: number }>
     );
-  }
+  }, [selections, selectedKid, selectedDay]);
 
   // Loading state
   if (isLoading) {
@@ -297,16 +288,17 @@ export const MealPlanner = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
-      <h1 className="text-3xl font-bold">Meal Planner</h1>{" "}
-      {/* Ensure this is always rendered */}
+      <h1 className="text-3xl font-bold">Meal Planner</h1>
       <div className="flex justify-between items-center mb-6">
         <ViewToggle isChildView={isChildView} onToggle={setIsChildView} />
       </div>
+
       <KidSelector
         kids={kids}
         selectedKid={selectedKid}
         onSelect={setSelectedKid}
       />
+
       {!selectedKid ? (
         <div className="text-center py-12 text-gray-500">
           Please select a kid to start planning meals
@@ -331,9 +323,9 @@ export const MealPlanner = () => {
           <TabsContent value="planner">
             {/* Day Selection */}
             <div className="flex space-x-2 overflow-x-auto pb-2 mb-4">
-              {getOrderedDays().map((day) => (
+              {getOrderedDays().map((day, i) => (
                 <button
-                  key={day}
+                  key={i}
                   onClick={() => setSelectedDay(day as DayType)}
                   className={`px-4 py-2 rounded-lg capitalize ${
                     selectedDay === day
@@ -341,10 +333,11 @@ export const MealPlanner = () => {
                       : "bg-gray-100"
                   }`}
                 >
-                  {day}
+                  {day as string}
                 </button>
               ))}
             </div>
+
             {/* Meal Selection */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {MEAL_TYPES.map((meal) => (
@@ -361,59 +354,53 @@ export const MealPlanner = () => {
                 </button>
               ))}
             </div>
-            {selectedFoodContext &&
-              (selectedFoodContext.mode === "serving" ? (
-                <ServingSelector
-                  food={selectedFoodContext.food}
-                  currentServings={selectedFoodContext.currentServings}
-                  onConfirm={(adjustedFood) => {
-                    handleServingAdjustment(
-                      selectedFoodContext.category,
-                      adjustedFood
-                    );
-                    setSelectedFoodContext(null);
-                  }}
-                  onCancel={() => setSelectedFoodContext(null)}
-                />
-              ) : (
-                <FoodEditor
-                  onSave={handleSaveFood}
-                  onCancel={() => setSelectedFoodContext(null)}
-                  onDelete={handleDeleteFood}
-                  initialFood={selectedFoodContext.food}
-                />
-              ))}
-            {selectedMeal && (
+
+            {selectedMeal && !isChildView && (
               <>
+                {/* AI Analysis Buttons */}
+                <div className="mb-4 flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setShowImageAnalysis(true)}
+                  >
+                    <Camera className="w-4 h-4" />
+                    Analyze Plate Photo
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      const currentMealSelections =
+                        // @ts-expect-error TypeScript doesn't understand the dynamic keys here
+                        selections[selectedKid]?.[selectedDay]?.[selectedMeal];
+                      if (currentMealSelections) {
+                        setShowAiAnalysis(true);
+                      }
+                    }}
+                    disabled={
+                      // @ts-expect-error TypeScript doesn't understand the dynamic keys here
+                      !selections[selectedKid]?.[selectedDay]?.[selectedMeal]
+                    }
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Analyze Meal Plan
+                  </Button>
+                </div>
+
                 {/* Nutrition Summary */}
                 <NutritionSummary
                   mealNutrition={calculateMealNutrition(selectedMeal)}
                   dailyNutrition={calculateDailyTotals()}
                   selectedMeal={selectedMeal}
                 />
-
-                {/* Meal Suggestion */}
-                {getMealSuggestion && (
-                  <div
-                    className={`mb-6 p-4 rounded-lg border ${
-                      getMealSuggestion.type === "warning"
-                        ? "bg-yellow-50 border-yellow-200 text-yellow-800"
-                        : getMealSuggestion.type === "success"
-                        ? "bg-green-50 border-green-200 text-green-800"
-                        : "bg-blue-50 border-blue-200 text-blue-800"
-                    }`}
-                  >
-                    <div className="flex items-start space-x-2">
-                      <MessageCircle className="w-5 h-5 mt-0.5" />
-                      <p>{getMealSuggestion.message}</p>
-                    </div>
-                  </div>
-                )}
-
                 {selectedMeal && selectedMeal !== "snack" && (
                   <div className="mb-6" data-testid="milk-toggle">
                     <MilkToggle
-                      isSelected={includesMilk[selectedMeal]}
+                      isSelected={
+                        selectedMeal ? includesMilk[selectedMeal] : false
+                      }
                       onChange={(value) =>
                         handleMilkToggle(selectedMeal, value)
                       }
@@ -431,48 +418,19 @@ export const MealPlanner = () => {
                     />
                   </div>
                 )}
-                <div className="fixed right-4 bottom-20 z-50">
-                  <Button
-                    onClick={() =>
-                      setSelectedFoodContext({
-                        category: "proteins",
-                        // @ts-expect-error it needs id but thats mongo generated
-                        food: {
-                          name: "",
-                          calories: 0,
-                          protein: 0,
-                          carbs: 0,
-                          fat: 0,
-                          category: "proteins",
-                          servingSize: "1",
-                          servingSizeUnit: "g",
-                          meal: [],
-                        },
-                        currentServings: 1,
-                      })
-                    }
-                    className="rounded-full h-12 w-12 shadow-lg bg-blue-500 hover:bg-blue-600 flex items-center justify-center"
-                  >
-                    <Plus className="h-6 w-6" />
-                  </Button>
-                </div>
 
                 {/* Food Selection Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-14">
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
                   ).map(([category, foods]) => {
-                    // Filter foods based on the selected meal
                     const compatibleFoods = selectedMeal
                       ? foods.filter((food) =>
                           food.meal?.includes(selectedMeal)
                         )
                       : foods;
 
-                    // Only render the category if it has compatible foods
-                    if (compatibleFoods.length === 0) {
-                      return null;
-                    }
+                    if (compatibleFoods.length === 0) return null;
 
                     return (
                       <Card key={category}>
@@ -484,7 +442,8 @@ export const MealPlanner = () => {
                             {compatibleFoods.map((food, index) => {
                               const selectedFoodInCategory =
                                 selectedKid && selectedDay && selectedMeal
-                                  ? selections[selectedKid]?.[selectedDay]?.[
+                                  ? // @ts-expect-error TypeScript doesn't understand the dynamic keys here
+                                    selections[selectedKid]?.[selectedDay]?.[
                                       selectedMeal
                                     ]?.[category]
                                   : null;
@@ -518,18 +477,6 @@ export const MealPlanner = () => {
                       </Card>
                     );
                   })}
-                </div>
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-                  <CompactNutritionProgress
-                    currentCalories={
-                      selectedMeal
-                        ? calculateMealNutrition(selectedMeal).calories
-                        : calculateDailyTotals().calories
-                    }
-                    currentProtein={calculateDailyTotals().protein}
-                    currentFat={calculateDailyTotals().fat}
-                    selectedMeal={selectedMeal}
-                  />
                 </div>
               </>
             )}
@@ -565,20 +512,30 @@ export const MealPlanner = () => {
           <TabsContent value="history">
             <div className="space-y-4">
               {selectedKid &&
+                mealHistory[selectedKid] &&
                 Array.isArray(mealHistory[selectedKid]) &&
                 mealHistory[selectedKid].map((entry, index) => (
                   <Card key={index} className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="font-semibold capitalize">
-                        {entry.meal} -{" "}
+                        {entry.meal as string} -{" "}
                         {new Date(entry.date).toLocaleDateString()}
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          if (selectedMeal) {
+                          if (selectedMeal && selectedDay && selectedKid) {
                             const newSelections = { ...selections };
+                            if (!newSelections[selectedKid]) {
+                              newSelections[selectedKid] = {};
+                            }
+                            // @ts-expect-error TypeScript doesn't understand the dynamic keys here
+                            if (!newSelections[selectedKid][selectedDay]) {
+                              // @ts-expect-error TypeScript doesn't understand the dynamic keys here
+                              newSelections[selectedKid][selectedDay] = {};
+                            }
+                            // @ts-expect-error TypeScript doesn't understand the dynamic keys here
                             newSelections[selectedKid][selectedDay][
                               selectedMeal
                             ] = {
@@ -607,6 +564,88 @@ export const MealPlanner = () => {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* ServingSelector Modal */}
+      {selectedFoodContext?.mode === "serving" && (
+        <ServingSelector
+          food={selectedFoodContext.food}
+          currentServings={selectedFoodContext.currentServings}
+          onConfirm={(adjustedFood) => {
+            handleServingAdjustment(selectedFoodContext.category, adjustedFood);
+            setSelectedFoodContext(null);
+          }}
+          onCancel={() => setSelectedFoodContext(null)}
+        />
+      )}
+
+      {/* FoodEditor Modal */}
+      {selectedFoodContext?.mode === "edit" && (
+        <FoodEditor
+          onSave={handleSaveFood}
+          onCancel={() => setSelectedFoodContext(null)}
+          onDelete={handleDeleteFood}
+          initialFood={selectedFoodContext.food}
+        />
+      )}
+
+      {/* AI Analysis Dialogs */}
+      <AnalysisDialog isOpen={showAiAnalysis} onOpenChange={setShowAiAnalysis}>
+        {selectedKid && selectedDay && selectedMeal && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Meal Plan Analysis</h2>
+            <p className="text-sm text-gray-600">
+              Analysis of your planned meal&apos;s nutritional content and
+              balance.
+            </p>
+            <MealAnalysis
+              selectedMeal={selectedMeal}
+              mealSelections={
+                // @ts-expect-error TypeScript doesn't understand the dynamic keys here
+                selections[selectedKid][selectedDay][selectedMeal]
+              }
+              onAnalysisComplete={(analysis) => {
+                // Here you could add functionality to store the analysis
+                // in the meal history or display it in a different way
+                console.log("Meal analysis completed:", analysis);
+              }}
+            />
+          </div>
+        )}
+      </AnalysisDialog>
+
+      {/* Food Image Analysis Dialog */}
+      <AnalysisDialog
+        isOpen={showImageAnalysis}
+        onOpenChange={setShowImageAnalysis}
+      >
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Plate Photo Analysis</h2>
+          <p className="text-sm text-gray-600">
+            Take a photo of a prepared meal to get nutritional insights and
+            recommendations.
+          </p>
+          <FoodImageAnalysis
+            onAnalysisComplete={(analysis) => {
+              console.log("Image analysis completed:", analysis);
+              setShowImageAnalysis(false);
+            }}
+          />
+        </div>
+      </AnalysisDialog>
+
+      {/* Nutrition Progress Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+        <CompactNutritionProgress
+          currentCalories={
+            selectedMeal
+              ? calculateMealNutrition(selectedMeal).calories
+              : calculateDailyTotals().calories
+          }
+          currentProtein={calculateDailyTotals().protein}
+          currentFat={calculateDailyTotals().fat}
+          selectedMeal={selectedMeal}
+        />
+      </div>
     </div>
   );
-};
+}

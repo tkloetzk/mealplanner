@@ -93,7 +93,6 @@ const FoodItem: React.FC<FoodItemProps> = ({
             <div
               onClick={(e) => {
                 e.stopPropagation();
-                console.log("in here");
                 onServingClick(e);
               }}
               className="p-2 rounded-full hover:bg-blue-200 transition-colors"

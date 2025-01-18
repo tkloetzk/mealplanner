@@ -12,7 +12,26 @@ export interface MealSelection {
   milk: SelectedFood | null;
   ranch: SelectedFood | null;
 }
+interface MealHistory {
+  meal: MealType;
+  date: string;
+  selections: {
+    [key in CategoryType]?: {
+      name: string;
+      adjustedCalories?: number;
+    };
+  };
+}
 
+interface MealPlanSelections {
+  [kidId: string]: {
+    [day in DayType]?: {
+      [meal in MealType]?: {
+        [category in CategoryType]?: Food;
+      };
+    };
+  };
+}
 export interface DayMeals {
   breakfast: MealSelection;
   lunch: MealSelection;

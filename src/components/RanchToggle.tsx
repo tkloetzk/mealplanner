@@ -54,7 +54,9 @@ export function RanchToggle({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div>
-                <Label className="text-base">Ranch Dressing</Label>
+                <Label htmlFor="include-ranch" className="text-base">
+                  Ranch Dressing
+                </Label>
                 <div className="text-sm text-gray-600">
                   {RANCH_OPTION.calories} calories per tablespoon
                 </div>
@@ -80,6 +82,7 @@ export function RanchToggle({
                     size="sm"
                     onClick={() => handleServingsChange(servings + 1)}
                     disabled={servings >= 3}
+                    data-testid="add-ranch-serving"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -87,6 +90,7 @@ export function RanchToggle({
                 </div>
               )}
               <Switch
+                id="include-ranch"
                 checked={isSelected}
                 onCheckedChange={(checked) => onChange(checked, servings)}
               />
