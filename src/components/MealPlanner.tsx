@@ -42,11 +42,6 @@ export const MealPlanner = () => {
 
   // Additional local states
   const [isChildView, setIsChildView] = useState(false);
-  // const [selectedFood, setSelectedFood] = useState<{
-  //   category: CategoryType;
-  //   food: Food;
-  //   currentServings: number;
-  // } | null>(null);
   const [foodOptions, setFoodOptions] = useState<Record<CategoryType, Food[]>>({
     proteins: [],
     grains: [],
@@ -416,7 +411,7 @@ export const MealPlanner = () => {
                 )}
 
                 {selectedMeal && selectedMeal !== "snack" && (
-                  <div className="mb-6">
+                  <div className="mb-6" data-testid="milk-toggle">
                     <MilkToggle
                       isSelected={includesMilk[selectedMeal]}
                       onChange={(value) =>
@@ -441,6 +436,7 @@ export const MealPlanner = () => {
                     onClick={() =>
                       setSelectedFoodContext({
                         category: "proteins",
+                        // @ts-expect-error it needs id but thats mongo generated
                         food: {
                           name: "",
                           calories: 0,

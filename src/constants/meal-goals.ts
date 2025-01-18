@@ -1,4 +1,4 @@
-import { Food, MealPlan } from "@/types/food";
+import { MealPlan } from "@/types/food";
 import { DAYS_OF_WEEK } from ".";
 
 // constants/meal-goals.ts
@@ -41,7 +41,7 @@ export const DEFAULT_MEAL_PLAN: MealPlan = DAYS_OF_WEEK.reduce((plan, day) => {
   return plan;
 }, {} as MealPlan);
 
-export const MILK_OPTION: Food = {
+export const MILK_OPTION = {
   name: "2% Milk",
   calories: 140,
   protein: 10,

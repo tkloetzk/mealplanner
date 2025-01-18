@@ -20,7 +20,7 @@ export const MOCK_FOODS = {
       category: "proteins" as CategoryType,
       calories: 165,
       protein: 31,
-      carbs: 0,
+      carbs: 0.1,
       fat: 3.6,
       meal: ["breakfast", "lunch", "dinner"] as const,
       servingSize: "1",

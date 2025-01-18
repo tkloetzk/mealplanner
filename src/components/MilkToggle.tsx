@@ -20,7 +20,11 @@ export const MilkToggle = ({ isSelected, onChange }: MilkToggleProps) => {
           </p>
         </div>
       </div>
-      <Switch checked={isSelected} onCheckedChange={onChange} />
+      <Switch
+        checked={isSelected}
+        onCheckedChange={onChange}
+        data-testid="include-milk-toggle"
+      />
     </div>
   );
 };

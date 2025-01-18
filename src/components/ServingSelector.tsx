@@ -93,6 +93,7 @@ export function ServingSelector({
             min="0.25"
             max="5"
             className="w-20 text-center"
+            data-testid="custom-serving-input"
             onChange={(e) => handleServingChange(parseFloat(e.target.value))}
           />
 

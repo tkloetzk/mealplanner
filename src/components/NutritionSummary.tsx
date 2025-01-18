@@ -36,8 +36,8 @@ export function NutritionSummary({
 
   const getProgressColor = (current: number, target: number) => {
     const percentage = (current / target) * 100;
-    if (percentage > 100) return "bg-red-500";
-    if (percentage > 90) return "bg-yellow-500";
+    if (percentage > 110) return "bg-red-500";
+    if (percentage > 90 && percentage <= 95) return "bg-yellow-500";
     return "bg-green-500";
   };
 

@@ -26,7 +26,7 @@ const getMetricLabel = (metric: MetricType) => {
 
 const getCalorieProgressColor = (current: number, target: number) => {
   const percentage = (current / target) * 100;
-  return percentage > 100
+  return percentage > 110
     ? "bg-red-500"
     : percentage > 90
     ? "bg-yellow-500"
@@ -36,7 +36,7 @@ const getCalorieProgressColor = (current: number, target: number) => {
 const getRangeProgressColor = (current: number, min: number, max: number) => {
   return current < min
     ? "bg-yellow-500"
-    : current > max
+    : current > max * 1.1
     ? "bg-red-500"
     : "bg-emerald-500";
 };
@@ -82,9 +82,9 @@ const getProgressBarColor = (
         ]
       : DAILY_GOALS.dailyTotals.calories;
 
-    return currentCalories > target
+    return currentCalories > target * 1.1
       ? "[&>div]:bg-red-500"
-      : currentCalories > target * 0.9
+      : currentCalories > target * 0.9 && currentCalories <= target * 0.95
       ? "[&>div]:bg-yellow-500"
       : "[&>div]:bg-green-500";
   }

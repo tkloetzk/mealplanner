@@ -41,7 +41,7 @@ exports[`FoodItem Component matches snapshot of selected food 1`] = `
         <div
           class="text-sm text-gray-600 mt-1"
         >
-          P: 31g | C: 0g | F: 3.6g
+          P: 31g | C: 0.1g | F: 3.6g
         </div>
       </div>
     </div>
@@ -90,7 +90,7 @@ exports[`FoodItem Component matches snapshot of unselected food 1`] = `
         <div
           class="text-sm text-gray-600 mt-1"
         >
-          P: 31g | C: 0g | F: 3.6g
+          P: 31g | C: 0.1g | F: 3.6g
         </div>
       </div>
     </div>
