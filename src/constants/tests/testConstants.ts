@@ -26,6 +26,18 @@ export const MOCK_FOODS = {
       servingSize: "1",
       servingSizeUnit: "piece" as ServingSizeUnit,
     },
+    {
+      id: "4",
+      name: "Not a breakfast food",
+      category: "proteins" as CategoryType,
+      calories: 100,
+      protein: 30,
+      carbs: 0.1,
+      fat: 34.6,
+      meal: ["lunch", "dinner"] as const,
+      servingSize: "1",
+      servingSizeUnit: "piece" as ServingSizeUnit,
+    },
     // Add more protein foods
   ],
   fruits: [

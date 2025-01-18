@@ -88,7 +88,10 @@ export function CategoryFoodGrid({
                       </div>
                     )}
                     {isSelected && (
-                      <div className="absolute top-2 right-2 bg-green-500 rounded-full p-2">
+                      <div
+                        className="absolute top-2 right-2 bg-green-500 rounded-full p-2"
+                        data-testid="checkmark-icon"
+                      >
                         <Check className="w-5 h-5 text-white" />
                       </div>
                     )}
