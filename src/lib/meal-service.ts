@@ -1,4 +1,11 @@
-import { Food, MealHistoryEntry, SelectedFood } from "@/types/food";
+import {
+  Food,
+  MealHistoryEntry,
+  MealHistoryRecord,
+  MealSelection,
+  MealType,
+  SelectedFood,
+} from "@/types/food";
 import clientPromise from "./mongodb";
 
 export interface MealPlan {
@@ -149,5 +156,49 @@ export class MealService {
       userId,
       createdAt: new Date(),
     });
+  }
+  static async saveMealToHistory(
+    kidId: string,
+    mealData: {
+      meal: MealType;
+      selections: MealSelection;
+    }
+  ) {
+    const client = await clientPromise;
+    const db = client.db("mealplanner");
+
+    const historyEntry: MealHistoryRecord = {
+      kidId,
+      date: new Date(),
+      meal: mealData.meal,
+      selections: mealData.selections,
+    };
+
+    await db.collection("mealHistory").insertOne(historyEntry);
+    return historyEntry;
+  }
+  static async getMealHistory(kidId: string) {
+    const client = await clientPromise;
+    const db = client.db("mealplanner");
+
+    return await db
+      .collection("mealHistory")
+      .find({ kidId })
+      .sort({ date: -1 })
+      .limit(50) // Adjust limit as needed
+      .toArray();
+  }
+
+  static async updateMealHistory(
+    kidId: string,
+    historyId: string,
+    updates: Partial<MealHistoryRecord>
+  ) {
+    const client = await clientPromise;
+    const db = client.db("mealplanner");
+
+    await db
+      .collection("mealHistory")
+      .updateOne({ _id: historyId, kidId }, { $set: updates });
   }
 }

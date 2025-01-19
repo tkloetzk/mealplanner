@@ -92,6 +92,21 @@ export interface MealHistoryEntry {
   selections: MealSelection;
 }
 
+export interface MealHistoryRecord {
+  kidId: string;
+  date: Date;
+  meal: MealType;
+  selections: MealSelection;
+  consumptionData?: {
+    foods: {
+      name: string;
+      percentageEaten: number;
+      notes?: string;
+    }[];
+    summary: string;
+  };
+}
+
 export interface NutritionSummary {
   calories: number;
   protein: number;
