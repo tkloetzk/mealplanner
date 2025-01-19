@@ -4,7 +4,7 @@ import React, { MouseEvent, useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, MessageSquare, X } from "lucide-react";
+import { Camera, MessageSquare, X, Plus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -39,6 +39,7 @@ import { ChildView } from "./ChildView";
 import { DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
 import { FoodImageAnalysis } from "./FoodImageAnalysis";
 import { MealAnalysis } from "./MealAnalysis";
+import { FAB } from "./FAB";
 // The AnalysisDialog component handles the modal display of AI analysis results
 interface AnalysisDialogProps {
   isOpen: boolean;
@@ -102,7 +103,7 @@ export function MealPlanner() {
   const [selectedFoodContext, setSelectedFoodContext] = useState<{
     category: CategoryType;
     food: Food;
-    mode: "serving" | "edit";
+    mode: "serving" | "edit" | "add";
     currentServings?: number;
   } | null>(null);
 
@@ -166,7 +167,7 @@ export function MealPlanner() {
     setSelectedFoodContext({
       category,
       food,
-      mode: "edit",
+      mode: food ? "edit" : "add",
     });
   };
 
@@ -355,7 +356,7 @@ export function MealPlanner() {
               ))}
             </div>
 
-            {selectedMeal && !isChildView && (
+            {!isChildView && (
               <>
                 {/* AI Analysis Buttons */}
                 <div className="mb-4 flex gap-2 justify-end">
@@ -407,20 +408,29 @@ export function MealPlanner() {
                     />
                   </div>
                 )}
-                {selectedMeal && (
-                  <div className="mb-6">
-                    <RanchToggle
-                      isSelected={includesRanch[selectedMeal].has}
-                      servings={includesRanch[selectedMeal].servings}
-                      onChange={(value, servings) =>
-                        handleRanchToggle(selectedMeal, value, servings)
-                      }
-                    />
-                  </div>
-                )}
+                <div className="mb-6">
+                  <RanchToggle
+                    isSelected={includesRanch[selectedMeal].has}
+                    servings={includesRanch[selectedMeal].servings}
+                    onChange={(value, servings) =>
+                      handleRanchToggle(selectedMeal, value, servings)
+                    }
+                  />
+                </div>
 
                 {/* Food Selection Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-14">
+                  <FAB
+                    icon={Plus}
+                    onClick={() =>
+                      setSelectedFoodContext({
+                        mode: "add",
+                        category: "proteins",
+                        food: {} as Food,
+                      })
+                    }
+                    className="z-40 mb-16" // Add margin to avoid overlap with nutrition bar
+                  />
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
                   ).map(([category, foods]) => {
@@ -579,7 +589,8 @@ export function MealPlanner() {
       )}
 
       {/* FoodEditor Modal */}
-      {selectedFoodContext?.mode === "edit" && (
+      {(selectedFoodContext?.mode === "edit" ||
+        selectedFoodContext?.mode === "add") && (
         <FoodEditor
           onSave={handleSaveFood}
           onCancel={() => setSelectedFoodContext(null)}

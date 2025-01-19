@@ -186,6 +186,7 @@ export function FoodEditor({
       }
     }
   };
+  const isNew = initialFood && Object.keys(initialFood).length === 0;
   return (
     <div
       onClick={(e) => {
@@ -198,9 +199,9 @@ export function FoodEditor({
       <div className="bg-white rounded-lg w-full max-w-md p-4 flex flex-col space-y-3 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">
-            {initialFood ? "Edit Food" : "Add New Food"}
+            {!isNew ? "Edit Food" : "Add New Food"}
           </h2>
-          {initialFood && (
+          {!isNew && (
             <Button
               variant="destructive"
               size="icon"
@@ -273,9 +274,12 @@ export function FoodEditor({
         )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <Label className="text-sm">Name</Label>
+            <Label className="text-sm" htmlFor="name">
+              Name
+            </Label>
             <Input
               value={food.name}
+              id="name"
               onChange={(e) =>
                 setFood((prev) => ({ ...prev, name: e.target.value }))
               }
