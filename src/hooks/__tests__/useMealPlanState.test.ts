@@ -4,41 +4,16 @@ import {
   MOCK_KIDS,
   MOCK_FOODS,
   SELECTED_DAY,
-  BREAKFAST,
   PROTEINS,
   FRUITS,
   VEGETABLES,
-} from "@/constants/tests/testConstants";
+} from "@/__mocks__/testConstants";
 import { defaultObj, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
-
-// Mock localStorage to prevent state persistence between tests
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: jest.fn((key) => store[key] || null),
-    setItem: jest.fn((key, value) => {
-      store[key] = value.toString();
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-    removeItem: jest.fn((key) => {
-      delete store[key];
-    }),
-  };
-})();
-
-Object.defineProperty(window, "localStorage", { value: localStorageMock });
+import { BREAKFAST, DAYS_OF_WEEK, LUNCH, MILK, RANCH } from "@/constants";
 
 beforeEach(() => {
   // Sunday (index 0) is the default in your current implementation
   jest.spyOn(Date.prototype, "getDay").mockReturnValue(0);
-  localStorageMock.clear();
-});
-
-afterEach(() => {
-  jest.restoreAllMocks();
-  jest.clearAllMocks();
 });
 
 describe("useMealPlanState Hook", () => {
@@ -60,24 +35,25 @@ describe("useMealPlanState Hook", () => {
     expect(result.current.selectedMeal).toBe(BREAKFAST);
   });
 
-  it("handles food selection", () => {
+  it("handles food selection", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Set a specific day and meal first
-    act(() => {
+    await act(async () => {
       result.current.setSelectedDay(SELECTED_DAY);
       result.current.setSelectedMeal(BREAKFAST);
     });
 
     // Perform food selection
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
     // Verify the selection
+
     const selectedFood =
-      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST][
-        FRUITS
+      result.current.selections[MOCK_KIDS[0].id][DAYS_OF_WEEK[6]][BREAKFAST][
+        "fruits"
       ];
 
     expect(selectedFood).toEqual({
@@ -90,16 +66,16 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("toggles food selection", () => {
+  it("toggles food selection", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // First selection
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
     // Second selection (should remove the food)
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
@@ -112,10 +88,10 @@ describe("useMealPlanState Hook", () => {
 
   // In useMealPlanState.test.ts
 
-  it("calculates meal nutrition correctly", () => {
+  it("calculates meal nutrition correctly", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       result.current.setSelectedDay(SELECTED_DAY);
       result.current.setSelectedMeal(BREAKFAST);
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
@@ -132,16 +108,16 @@ describe("useMealPlanState Hook", () => {
 
   // In useMealPlanState.test.ts
 
-  it("handles serving adjustment", () => {
+  it("handles serving adjustment", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // First, add food
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
     // Then adjust serving
-    act(() => {
+    await act(async () => {
       result.current.handleServingAdjustment(FRUITS, {
         ...MOCK_FOODS.fruits[0],
         servings: 2,
@@ -163,10 +139,10 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it.skip("adds to meal history", () => {
+  it.skip("adds to meal history", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       result.current.addToMealHistory(MOCK_FOODS.fruits[0]);
     });
 
@@ -183,23 +159,24 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("handles milk toggle correctly with nutrition update", () => {
+  it("handles milk toggle correctly with nutrition update", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       result.current.handleMilkToggle(BREAKFAST, true);
     });
 
     const mealPlan = result.current.selections[MOCK_KIDS[0].id];
+
     const breakfastSelections = mealPlan[SELECTED_DAY][BREAKFAST];
-    const milkSelection = breakfastSelections["milk"];
+    const milkSelection = breakfastSelections[MILK];
 
     expect(milkSelection).toBeDefined();
     expect(milkSelection).not.toBeNull();
     expect(milkSelection).toEqual(
       expect.objectContaining({
         ...MILK_OPTION,
-        category: "milk",
+        category: MILK,
         servings: 1,
         adjustedCalories: MILK_OPTION.calories,
         adjustedProtein: MILK_OPTION.protein,
@@ -217,18 +194,16 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("handles ranch toggle correctly with nutrition update", () => {
+  it("handles ranch toggle correctly with nutrition update", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
-      result.current.handleRanchToggle("lunch", true, 2);
+    await act(async () => {
+      result.current.handleRanchToggle(LUNCH, true, 2);
     });
 
     const ranchSelection =
-      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY]["lunch"][
-        "ranch"
-      ];
-    const mealNutrition = result.current.calculateMealNutrition("lunch");
+      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][LUNCH][RANCH];
+    const mealNutrition = result.current.calculateMealNutrition(LUNCH);
 
     expect(ranchSelection).toEqual({
       ...RANCH_OPTION,
@@ -248,10 +223,10 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("handles daily nutrition calculation with multiple foods", () => {
+  it("handles daily nutrition calculation with multiple foods", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
       result.current.handleFoodSelect(PROTEINS, MOCK_FOODS.proteins[0]);
       result.current.handleMilkToggle(BREAKFAST, true);
@@ -284,26 +259,24 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("removes milk when toggled off", () => {
+  it("removes milk when toggled off", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       result.current.handleMilkToggle(BREAKFAST, true);
       result.current.handleMilkToggle(BREAKFAST, false);
     });
 
     const milkSelection =
-      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST][
-        "milk"
-      ];
+      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST][MILK];
 
     expect(milkSelection).toBeNull();
   });
 
-  it("removes ranch when toggled off", () => {
+  it("removes ranch when toggled off", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       result.current.handleRanchToggle("lunch", true, 2);
       result.current.handleRanchToggle("lunch", false, 0);
     });
@@ -316,10 +289,10 @@ describe("useMealPlanState Hook", () => {
     expect(ranchSelection).toBeNull();
   });
 
-  it("handles different kid selections", () => {
+  it("handles different kid selections", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       // Select first kid and add a food
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
 
@@ -348,17 +321,17 @@ describe("useMealPlanState Hook", () => {
       ]
     ).toBeNull();
   });
-  it("ensures food is selected on first click when no food is currently selected", () => {
+  it("ensures food is selected on first click when no food is currently selected", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Explicitly set the context for the selection
-    act(() => {
+    await act(async () => {
       result.current.setSelectedDay(SELECTED_DAY);
       result.current.setSelectedMeal(BREAKFAST);
     });
 
     // Perform first selection
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
@@ -387,28 +360,18 @@ describe("useMealPlanState Hook", () => {
   });
 });
 describe("Advanced useMealPlanState Scenarios", () => {
-  beforeEach(() => {
-    // Sunday (index 0) is the default in your current implementation
-    jest.spyOn(Date.prototype, "getDay").mockReturnValue(0);
-    localStorageMock.clear();
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-    jest.clearAllMocks();
-  });
-  it("should select a food item when no food is currently selected", () => {
+  it("should select a food item when no food is currently selected", async () => {
     // Render the hook with mock kids
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Prepare the context for selection
-    act(() => {
+    await act(async () => {
       result.current.setSelectedDay(SELECTED_DAY);
       result.current.setSelectedMeal(BREAKFAST);
     });
 
     // Perform food selection
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
@@ -435,23 +398,23 @@ describe("Advanced useMealPlanState Scenarios", () => {
       })
     );
   });
-  it("should toggle food selection when the same food is selected twice", () => {
+  it("should toggle food selection when the same food is selected twice", async () => {
     // Render the hook with mock kids
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Prepare the context for selection
-    act(() => {
+    await act(async () => {
       result.current.setSelectedDay(SELECTED_DAY);
       result.current.setSelectedMeal(BREAKFAST);
     });
 
     // First selection
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
     // Second selection (should remove the food)
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
@@ -465,23 +428,23 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(selectedFood).toBeNull();
   });
 
-  it("should allow selecting different foods in the same category", () => {
+  it("should allow selecting different foods in the same category", async () => {
     // Render the hook with mock kids
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Prepare the context for selection
-    act(() => {
+    await act(async () => {
       result.current.setSelectedDay(SELECTED_DAY);
       result.current.setSelectedMeal(BREAKFAST);
     });
 
     // Select first food
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
     });
 
     // Select a different food in the same category
-    act(() => {
+    await act(async () => {
       result.current.handleFoodSelect(FRUITS, {
         ...MOCK_FOODS.fruits[0],
         name: "Different Fruit",
@@ -499,11 +462,11 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(selectedFood).not.toBeNull();
     expect(selectedFood?.name).toBe("Different Fruit");
   });
-  it("handles complex meal selection with multiple interactions", () => {
+  it("handles complex meal selection with multiple interactions", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Simulate a complex scenario
-    act(() => {
+    await act(async () => {
       // Select multiple foods across different categories
       result.current.handleFoodSelect(PROTEINS, MOCK_FOODS.proteins[0]);
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
@@ -525,10 +488,10 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(breakfastSelections.ranch).not.toBeNull();
   });
 
-  it.skip("prevents duplicate food entries in meal history", () => {
+  it.skip("prevents duplicate food entries in meal history", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       // Add same food multiple times
       result.current.addToMealHistory(MOCK_FOODS.fruits[0]);
       result.current.addToMealHistory(MOCK_FOODS.proteins[0]);
@@ -539,17 +502,17 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(result.current.mealHistory[MOCK_KIDS[0].id].length).toBe(1);
   });
 
-  it("handles meal plan reset or clear scenarios", () => {
+  it("handles meal plan reset or clear scenarios", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
-    act(() => {
+    await act(async () => {
       // Populate some selections
       result.current.handleFoodSelect(PROTEINS, MOCK_FOODS.proteins[0]);
       result.current.handleMilkToggle(BREAKFAST, true);
     });
 
     // Simulate a reset or clear action
-    act(() => {
+    await act(async () => {
       const newSelections = { ...result.current.selections };
       newSelections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST] = defaultObj;
       result.current.setSelections(newSelections);
@@ -561,7 +524,7 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(breakfastSelections).toEqual(defaultObj);
   });
 
-  it("calculates nutrition across different servings and foods", () => {
+  it("calculates nutrition across different servings and foods", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     const multiServingFood = {
@@ -572,7 +535,7 @@ describe("Advanced useMealPlanState Scenarios", () => {
       fat: 2,
     };
 
-    act(() => {
+    await act(async () => {
       // Add foods with different serving sizes
       result.current.handleFoodSelect(PROTEINS, multiServingFood);
       result.current.handleServingAdjustment(PROTEINS, {

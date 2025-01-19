@@ -1,13 +1,10 @@
 // src/components/__tests__/KidsViewIntegration.test.tsx
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MealPlanner } from "../MealPlanner";
-import {
-  BREAKFAST,
-  FRUITS,
-  MOCK_FOODS,
-  PROTEINS,
-} from "@/constants/tests/testConstants";
+import { FRUITS, MOCK_FOODS, PROTEINS } from "@/__mocks__/testConstants";
 import { CategoryType, Food } from "@/types/food";
+import { act } from "react";
+import { BREAKFAST } from "@/constants";
 
 describe("Kids View Integration Tests", () => {
   // Mock data setup for consistent testing
@@ -30,7 +27,9 @@ describe("Kids View Integration Tests", () => {
 
     // Toggle to kid's view
     const viewToggle = screen.getByRole("switch", { name: /Parent's View/i });
-    fireEvent.click(viewToggle);
+    await act(async () => {
+      fireEvent.click(viewToggle);
+    });
 
     return result;
   };
@@ -38,69 +37,29 @@ describe("Kids View Integration Tests", () => {
   // Helper function to select a kid
   const selectKid = async (kidName: string) => {
     const kidButton = screen.getByText(kidName);
-    fireEvent.click(kidButton);
+    await act(async () => {
+      fireEvent.click(kidButton);
+    });
     return kidButton;
   };
 
   // Helper function to select a meal
   const selectMeal = async (mealName: string) => {
     const mealButton = screen.getByText(new RegExp(`^${mealName}$`, "i"));
-    fireEvent.click(mealButton);
+    await act(async () => {
+      fireEvent.click(mealButton);
+    });
     return mealButton;
   };
 
   // Helper function to select a food item
   const selectFood = async (category: CategoryType, food: Food) => {
     const foodCard = screen.getByText(food.name);
-    fireEvent.click(foodCard);
+    await act(async () => {
+      fireEvent.click(foodCard);
+    });
     return foodCard;
   };
-  const mockHistoryData = {
-    "1": [
-      {
-        _id: "123",
-        kidId: "1",
-        date: new Date().toISOString(),
-        meal: BREAKFAST,
-        selections: {
-          proteins: MOCK_FOODS.proteins[0],
-          fruits: null,
-          vegetables: null,
-          grains: null,
-          milk: null,
-          ranch: null,
-        },
-      },
-    ],
-  };
-
-  beforeEach(() => {
-    // Reset DOM and mocks before each test
-    document.body.innerHTML = "";
-    localStorage.clear();
-
-    // Setup fetch mock
-    global.fetch = jest.fn().mockImplementation((url) => {
-      if (typeof url === "string") {
-        if (url.includes("/api/meal-history")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockHistoryData["1"]),
-          });
-        }
-      }
-      // Default response for food data
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockFoodData),
-      });
-    }) as jest.Mock;
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    localStorage.clear();
-  });
 
   it.skip("shows initial meal selection interface in kid's view", async () => {
     await setupKidsView();
@@ -218,9 +177,8 @@ describe("Kids View Integration Tests", () => {
     await selectKid("Presley");
 
     // Check breakfast-compatible foods
-    await selectMeal(BREAKFAST as string);
+    await selectMeal(BREAKFAST);
     const breakfastFoods = mockFoodData.proteins.filter((food) =>
-      // @ts-expect-error TODO: fix
       food.meal.includes(BREAKFAST)
     );
 

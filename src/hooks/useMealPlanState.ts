@@ -15,7 +15,7 @@ import {
   RANCH_OPTION,
 } from "@/constants/meal-goals";
 import { Kid } from "@/types/user";
-import { MEAL_TYPES } from "@/constants";
+import { BREAKFAST, MEAL_TYPES } from "@/constants";
 
 // Utility function for safe local storage operations
 const safeLocalStorage = {
@@ -85,10 +85,7 @@ export function useMealPlanState(initialKids: Kid[]) {
   // Core selection state
   const [selectedKid, setSelectedKid] = useState<string>(initialKids[0].id);
   const [selectedDay, setSelectedDay] = useState<DayType>(getCurrentDay());
-  const [selectedMeal, setSelectedMeal] = useState<MealType>("breakfast");
-  const [activeHistoryEntry, setActiveHistoryEntry] =
-    useState<MealHistoryRecord | null>(null);
-
+  const [selectedMeal, setSelectedMeal] = useState<MealType>(BREAKFAST);
   // Selections state with persistent storage
   const [selections, setSelections] = useState<Record<string, MealPlan>>(() => {
     const savedSelections = safeLocalStorage.getItem(
@@ -203,8 +200,6 @@ export function useMealPlanState(initialKids: Kid[]) {
                   new Date(b.date).getTime() - new Date(a.date).getTime()
               ),
             }));
-
-            setActiveHistoryEntry(savedEntry);
           } catch (error) {
             console.error("Failed to save meal history:", error);
           }
@@ -311,7 +306,7 @@ export function useMealPlanState(initialKids: Kid[]) {
 
   // Milk toggle handler
   const handleMilkToggle = useCallback(
-    (mealType: MealType, value: boolean) => {
+    (mealType: string, value: boolean) => {
       if (!selectedKid || !selectedDay) return;
 
       setSelections((prev) => {
@@ -375,7 +370,6 @@ export function useMealPlanState(initialKids: Kid[]) {
     selectedMeal,
     selections,
     mealHistory,
-    activeHistoryEntry,
     setSelectedKid,
     setSelectedDay,
     setSelectedMeal,

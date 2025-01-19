@@ -1,8 +1,8 @@
 // ImageUploader.test.tsx
-import React from "react";
+import React, { act } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ImageUploader } from "@/components/FoodEditor/ImageUploader";
-//import { ImageCapture } from "@/components/ImageCapture";
+
 // Mock dependencies
 jest.mock("@/utils/imageUtils", () => ({
   getFoodImageSource: jest.fn(() => null),
@@ -29,7 +29,7 @@ jest.mock("@/components/ImageCapture", () => {
 
 jest.mock("next/image", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
     // eslint-disable-next-line @next/next/no-img-element
     return <img {...props} alt={props.alt} />;
   },
@@ -37,11 +37,6 @@ jest.mock("next/image", () => ({
 
 describe("ImageUploader Component", () => {
   const mockOnUpload = jest.fn();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it("renders take photo button when no image", () => {
     render(<ImageUploader onUpload={mockOnUpload} />);
 
@@ -49,11 +44,13 @@ describe("ImageUploader Component", () => {
     expect(takePhotoButton).toBeInTheDocument();
   });
 
-  it("opens image capture when take photo is clicked", () => {
+  it("opens image capture when take photo is clicked", async () => {
     render(<ImageUploader onUpload={mockOnUpload} />);
 
     const takePhotoButton = screen.getByText(/Take Photo/i);
-    fireEvent.click(takePhotoButton);
+    await act(() => {
+      fireEvent.click(takePhotoButton);
+    });
 
     // Use data-testid instead of text
     const imageCaptureModal = screen.getByTestId("image-capture-mock");
@@ -65,12 +62,14 @@ describe("ImageUploader Component", () => {
 
     // Click take photo button
     const takePhotoButton = screen.getByText(/Take Photo/i);
-    fireEvent.click(takePhotoButton);
-
+    await act(() => {
+      fireEvent.click(takePhotoButton);
+    });
     // Find and click the mock capture button
     const captureButton = screen.getByText("Capture");
-    fireEvent.click(captureButton);
-
+    await act(() => {
+      fireEvent.click(captureButton);
+    });
     await waitFor(() => {
       expect(mockOnUpload).toHaveBeenCalledWith("test-image-data");
     });

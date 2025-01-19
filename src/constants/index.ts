@@ -15,7 +15,14 @@ export const CATEGORY_EMOJIS = {
   milk: "🥛",
 };
 
-export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
+export const BREAKFAST = "breakfast";
+export const LUNCH = "lunch";
+export const DINNER = "dinner";
+export const SNACK = "snack";
+export const MILK = "milk";
+export const RANCH = "ranch";
+
+export const MEAL_TYPES = [BREAKFAST, LUNCH, DINNER, SNACK];
 export const DAYS_OF_WEEK = [
   "monday",
   "tuesday",

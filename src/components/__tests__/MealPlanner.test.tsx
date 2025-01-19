@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MealPlanner } from "../MealPlanner";
-import { BREAKFAST, FRUITS, MOCK_FOODS } from "@/constants/tests/testConstants";
+import { FRUITS, MOCK_FOODS } from "@/__mocks__/testConstants";
 import { act } from "react";
 
 // Mock entire modules that might cause issues
@@ -14,61 +14,7 @@ jest.mock("@/components/CompactNutritionProgress", () => ({
 }));
 
 describe("MealPlanner Food Selection", () => {
-  const mockHistoryData = {
-    "1": [
-      {
-        _id: "123",
-        kidId: "1",
-        date: new Date().toISOString(),
-        meal: BREAKFAST,
-        selections: {
-          proteins: MOCK_FOODS.proteins[0],
-          fruits: null,
-          vegetables: null,
-          grains: null,
-          milk: null,
-          ranch: null,
-        },
-      },
-    ],
-  };
-
-  beforeEach(() => {
-    // Reset DOM and mocks before each test
-    document.body.innerHTML = "";
-    localStorage.clear();
-
-    // Setup fetch mock
-    global.fetch = jest.fn().mockImplementation((url) => {
-      if (typeof url === "string") {
-        if (url.includes("/api/meal-history")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockHistoryData["1"]),
-          });
-        }
-      }
-
-      // Default response for food data
-      return Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            fruits: [MOCK_FOODS.fruits[0]],
-            proteins: [],
-            grains: [],
-            vegetables: [],
-            milk: [],
-          }),
-      });
-    }) as jest.Mock;
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
-  it.only("selects a food item and changes its appearance on first click", async () => {
+  it("selects a food item and changes its appearance on first click", async () => {
     // Render the component
     render(<MealPlanner />);
 

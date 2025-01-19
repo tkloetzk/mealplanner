@@ -1,10 +1,11 @@
 // src/types/food.ts
-import { CATEGORY_STYLES, MEAL_TYPES, DAYS_OF_WEEK } from "@/constants";
+import { CATEGORY_STYLES, DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
 
 export type CategoryType =
   (typeof CATEGORY_STYLES)[keyof typeof CATEGORY_STYLES];
 export type MealType = (typeof MEAL_TYPES)[keyof typeof MEAL_TYPES];
 export type DayType = (typeof DAYS_OF_WEEK)[keyof typeof DAYS_OF_WEEK];
+
 export interface MealSelection {
   grains: SelectedFood | null;
   fruits: SelectedFood | null;
@@ -43,7 +44,7 @@ export interface Food {
   servingSize: string;
   servingSizeUnit: ServingSizeUnit;
   category: CategoryType;
-  meal: readonly MealType[]; // Use readonly to prevent mutation
+  meal: typeof MEAL_TYPES; // Use readonly to prevent mutation
   cloudinaryUrl?: string;
   imagePath?: string; // public
   imageUrl?: string; // openfooddatabase

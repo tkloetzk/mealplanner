@@ -1,80 +1,10 @@
 // src/components/__tests__/MealPlannerIntegration.test.tsx
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MealPlanner } from "../MealPlanner";
-import { BREAKFAST, MOCK_FOODS } from "@/constants/tests/testConstants";
+import { MOCK_FOODS } from "@/__mocks__/testConstants";
 import { DAILY_GOALS, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
 
-const mockHistoryData = {
-  "1": [
-    {
-      _id: "123",
-      kidId: "1",
-      date: new Date().toISOString(),
-      meal: BREAKFAST,
-      selections: {
-        proteins: MOCK_FOODS.proteins[0],
-        fruits: null,
-        vegetables: null,
-        grains: null,
-        milk: null,
-        ranch: null,
-      },
-    },
-  ],
-};
 describe("MealPlanner Integration Tests", () => {
-  // First, let's improve our beforeEach and add proper cleanup
-  beforeEach(() => {
-    // Clear any previous renders
-    document.body.innerHTML = "";
-
-    // Reset localStorage mock to prevent state persistence
-    localStorage.clear();
-
-    // Reset our fetch mock
-    global.fetch = jest.fn().mockImplementation((url) => {
-      if (typeof url === "string") {
-        if (url.includes("/api/meal-history")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockHistoryData["1"]),
-          });
-        }
-      }
-
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockFoodData),
-      });
-    }) as jest.Mock;
-
-    // Reset window event listeners
-    window.matchMedia = jest.fn().mockImplementation((query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    }));
-  });
-
-  afterEach(() => {
-    // Clean up after each test
-    jest.clearAllMocks();
-    localStorage.clear();
-  });
-  // Improved setup with proper typing and reusable mock data
-  const mockFoodData = {
-    proteins: MOCK_FOODS.proteins,
-    fruits: MOCK_FOODS.fruits,
-    vegetables: MOCK_FOODS.vegetables,
-    grains: [],
-    milk: [],
-  };
-
   // Reusable render function with common setup
   const renderMealPlanner = async () => {
     const result = render(<MealPlanner />);
@@ -84,20 +14,6 @@ describe("MealPlanner Integration Tests", () => {
     });
     return result;
   };
-
-  // beforeEach(() => {
-  //   // More robust fetch mock with type safety
-  //   global.fetch = jest.fn().mockImplementation(() =>
-  //     Promise.resolve({
-  //       ok: true,
-  //       json: () => Promise.resolve(mockFoodData),
-  //     })
-  //   ) as jest.Mock;
-  // });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
 
   // Helper functions to make tests more readable and maintainable
   const selectFood = async (category: string, index: number) => {

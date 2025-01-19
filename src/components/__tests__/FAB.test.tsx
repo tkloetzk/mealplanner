@@ -1,14 +1,10 @@
 // components/__tests__/FAB.test.tsx
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { FAB } from "../FAB";
 import { Plus } from "lucide-react";
 
 describe("FAB Component", () => {
   const mockOnClick = jest.fn();
-
-  beforeEach(() => {
-    mockOnClick.mockClear();
-  });
 
   it("renders with circular shape and blue background", () => {
     render(<FAB icon={Plus} onClick={mockOnClick} />);

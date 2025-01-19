@@ -1,15 +1,21 @@
 // src/test/testConstants.ts
-import { MealType, DayType, CategoryType, ServingSizeUnit } from "@/types/food";
+import { CategoryType, ServingSizeUnit } from "@/types/food";
 import { Kid } from "@/types/user";
-
+import { BREAKFAST, LUNCH, DINNER, DAYS_OF_WEEK } from "@/constants";
 // Constant for selected day
-export const SELECTED_DAY: DayType = "sunday";
+export const SELECTED_DAY = DAYS_OF_WEEK[6];
 
 // Mock Kids
 export const MOCK_KIDS: Kid[] = [
   { id: "kid1", name: "Child One" },
   { id: "kid2", name: "Child Two" },
 ];
+
+// Category Types
+export const PROTEINS = "proteins";
+export const FRUITS = "fruits";
+export const VEGETABLES = "vegetables";
+export const GRAINS = "grains";
 
 // Mock Foods
 export const MOCK_FOODS = {
@@ -22,7 +28,7 @@ export const MOCK_FOODS = {
       protein: 31,
       carbs: 0.1,
       fat: 3.6,
-      meal: ["breakfast", "lunch", "dinner"] as const,
+      meal: [BREAKFAST, LUNCH, DINNER],
       servingSize: "1",
       servingSizeUnit: "piece" as ServingSizeUnit,
     },
@@ -34,7 +40,7 @@ export const MOCK_FOODS = {
       protein: 30,
       carbs: 0.1,
       fat: 34.6,
-      meal: ["lunch", "dinner"] as const,
+      meal: [LUNCH, DINNER],
       servingSize: "1",
       servingSizeUnit: "piece" as ServingSizeUnit,
     },
@@ -49,7 +55,7 @@ export const MOCK_FOODS = {
       protein: 0.5,
       carbs: 25,
       fat: 0.3,
-      meal: ["breakfast", "lunch", "dinner"] as const,
+      meal: [BREAKFAST, LUNCH, DINNER],
       servingSize: "1",
       servingSizeUnit: "piece" as ServingSizeUnit, // Explicitly type as ServingSizeUnit
     },
@@ -64,22 +70,10 @@ export const MOCK_FOODS = {
       protein: 4,
       carbs: 11,
       fat: 0.6,
-      meal: ["lunch", "dinner"] as const,
+      meal: [LUNCH, DINNER],
       servingSize: "1",
       servingSizeUnit: "cup" as ServingSizeUnit,
     },
     // Add more vegetable foods
   ],
 };
-
-// Meal Types
-export const BREAKFAST: MealType = "breakfast";
-export const LUNCH: MealType = "lunch";
-export const DINNER: MealType = "dinner";
-export const SNACK: MealType = "snack";
-
-// Category Types
-export const PROTEINS: CategoryType = "proteins";
-export const FRUITS: CategoryType = "fruits";
-export const VEGETABLES: CategoryType = "vegetables";
-export const GRAINS: CategoryType = "grains";

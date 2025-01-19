@@ -66,29 +66,7 @@ describe("ImageCapture Component", () => {
     });
   });
 
-  const setup = async (props = {}) => {
-    const mockOnCapture = jest.fn();
-    const mockOnClose = jest.fn();
-
-    await act(async () => {
-      render(
-        <ImageCapture
-          onCapture={mockOnCapture}
-          onClose={mockOnClose}
-          {...props}
-        />
-      );
-    });
-
-    return {
-      mockOnCapture,
-      mockOnClose,
-    };
-  };
-
   it.skip("captures image and allows retake", async () => {
-    const { mockOnCapture } = await setup();
-
     // Mock createElement and canvas methods
     const createElementSpy = jest.spyOn(document, "createElement");
     const createContextSpy = jest.fn().mockReturnValue({

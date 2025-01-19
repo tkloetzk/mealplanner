@@ -2,7 +2,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServingSelector } from "../ServingSelector";
-import { MOCK_FOODS } from "@/constants/tests/testConstants";
+import { MOCK_FOODS } from "@/__mocks__/testConstants";
 
 describe("ServingSelector Component", () => {
   const mockOnConfirm = jest.fn();
@@ -14,10 +14,6 @@ describe("ServingSelector Component", () => {
     onConfirm: mockOnConfirm,
     onCancel: mockOnCancel,
   };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
 
   it("renders initial serving correctly", () => {
     render(<ServingSelector {...defaultProps} />);

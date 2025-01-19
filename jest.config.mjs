@@ -7,8 +7,8 @@ const createJestConfig = nextJest({
 
 /** @type {import('jest').Config} */
 const config = {
-  testEnvironment: "jsdom",
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  testEnvironment: "jest-environment-jsdom",
+  setupFilesAfterEnv: ["<rootDir>/src/jest.setup.js"],
   moduleNameMapper: {
     // Handle module aliases
     "^@/(.*)$": "<rootDir>/src/$1",
@@ -39,6 +39,7 @@ const config = {
 
     // Handle CSS imports
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+    punycode: "<rootDir>/node_modules/punycode/",
   },
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 };

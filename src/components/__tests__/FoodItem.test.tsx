@@ -2,7 +2,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import FoodItem from "../FoodItem";
-import { MOCK_FOODS, PROTEINS } from "@/constants/tests/testConstants";
+import { MOCK_FOODS, PROTEINS } from "@/__mocks__/testConstants";
 
 describe("FoodItem Component", () => {
   const mockOnSelect = jest.fn();
@@ -20,10 +20,6 @@ describe("FoodItem Component", () => {
     onServingClick: mockOnServingClick,
     onEditFood: mockOnEditFood,
   };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
 
   it("renders food item correctly", () => {
     render(<FoodItem {...defaultProps} />);

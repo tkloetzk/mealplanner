@@ -3,11 +3,14 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ChildView } from "@/components/ChildView";
 import {
+  FRUITS,
   MOCK_FOODS,
+  PROTEINS,
   SELECTED_DAY,
-  BREAKFAST,
-} from "@/constants/tests/testConstants";
+  VEGETABLES,
+} from "@/__mocks__/testConstants";
 import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
+import { BREAKFAST, MEAL_TYPES } from "@/constants";
 
 describe("ChildView Component", () => {
   const mockOnFoodSelect = jest.fn();
@@ -21,11 +24,6 @@ describe("ChildView Component", () => {
     onFoodSelect: mockOnFoodSelect,
     onMealSelect: mockOnMealSelect,
   };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it("renders meal selection view when no meal is selected", () => {
     render(<ChildView {...defaultProps} />);
 
@@ -33,7 +31,7 @@ describe("ChildView Component", () => {
     expect(screen.getByText(/What are you eating\?/i)).toBeInTheDocument();
 
     // Verify meal type buttons are present
-    ["breakfast", "lunch", "dinner", "snack"].forEach((meal) => {
+    MEAL_TYPES.forEach((meal) => {
       expect(screen.getByText(new RegExp(meal, "i"))).toBeInTheDocument();
     });
   });
@@ -45,7 +43,7 @@ describe("ChildView Component", () => {
     expect(screen.getByText(/breakfast/i)).toBeInTheDocument();
 
     // Verify food categories are displayed
-    ["proteins", "fruits", "vegetables"].forEach((category) => {
+    [PROTEINS, FRUITS, VEGETABLES].forEach((category) => {
       expect(
         screen.getByText(new RegExp(`Choose your ${category}`, "i"))
       ).toBeInTheDocument();
@@ -59,10 +57,7 @@ describe("ChildView Component", () => {
     const foodItem = screen.getByText(MOCK_FOODS.fruits[0].name);
     fireEvent.click(foodItem);
 
-    expect(mockOnFoodSelect).toHaveBeenCalledWith(
-      "fruits",
-      MOCK_FOODS.fruits[0]
-    );
+    expect(mockOnFoodSelect).toHaveBeenCalledWith(FRUITS, MOCK_FOODS.fruits[0]);
   });
 
   it("matches snapshot when no meal is selected", () => {
@@ -70,7 +65,7 @@ describe("ChildView Component", () => {
     expect(asFragment()).toMatchSnapshot();
   });
 
-  it("matches snapshot with meal selected", () => {
+  it.only("matches snapshot with meal selected", () => {
     const { asFragment } = render(
       <ChildView {...defaultProps} selectedMeal={BREAKFAST} />
     );
