@@ -12,26 +12,7 @@ export interface MealSelection {
   milk: SelectedFood | null;
   ranch: SelectedFood | null;
 }
-interface MealHistory {
-  meal: MealType;
-  date: string;
-  selections: {
-    [key in CategoryType]?: {
-      name: string;
-      adjustedCalories?: number;
-    };
-  };
-}
 
-interface MealPlanSelections {
-  [kidId: string]: {
-    [day in DayType]?: {
-      [meal in MealType]?: {
-        [category in CategoryType]?: Food;
-      };
-    };
-  };
-}
 export interface DayMeals {
   breakfast: MealSelection;
   lunch: MealSelection;
@@ -90,26 +71,48 @@ export interface MealHistoryEntry {
   date: string;
   meal: MealType;
   selections: MealSelection;
+  _id?: string;
 }
 
-export interface MealHistoryRecord {
-  kidId: string;
-  date: Date;
-  meal: MealType;
-  selections: MealSelection;
-  consumptionData?: {
-    foods: {
-      name: string;
-      percentageEaten: number;
-      notes?: string;
-    }[];
-    summary: string;
-  };
-}
+// export interface MealHistoryRecord {
+//   kidId: string;
+//   date: Date;
+//   meal: MealType;
+//   selections: MealSelection;
+//   consumptionData?: {
+//     foods: {
+//       name: string;
+//       percentageEaten: number;
+//       notes?: string;
+//     }[];
+//     summary: string;
+//   };
+// }
 
 export interface NutritionSummary {
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
+}
+
+// src/types/food.ts
+
+// Add this interface to track consumption data
+interface FoodConsumption {
+  name: string;
+  percentageEaten: number;
+  notes?: string;
+}
+
+// Update MealHistoryRecord to include consumption data
+export interface MealHistoryRecord {
+  kidId: string;
+  date: Date;
+  meal: MealType;
+  selections: MealSelection;
+  consumptionData?: {
+    foods: FoodConsumption[];
+    summary: string;
+  };
 }

@@ -108,19 +108,6 @@ export class MealService {
       .collection("mealPlans")
       .updateOne({ kidId }, { $set: { selections } }, { upsert: true });
   }
-  static async getMealHistory(userId: string) {
-    const client = await clientPromise;
-    const db = client.db("mealplanner");
-
-    const history = await db
-      .collection("mealHistory")
-      .find({ userId })
-      .sort({ date: -1 })
-      .limit(10)
-      .toArray();
-
-    return history;
-  }
 
   static async getFoods(userId: string) {
     const client = await clientPromise;
@@ -130,16 +117,16 @@ export class MealService {
     return foods;
   }
 
-  static async addToHistory(userId: string, mealEntry: MealHistoryEntry) {
-    const client = await clientPromise;
-    const db = client.db("mealplanner");
+  // static async addToHistory(userId: string, mealEntry: MealHistoryEntry) {
+  //   const client = await clientPromise;
+  //   const db = client.db("mealplanner");
 
-    await db.collection("mealHistory").insertOne({
-      userId,
-      ...mealEntry,
-      createdAt: new Date(),
-    });
-  }
+  //   await db.collection("mealHistory").insertOne({
+  //     userId,
+  //     ...mealEntry,
+  //     createdAt: new Date(),
+  //   });
+  // }
 
   static async getFoodDatabase() {
     const client = await clientPromise;
@@ -157,48 +144,83 @@ export class MealService {
       createdAt: new Date(),
     });
   }
-  static async saveMealToHistory(
-    kidId: string,
-    mealData: {
-      meal: MealType;
-      selections: MealSelection;
-    }
-  ) {
-    const client = await clientPromise;
-    const db = client.db("mealplanner");
+  // private static formatDate(date: Date): string {
+  //   return date.toISOString().split('T')[0];  // Returns YYYY-MM-DD
+  // }
 
-    const historyEntry: MealHistoryRecord = {
-      kidId,
-      date: new Date(),
-      meal: mealData.meal,
-      selections: mealData.selections,
-    };
+  // static async upsertMealHistory(
+  //   kidId: string,
+  //   date: Date,
+  //   meal: MealType,
+  //   selections: MealSelection
+  // ) {
+  //   const client = await clientPromise;
+  //   const db = client.db("mealplanner");
 
-    await db.collection("mealHistory").insertOne(historyEntry);
-    return historyEntry;
-  }
-  static async getMealHistory(kidId: string) {
-    const client = await clientPromise;
-    const db = client.db("mealplanner");
+  //   const formattedDate = this.formatDate(date);
 
-    return await db
-      .collection("mealHistory")
-      .find({ kidId })
-      .sort({ date: -1 })
-      .limit(50) // Adjust limit as needed
-      .toArray();
-  }
+  //   // Create the history entry
+  //   const historyEntry: Partial<MealHistoryRecord> = {
+  //     kidId,
+  //     date: formattedDate,
+  //     meal,
+  //     selections,
+  //     updatedAt: new Date()
+  //   };
 
-  static async updateMealHistory(
-    kidId: string,
-    historyId: string,
-    updates: Partial<MealHistoryRecord>
-  ) {
-    const client = await clientPromise;
-    const db = client.db("mealplanner");
+  //   // Use updateOne with upsert: true to either update existing or insert new
+  //   const result = await db.collection("mealHistory").updateOne(
+  //     {
+  //       kidId,
+  //       date: formattedDate,
+  //       meal
+  //     },
+  //     {
+  //       $set: historyEntry
+  //     },
+  //     {
+  //       upsert: true
+  //     }
+  //   );
 
-    await db
-      .collection("mealHistory")
-      .updateOne({ _id: historyId, kidId }, { $set: updates });
-  }
+  //   return { ...historyEntry, isNew: result.upsertedCount > 0 };
+  // }
+
+  // static async getMealHistory(kidId: string, startDate?: Date, endDate?: Date) {
+  //   const client = await clientPromise;
+  //   const db = client.db("mealplanner");
+
+  //   const query: any = { kidId };
+
+  //   // Add date range to query if provided
+  //   if (startDate || endDate) {
+  //     query.date = {};
+  //     if (startDate) {
+  //       query.date.$gte = this.formatDate(startDate);
+  //     }
+  //     if (endDate) {
+  //       query.date.$lte = this.formatDate(endDate);
+  //     }
+  //   }
+
+  //   return await db.collection("mealHistory")
+  //     .find(query)
+  //     .sort({ date: -1, meal: 1 })  // Sort by date descending and meal type
+  //     .toArray();
+  // }
+
+  // static async getMealHistoryForDate(kidId: string, date: Date) {
+  //   const client = await clientPromise;
+  //   const db = client.db("mealplanner");
+
+  //   const formattedDate = this.formatDate(date);
+
+  //   return await db.collection("mealHistory")
+  //     .find({
+  //       kidId,
+  //       date: formattedDate
+  //     })
+  //     .sort({ meal: 1 })  // Sort by meal type
+  //     .toArray();
+  // }
 }

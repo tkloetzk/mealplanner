@@ -7,6 +7,7 @@ import {
   SelectedFood,
   MealPlan,
   MealHistoryEntry,
+  MealHistoryRecord,
 } from "@/types/food";
 import {
   DEFAULT_MEAL_PLAN,
@@ -16,6 +17,7 @@ import {
 import { Kid } from "@/types/user";
 import { NutritionData } from "@/components/NutritionSummary";
 import { MEAL_TYPES } from "@/constants";
+import { MealService } from "@/lib/meal-service";
 
 // Utility function for safe local storage operations
 const safeLocalStorage = {
@@ -91,6 +93,8 @@ export function useMealPlanState(initialKids: Kid[]) {
   const [selectedKid, setSelectedKid] = useState<string>(initialKids[0].id);
   const [selectedDay, setSelectedDay] = useState<DayType>(getCurrentDay());
   const [selectedMeal, setSelectedMeal] = useState<MealType>("breakfast");
+  const [activeHistoryEntry, setActiveHistoryEntry] =
+    useState<MealHistoryRecord | null>(null);
 
   // Selections state with persistent storage
   const [selections, setSelections] = useState<Record<string, MealPlan>>(() => {
@@ -181,8 +185,10 @@ export function useMealPlanState(initialKids: Kid[]) {
   );
 
   // Advanced food selection method with comprehensive validation
+  // hooks/useMealPlanState.ts
+
   const handleFoodSelect = useCallback(
-    (category: CategoryType, food: Food) => {
+    async (category: CategoryType, food: Food) => {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
 
       setSelections((prev) => {
@@ -190,7 +196,6 @@ export function useMealPlanState(initialKids: Kid[]) {
         const currentMeal =
           newSelections[selectedKid][selectedDay][selectedMeal];
 
-        // Toggle logic
         currentMeal[category] =
           currentMeal[category]?.name === food.name
             ? null
@@ -203,6 +208,36 @@ export function useMealPlanState(initialKids: Kid[]) {
                 adjustedFat: food.fat,
               };
 
+        console.log("!in");
+        // Save to history through API
+        const saveToHistory = async () => {
+          try {
+            const response = await fetch("/api/meal-history", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                kidId: selectedKid,
+                mealData: {
+                  meal: selectedMeal,
+                  selections: currentMeal,
+                },
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to save meal history");
+            }
+
+            const savedEntry = await response.json();
+            setActiveHistoryEntry(savedEntry);
+          } catch (error) {
+            console.error("Failed to save meal history:", error);
+          }
+        };
+
+        saveToHistory();
         return newSelections;
       });
     },

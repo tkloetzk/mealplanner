@@ -1,34 +1,26 @@
 // app/api/analyze-food-consumption/route.ts
 import { NextResponse } from "next/server";
 
+// app/api/analyze-food-consumption/route.ts
+
 // Helper function to validate base64 image
 function isValidBase64Image(base64String: string): boolean {
   const base64Regex = /^data:image\/(png|jpeg|jpg);base64,/;
   return base64Regex.test(base64String);
 }
 
-// Helper function to extract image content from base64
-function extractImageContent(base64String: string): string {
-  return base64String.split(",")[1];
-}
-
 export async function POST(request: Request) {
   try {
     const { image, originalMeal } = await request.json();
 
-    // Validate image data
     if (!image || !isValidBase64Image(image)) {
       return NextResponse.json(
-        {
-          error:
-            "Invalid image format. Please provide a valid base64 encoded image.",
-        },
+        { error: "Invalid image format" },
         { status: 400 }
       );
     }
 
-    // Extract image content
-    const imageContent = extractImageContent(image);
+    const imageContent = image.split(",")[1];
 
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -81,11 +73,7 @@ Please provide your response in JSON format with the following structure:
     }
 
     const data = await response.json();
-    const output =
-      data.choices[0]?.message?.content || "No analysis available.";
-
-    // Parse the JSON response from the AI
-    const analysisData = JSON.parse(output);
+    const analysisData = JSON.parse(data.choices[0]?.message?.content);
 
     return NextResponse.json(analysisData);
   } catch (error) {
