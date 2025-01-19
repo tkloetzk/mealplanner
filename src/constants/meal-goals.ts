@@ -15,8 +15,8 @@ export const DAILY_GOALS = {
       max: 25,
     },
     fat: {
-      min: 33,
-      max: 62,
+      min: 35,
+      max: 49,
     },
     calories: 1400, // Total of all meals (400 * 3 + 200)
   },

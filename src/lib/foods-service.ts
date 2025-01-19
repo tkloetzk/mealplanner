@@ -10,7 +10,10 @@ export class FoodsService {
       const foods = await db.collection("foods").find().toArray();
       return foods.map((food) => {
         const { _id, ...foodWithoutId } = food;
-        return { ...foodWithoutId, id: _id.toString() } as Food;
+        return {
+          ...foodWithoutId,
+          id: _id.toString(),
+        } as Food;
       });
     } catch (error) {
       console.error("Error fetching foods:", error);

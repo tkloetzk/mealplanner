@@ -288,8 +288,8 @@ export function MealPlanner() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
-      <h1 className="text-3xl font-bold">Meal Planner</h1>
       <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Meal Planner</h1>
         <ViewToggle isChildView={isChildView} onToggle={setIsChildView} />
       </div>
 
@@ -589,29 +589,19 @@ export function MealPlanner() {
       )}
 
       {/* AI Analysis Dialogs */}
-      <AnalysisDialog isOpen={showAiAnalysis} onOpenChange={setShowAiAnalysis}>
-        {selectedKid && selectedDay && selectedMeal && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Meal Plan Analysis</h2>
-            <p className="text-sm text-gray-600">
-              Analysis of your planned meal&apos;s nutritional content and
-              balance.
-            </p>
-            <MealAnalysis
-              selectedMeal={selectedMeal}
-              mealSelections={
-                // @ts-expect-error TypeScript doesn't understand the dynamic keys here
-                selections[selectedKid][selectedDay][selectedMeal]
-              }
-              onAnalysisComplete={(analysis) => {
-                // Here you could add functionality to store the analysis
-                // in the meal history or display it in a different way
-                console.log("Meal analysis completed:", analysis);
-              }}
-            />
-          </div>
-        )}
-      </AnalysisDialog>
+      {/* <AnalysisDialog isOpen={showAiAnalysis} onOpenChange={setShowAiAnalysis}> */}
+      {selectedKid && selectedDay && selectedMeal && (
+        <MealAnalysis
+          selectedMeal={selectedMeal}
+          mealSelections={selections[selectedKid][selectedDay][selectedMeal]}
+          onAnalysisComplete={(analysis) => {
+            console.log("Meal analysis completed:", analysis);
+          }}
+          isOpen={showAiAnalysis}
+          onClose={() => setShowAiAnalysis(false)}
+        />
+      )}
+      {/* </AnalysisDialog> */}
 
       {/* Food Image Analysis Dialog */}
       <AnalysisDialog
