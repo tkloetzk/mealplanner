@@ -27,11 +27,3 @@ export interface MealPlan {
   };
   updatedAt: Date;
 }
-
-export interface MealHistoryEntry {
-  userId: string;
-  date: string;
-  meal: string;
-  selections: MealSelection;
-  createdAt: Date;
-}

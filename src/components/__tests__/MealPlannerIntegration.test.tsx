@@ -1,9 +1,27 @@
 // src/components/__tests__/MealPlannerIntegration.test.tsx
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MealPlanner } from "../MealPlanner";
-import { MOCK_FOODS } from "@/constants/tests/testConstants";
+import { BREAKFAST, MOCK_FOODS } from "@/constants/tests/testConstants";
 import { DAILY_GOALS, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
 
+const mockHistoryData = {
+  "1": [
+    {
+      _id: "123",
+      kidId: "1",
+      date: new Date().toISOString(),
+      meal: BREAKFAST,
+      selections: {
+        proteins: MOCK_FOODS.proteins[0],
+        fruits: null,
+        vegetables: null,
+        grains: null,
+        milk: null,
+        ranch: null,
+      },
+    },
+  ],
+};
 describe("MealPlanner Integration Tests", () => {
   // First, let's improve our beforeEach and add proper cleanup
   beforeEach(() => {
@@ -14,12 +32,21 @@ describe("MealPlanner Integration Tests", () => {
     localStorage.clear();
 
     // Reset our fetch mock
-    global.fetch = jest.fn().mockImplementation(() =>
-      Promise.resolve({
+    global.fetch = jest.fn().mockImplementation((url) => {
+      if (typeof url === "string") {
+        if (url.includes("/api/meal-history")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockHistoryData["1"]),
+          });
+        }
+      }
+
+      return Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockFoodData),
-      })
-    ) as jest.Mock;
+      });
+    }) as jest.Mock;
 
     // Reset window event listeners
     window.matchMedia = jest.fn().mockImplementation((query) => ({
@@ -58,15 +85,15 @@ describe("MealPlanner Integration Tests", () => {
     return result;
   };
 
-  beforeEach(() => {
-    // More robust fetch mock with type safety
-    global.fetch = jest.fn().mockImplementation(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockFoodData),
-      })
-    ) as jest.Mock;
-  });
+  // beforeEach(() => {
+  //   // More robust fetch mock with type safety
+  //   global.fetch = jest.fn().mockImplementation(() =>
+  //     Promise.resolve({
+  //       ok: true,
+  //       json: () => Promise.resolve(mockFoodData),
+  //     })
+  //   ) as jest.Mock;
+  // });
 
   afterEach(() => {
     jest.clearAllMocks();

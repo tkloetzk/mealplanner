@@ -1,7 +1,8 @@
 // src/types/food.ts
-import { CATEGORY_TYPES, MEAL_TYPES, DAYS_OF_WEEK } from "@/constants";
+import { CATEGORY_STYLES, MEAL_TYPES, DAYS_OF_WEEK } from "@/constants";
 
-export type CategoryType = (typeof CATEGORY_TYPES)[keyof typeof CATEGORY_TYPES];
+export type CategoryType =
+  (typeof CATEGORY_STYLES)[keyof typeof CATEGORY_STYLES];
 export type MealType = (typeof MEAL_TYPES)[keyof typeof MEAL_TYPES];
 export type DayType = (typeof DAYS_OF_WEEK)[keyof typeof DAYS_OF_WEEK];
 export interface MealSelection {
@@ -67,27 +68,23 @@ export interface SelectedFood extends Food {
   adjustedFat: number;
 }
 
-export interface MealHistoryEntry {
-  date: string;
+// types/food.ts
+
+export interface MealHistoryRecord {
+  _id?: string; // MongoDB ID
+  kidId: string;
+  date: Date;
   meal: MealType;
   selections: MealSelection;
-  _id?: string;
+  consumptionData?: {
+    foods: Array<{
+      name: string;
+      percentageEaten: number;
+      notes?: string;
+    }>;
+    summary: string;
+  };
 }
-
-// export interface MealHistoryRecord {
-//   kidId: string;
-//   date: Date;
-//   meal: MealType;
-//   selections: MealSelection;
-//   consumptionData?: {
-//     foods: {
-//       name: string;
-//       percentageEaten: number;
-//       notes?: string;
-//     }[];
-//     summary: string;
-//   };
-// }
 
 export interface NutritionSummary {
   calories: number;
@@ -96,23 +93,11 @@ export interface NutritionSummary {
   fat: number;
 }
 
-// src/types/food.ts
-
 // Add this interface to track consumption data
-interface FoodConsumption {
-  name: string;
-  percentageEaten: number;
-  notes?: string;
-}
+// interface FoodConsumption {
+//   name: string;
+//   percentageEaten: number;
+//   notes?: string;
+// }
 
 // Update MealHistoryRecord to include consumption data
-export interface MealHistoryRecord {
-  kidId: string;
-  date: Date;
-  meal: MealType;
-  selections: MealSelection;
-  consumptionData?: {
-    foods: FoodConsumption[];
-    summary: string;
-  };
-}

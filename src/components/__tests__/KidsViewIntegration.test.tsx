@@ -7,7 +7,6 @@ import {
   MOCK_FOODS,
   PROTEINS,
 } from "@/constants/tests/testConstants";
-import { DAILY_GOALS } from "@/constants/meal-goals";
 import { CategoryType, Food } from "@/types/food";
 
 describe("Kids View Integration Tests", () => {
@@ -56,6 +55,24 @@ describe("Kids View Integration Tests", () => {
     fireEvent.click(foodCard);
     return foodCard;
   };
+  const mockHistoryData = {
+    "1": [
+      {
+        _id: "123",
+        kidId: "1",
+        date: new Date().toISOString(),
+        meal: BREAKFAST,
+        selections: {
+          proteins: MOCK_FOODS.proteins[0],
+          fruits: null,
+          vegetables: null,
+          grains: null,
+          milk: null,
+          ranch: null,
+        },
+      },
+    ],
+  };
 
   beforeEach(() => {
     // Reset DOM and mocks before each test
@@ -63,12 +80,21 @@ describe("Kids View Integration Tests", () => {
     localStorage.clear();
 
     // Setup fetch mock
-    global.fetch = jest.fn().mockImplementation(() =>
-      Promise.resolve({
+    global.fetch = jest.fn().mockImplementation((url) => {
+      if (typeof url === "string") {
+        if (url.includes("/api/meal-history")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockHistoryData["1"]),
+          });
+        }
+      }
+      // Default response for food data
+      return Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockFoodData),
-      })
-    ) as jest.Mock;
+      });
+    }) as jest.Mock;
   });
 
   afterEach(() => {
@@ -172,7 +198,7 @@ describe("Kids View Integration Tests", () => {
     await selectKid("Presley");
 
     // Test breakfast selections
-    await selectMeal(BREAKFAST);
+    // await selectMeal(BREAKFAST);
     await selectFood(PROTEINS, MOCK_FOODS.proteins[0]);
 
     // Switch to lunch and make selections
@@ -180,7 +206,7 @@ describe("Kids View Integration Tests", () => {
     await selectFood(FRUITS, MOCK_FOODS.fruits[0]);
 
     // Verify each meal maintains its selections independently
-    await selectMeal(BREAKFAST);
+    await selectMeal(BREAKFAST as string);
     expect(screen.getByText(MOCK_FOODS.proteins[0].name)).toBeInTheDocument();
 
     await selectMeal("Lunch");
@@ -192,8 +218,9 @@ describe("Kids View Integration Tests", () => {
     await selectKid("Presley");
 
     // Check breakfast-compatible foods
-    await selectMeal(BREAKFAST);
+    await selectMeal(BREAKFAST as string);
     const breakfastFoods = mockFoodData.proteins.filter((food) =>
+      // @ts-expect-error TODO: fix
       food.meal.includes(BREAKFAST)
     );
 

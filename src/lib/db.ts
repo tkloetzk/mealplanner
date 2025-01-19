@@ -1,6 +1,5 @@
 // lib/db.ts
-import { MongoClient, ObjectId } from "mongodb";
-import type { MealHistoryRecord, MealSelection, MealType } from "@/types/food";
+import { MongoClient } from "mongodb";
 
 // Only initialize MongoDB client on the server side
 let client: MongoClient | undefined;
