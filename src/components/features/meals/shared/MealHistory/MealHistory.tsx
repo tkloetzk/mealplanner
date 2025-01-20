@@ -1,7 +1,21 @@
 // components/MealHistory.tsx
-import { MealHistoryRecord } from "@/types/food";
+import {
+  ConsumptionData,
+  MealHistoryRecord,
+  MealSelection,
+} from "@/types/food";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistance, format, isToday, isYesterday } from "date-fns";
+import { Camera } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { FoodImageConsumptionAnalysis } from "@/components/features/food/FoodAnalysis/components/FoodImageConsumptionAnalysis";
 
 interface MealHistoryProps {
   historyEntries: MealHistoryRecord[];
@@ -30,6 +44,10 @@ function calculateTotalCalories(
 }
 
 export function MealHistory({ historyEntries }: MealHistoryProps) {
+  const [selectedEntry, setSelectedEntry] = useState<MealHistoryRecord | null>(
+    null
+  );
+  const [showPlateAnalysis, setShowPlateAnalysis] = useState(false);
   const entriesByDate = historyEntries.reduce((acc, entry) => {
     const dateKey = format(new Date(entry.date), "yyyy-MM-dd");
     if (!acc[dateKey]) {
@@ -40,11 +58,54 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
   }, {} as Record<string, MealHistoryRecord[]>);
 
   console.log(historyEntries);
+
+  const formatMealSelections = (selections: MealSelection): string => {
+    //return "1 serving of Kashi Oat Cereal, 1 cup of strawberries (red fruit with a little green on top), 1 cup of blueberries (small round blue fruit), and 1 scrambled egg";
+    return Object.entries(selections)
+      .filter(([_, food]) => food !== null)
+      .map(([category, food]) => {
+        // Include serving size information for more accurate analysis
+        return `${food?.servingSize} ${food.servingSizeUnit} of ${food?.name}`;
+      })
+      .join(", ");
+  };
+  // When analysis is complete, we'll update the history entry
+  // components/MealHistory.tsx
+  const handleAnalysisComplete = async (
+    entryId: string | undefined,
+    analysisData: ConsumptionData
+  ) => {
+    // Add early return if we don't have a valid ID
+    if (!entryId) {
+      console.error("No entry ID provided for analysis update");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/meal-history/${entryId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ consumptionData: analysisData }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update meal history");
+      }
+
+      setShowPlateAnalysis(false);
+      setSelectedEntry(null);
+    } catch (error) {
+      console.error("Failed to update meal history:", error);
+    }
+  };
   return (
     <div className="space-y-8">
       {Object.entries(entriesByDate).map(([date, entries]) => {
         const dateObj = new Date(date);
 
+        console.log(entries[0]?.consumptionData?.foods);
         return (
           <div key={date} className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center justify-between">
@@ -58,7 +119,9 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
               <Card key={index}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span className="capitalize">{entry.meal}</span>
+                    <span className="capitalize">
+                      {typeof entry.meal === "string" ? entry.meal : ""}
+                    </span>
                     <div className="text-sm text-gray-500">
                       {format(new Date(entry.date), "h:mm a")}
                     </div>
@@ -76,18 +139,20 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
                         >
                           <div>
                             <span className="font-medium">{food?.name}</span>
-                            <div className="text-sm text-gray-600">
-                              {food?.servings} serving(s) •{" "}
-                              {food?.adjustedCalories} cal
+                            <div
+                              data-testid={`${food.name}-servings`}
+                              className="text-sm text-gray-600"
+                            >
+                              {food?.servings} serving(s)
                             </div>
                           </div>
 
-                          {entry.consumptionData?.foods.find(
+                          {entry.consumptionData?.foods?.find(
                             (f) => f.name === food?.name
                           ) && (
                             <div className="text-sm font-medium">
                               {
-                                entry.consumptionData.foods.find(
+                                entry.consumptionData.foods?.find(
                                   (f) => f.name === food?.name
                                 )?.percentageEaten
                               }
@@ -97,6 +162,20 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
                         </div>
                       ))}
 
+                    {!entry.consumptionData && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedEntry(entry);
+                          setShowPlateAnalysis(true);
+                        }}
+                        className="mt-4"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Add Plate Photo
+                      </Button>
+                    )}
                     <div className="mt-4 pt-4 border-t">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
@@ -116,12 +195,24 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
                       </div>
                     </div>
 
-                    {entry.consumptionData?.summary && (
+                    {/* Display consumption data if it exists */}
+                    {entry.consumptionData && (
                       <div className="mt-4 pt-4 border-t">
                         <h4 className="font-medium mb-2">
-                          Consumption Summary
+                          Consumption Analysis
                         </h4>
-                        <p className="text-sm text-gray-600">
+                        {entry.consumptionData?.foods?.map((food, idx) => (
+                          <div
+                            key={idx}
+                            className="flex justify-between items-center mb-2"
+                          >
+                            <span>{food.name}</span>
+                            <span className="text-sm text-gray-600">
+                              {food.percentageEaten}% eaten
+                            </span>
+                          </div>
+                        ))}
+                        <p className="text-sm text-gray-600 mt-2">
                           {entry.consumptionData.summary}
                         </p>
                       </div>
@@ -132,7 +223,26 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
             ))}
           </div>
         );
-      })}
+      })}{" "}
+      {/* Plate analysis dialog */}
+      <Dialog open={showPlateAnalysis} onOpenChange={setShowPlateAnalysis}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Analyze Plate Photo</DialogTitle>
+          </DialogHeader>
+
+          {selectedEntry && (
+            <FoodImageConsumptionAnalysis
+              originalMeal={formatMealSelections(selectedEntry.selections)}
+              onAnalysisComplete={(analysisData) => {
+                // TypeScript knows selectedEntry is not null here
+                // because of the conditional rendering
+                handleAnalysisComplete(selectedEntry._id, analysisData);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,6 +10,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+projectstructure.py
 # OS and IDE specific files
 .DS_Store
 Thumbs.db

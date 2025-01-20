@@ -69,22 +69,24 @@ export interface SelectedFood extends Food {
   adjustedFat: number;
 }
 
-// types/food.ts
+interface FoodConsumption {
+  name: string;
+  percentageEaten: number;
+  notes?: string;
+}
+
+export interface ConsumptionData {
+  foods: FoodConsumption[];
+  summary: string;
+}
 
 export interface MealHistoryRecord {
-  _id?: string; // MongoDB ID
+  _id: string;
   kidId: string;
   date: Date;
   meal: MealType;
   selections: MealSelection;
-  consumptionData?: {
-    foods: Array<{
-      name: string;
-      percentageEaten: number;
-      notes?: string;
-    }>;
-    summary: string;
-  };
+  consumptionData?: ConsumptionData; // Add this optional field
 }
 
 export interface NutritionSummary {

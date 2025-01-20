@@ -157,4 +157,75 @@ describe("MealPlanner Integration Tests", () => {
     fireEvent.click(viewToggle);
     expect(screen.getByText(/Lunch/i)).toBeInTheDocument();
   });
+
+  it("completes meal selection workflow with history tracking", async () => {
+    await renderMealPlanner();
+
+    // Select kid
+    const kidSelector = screen.getByText("Presley");
+    fireEvent.click(kidSelector);
+
+    // Add protein and verify it's saved to history
+    await selectFood(MOCK_FOODS.proteins[0].category, 0);
+
+    // Verify the API call to save history was made
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/meal-history",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: expect.stringContaining(MOCK_FOODS.proteins[0].name),
+        })
+      );
+    });
+
+    // Switch to history tab
+    const historyTab = screen.getByRole("tab", { name: /history/i });
+    fireEvent.click(historyTab);
+
+    // Verify the history entry is displayed
+    await waitFor(() => {
+      // First verify the food name appears
+      expect(screen.getByText(MOCK_FOODS.proteins[0].name)).toBeInTheDocument();
+
+      // Then look for the serving information in a more flexible way
+      expect(
+        screen.getByText((content) => {
+          return content.includes("1") && content.includes("serving");
+        })
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("updates existing history entry when modifying meal", async () => {
+    await renderMealPlanner();
+    const kidSelector = screen.getByText("Presley");
+    fireEvent.click(kidSelector);
+
+    // Add first food
+    await selectFood(MOCK_FOODS.proteins[0].category, 0);
+
+    // Add second food and verify history update
+    await selectFood(MOCK_FOODS.fruits[0].category, 0);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/meal-history",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining(MOCK_FOODS.fruits[0].name),
+        })
+      );
+    });
+
+    // Verify both foods appear in history
+    const historyTab = screen.getByRole("tab", { name: /history/i });
+    fireEvent.click(historyTab);
+
+    await waitFor(() => {
+      expect(screen.getByText(MOCK_FOODS.proteins[0].name)).toBeInTheDocument();
+      expect(screen.getByText(MOCK_FOODS.fruits[0].name)).toBeInTheDocument();
+    });
+  });
 });

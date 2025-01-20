@@ -1,31 +1,34 @@
 import { NextResponse } from "next/server";
 import { DatabaseService } from "@/app/utils/DatabaseService";
-
+// In your API route response
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const kidId = searchParams.get("kidId");
-
-  if (!kidId) {
-    return NextResponse.json({ error: "Kid ID is required" }, { status: 400 });
-  }
-
   try {
-    // Get today's date at midnight for consistent comparison
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const { searchParams } = new URL(request.url);
+    const kidId = searchParams.get("kidId");
+
+    if (!kidId) {
+      return NextResponse.json(
+        { error: "Kid ID is required" },
+        { status: 400 }
+      );
+    }
 
     const service = DatabaseService.getInstance();
     const mealHistoryCollection = await service.getCollection("mealHistory");
 
     const history = await mealHistoryCollection
-      .find({
-        kidId,
-        date: { $gte: today }, // Get records from today onwards
-      })
+      .find({ kidId })
       .sort({ date: -1 })
+      .limit(50)
       .toArray();
 
-    return NextResponse.json(history);
+    // Transform MongoDB's _id to string
+    const formattedHistory = history.map((entry) => ({
+      ...entry,
+      _id: entry._id.toString(), // Convert ObjectId to string
+    }));
+
+    return NextResponse.json(formattedHistory);
   } catch (error) {
     console.error("Error fetching meal history:", error);
     return NextResponse.json(

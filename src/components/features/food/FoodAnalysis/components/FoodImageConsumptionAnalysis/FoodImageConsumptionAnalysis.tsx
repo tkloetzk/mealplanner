@@ -8,6 +8,7 @@ import { ImageCapture } from "@/components/ImageCapture";
 import { AlertTriangle, Camera } from "lucide-react";
 
 interface FoodImageAnalysisProps {
+  originalMeal: string;
   onAnalysisComplete: (analysis: {
     foods: Array<{
       name: string;
@@ -20,28 +21,41 @@ interface FoodImageAnalysisProps {
 
 export function FoodImageConsumptionAnalysis({
   onAnalysisComplete,
+  originalMeal,
 }: FoodImageAnalysisProps) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  console.log("originalMeal", originalMeal);
+  // components/FoodImageConsumptionAnalysis.tsx
   const handleImageCapture = useCallback(
     async (imageData: string) => {
       setIsAnalyzing(true);
       setError(null);
 
       try {
+        // Let's first log what we're sending to understand the data
+        console.log("Sending image data:", {
+          imageLength: imageData.length,
+          imageStart: imageData.slice(0, 50), // Just log the start to verify format
+        });
+
         const response = await fetch("/api/analyze-food-consumption", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             image: imageData,
-            originalMeal: "Provide original meal details here", // This should come from props
+            originalMeal,
           }),
         });
 
         if (!response.ok) {
-          throw new Error("Failed to analyze image");
+          // Let's get more detailed error information
+          const errorData = await response.json();
+          throw new Error(
+            `Analysis failed: ${errorData.error || response.statusText}`
+          );
         }
 
         const analysis = await response.json();
@@ -57,7 +71,6 @@ export function FoodImageConsumptionAnalysis({
     },
     [onAnalysisComplete]
   );
-
   return (
     <div className="space-y-4">
       {error && (
