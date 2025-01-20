@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { BarcodeScanner } from "@/components/features/food/FoodEditor/components/BarcodeScanner/BarcodeScanner";
 import { Food } from "@/types/food";
 
 interface UPCScannerProps {

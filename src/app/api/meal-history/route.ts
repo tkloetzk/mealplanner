@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { clientPromise } from "@/lib/db";
-import { MealService } from "@/lib/meal-service";
+import { DatabaseService } from "@/app/utils/DatabaseService";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,7 +10,21 @@ export async function GET(request: Request) {
   }
 
   try {
-    const history = await MealService.getMealHistory(kidId);
+    // Get today's date at midnight for consistent comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const service = DatabaseService.getInstance();
+    const mealHistoryCollection = await service.getCollection("mealHistory");
+
+    const history = await mealHistoryCollection
+      .find({
+        kidId,
+        date: { $gte: today }, // Get records from today onwards
+      })
+      .sort({ date: -1 })
+      .toArray();
+
     return NextResponse.json(history);
   } catch (error) {
     console.error("Error fetching meal history:", error);
@@ -21,17 +34,17 @@ export async function GET(request: Request) {
     );
   }
 }
-
 export async function POST(request: Request) {
   try {
     const { kidId, mealData } = await request.json();
-    const client = await clientPromise;
-    const db = client.db("mealplanner");
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const existingRecord = await db.collection("mealHistory").findOne({
+    const service = DatabaseService.getInstance();
+    const mealHistoryCollection = await service.getCollection("mealHistory");
+
+    const existingRecord = await mealHistoryCollection.findOne({
       kidId,
       date: today,
       meal: mealData.meal,
@@ -45,12 +58,13 @@ export async function POST(request: Request) {
     };
 
     if (existingRecord) {
-      await db
-        .collection("mealHistory")
-        .updateOne({ _id: existingRecord._id }, { $set: historyEntry });
+      await mealHistoryCollection.updateOne(
+        { _id: existingRecord._id },
+        { $set: historyEntry }
+      );
       return NextResponse.json({ ...historyEntry, _id: existingRecord._id });
     } else {
-      const result = await db.collection("mealHistory").insertOne(historyEntry);
+      const result = await mealHistoryCollection.insertOne(historyEntry);
       return NextResponse.json({ ...historyEntry, _id: result.insertedId });
     }
   } catch (error) {

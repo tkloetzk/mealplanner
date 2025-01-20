@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
-import { FoodsService } from "@/lib/foods-service";
 import { Food } from "@/types/food";
-import { group } from "console";
+import { DatabaseService } from "@/app/utils/DatabaseService";
 
 export async function GET() {
   try {
-    const foods = await FoodsService.getAllFoods();
+    const service = DatabaseService.getInstance();
+    const foodsCollection = await service.getCollection("foods");
+    const foods = await foodsCollection.find().toArray();
+
+    // Transform _id to id in the response
+    const transformedFoods = foods.map((food) => {
+      const { _id, ...foodWithoutId } = food;
+      return {
+        ...foodWithoutId,
+        id: _id.toString(),
+      } as Food;
+    });
 
     // Group foods by category
-    const groupedFoods = foods.reduce((acc, food) => {
+    const groupedFoods = transformedFoods.reduce((acc, food) => {
       if (!acc[food.category]) {
         acc[food.category] = [];
       }
@@ -16,23 +26,23 @@ export async function GET() {
       return acc;
     }, {} as Record<string, Food[]>);
 
-    console.log(groupedFoods);
     return NextResponse.json(groupedFoods);
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error fetching foods:", error);
     return NextResponse.json(
       { error: "Failed to fetch foods" },
       { status: 500 }
     );
   }
 }
-
 export async function POST(request: Request) {
   try {
     const foodData = await request.json();
     console.log("Received food data:", foodData); // Debug log
 
-    const food = await FoodsService.addFood(foodData);
+    const service = DatabaseService.getInstance();
+    const foodsCollection = await service.getCollection("foods");
+    const food = await foodsCollection.insertOne(foodData);
     console.log("Saved food:", food); // Debug log
 
     return NextResponse.json(food, { status: 201 });

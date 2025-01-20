@@ -1,0 +1,1 @@
+export { FoodImageConsumptionAnalysis } from "./FoodImageConsumptionAnalysis";

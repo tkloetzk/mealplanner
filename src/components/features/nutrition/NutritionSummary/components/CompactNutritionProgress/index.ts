@@ -1,0 +1,1 @@
+export { CompactNutritionProgress } from "./CompactNutritionProgress";

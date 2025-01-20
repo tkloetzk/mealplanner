@@ -31,7 +31,8 @@
     ".next/types/**/*.ts",
     "server.js",
     "next.config.mjs",
-    "tailwind.config.ts"
+    "tailwind.config.ts",
+    "src/components/features/meals/MealPlanner/components/MealSelector"
   ],
   "exclude": ["node_modules"]
 }

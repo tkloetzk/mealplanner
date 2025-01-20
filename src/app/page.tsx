@@ -1,4 +1,4 @@
-import { MealPlanner } from "@/components/MealPlanner";
+import { MealPlanner } from "@/components/features/meals/MealPlanner/MealPlanner";
 
 export default function Home() {
   return (

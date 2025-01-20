@@ -37,8 +37,8 @@ export const setupFetchMock = () => {
             proteins: MOCK_FOODS.proteins,
             fruits: MOCK_FOODS.fruits,
             vegetables: MOCK_FOODS.vegetables,
-            grains: [],
-            milk: [],
+            //  grains: [],
+            //milk: [],
           }),
       });
     }

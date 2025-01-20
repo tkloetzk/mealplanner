@@ -1,0 +1,139 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ChildView Component matches snapshot with meal selected 1`] = `
+<DocumentFragment>
+  <div
+    class="p-4"
+  >
+    <h2
+      class="text-2xl font-bold text-center mb-8 capitalize"
+    >
+      breakfast
+    </h2>
+    <div
+      class="space-y-10"
+    >
+      <div
+        class="relative animate-fade-in"
+      >
+        <div
+          class="rounded-xl bg-white shadow-sm border-l-4 border-blue-400 border-r border-t border-b"
+        >
+          <div
+            class="px-6 py-3 border-b rounded-t-xl border-l-4 border-blue-400 border-r border-t border-b"
+          >
+            <div
+              class="flex items-center gap-2"
+            >
+              <span
+                class="text-2xl"
+              >
+                🥚
+              </span>
+              <h3
+                class="text-xl font-semibold capitalize"
+              >
+                Choose your proteins
+              </h3>
+            </div>
+          </div>
+          <div
+            class="p-6"
+          >
+            <div
+              class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+            >
+              <div
+                class="rounded-xl border bg-card text-card-foreground shadow relative cursor-pointer transition-transform hover:scale-105 hover:shadow-md"
+              >
+                <div
+                  class="aspect-square relative overflow-hidden rounded-t-lg"
+                >
+                  <div
+                    class="w-full h-full bg-gray-100 flex items-center justify-center"
+                  >
+                    <span
+                      class="text-4xl"
+                    >
+                      🥚
+                    </span>
+                  </div>
+                </div>
+                <div
+                  class="p-3 text-center"
+                >
+                  <h3
+                    class="font-medium text-lg"
+                  >
+                    Chicken Breast
+                  </h3>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="relative animate-fade-in"
+      >
+        <div
+          class="rounded-xl bg-white shadow-sm border-l-4 border-red-400 border-r border-t border-b"
+        >
+          <div
+            class="px-6 py-3 border-b rounded-t-xl border-l-4 border-red-400 border-r border-t border-b"
+          >
+            <div
+              class="flex items-center gap-2"
+            >
+              <span
+                class="text-2xl"
+              >
+                🍎
+              </span>
+              <h3
+                class="text-xl font-semibold capitalize"
+              >
+                Choose your fruits
+              </h3>
+            </div>
+          </div>
+          <div
+            class="p-6"
+          >
+            <div
+              class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+            >
+              <div
+                class="rounded-xl border bg-card text-card-foreground shadow relative cursor-pointer transition-transform hover:scale-105 hover:shadow-md"
+              >
+                <div
+                  class="aspect-square relative overflow-hidden rounded-t-lg"
+                >
+                  <div
+                    class="w-full h-full bg-gray-100 flex items-center justify-center"
+                  >
+                    <span
+                      class="text-4xl"
+                    >
+                      🍎
+                    </span>
+                  </div>
+                </div>
+                <div
+                  class="p-3 text-center"
+                >
+                  <h3
+                    class="font-medium text-lg"
+                  >
+                    Apple
+                  </h3>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;

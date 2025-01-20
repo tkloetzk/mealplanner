@@ -1,7 +1,7 @@
 // ImageUploader.test.tsx
 import React, { act } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { ImageUploader } from "@/components/FoodEditor/ImageUploader";
+import { ImageUploader } from "@/components/features/food/FoodEditor/components/BarcodeScanner/ImageUploader";
 
 // Mock dependencies
 jest.mock("@/utils/imageUtils", () => ({
