@@ -132,6 +132,7 @@ export const MealPlanner = () => {
     setSelectedKid,
     setSelectedDay,
     setSelectedMeal,
+    setSelections,
     handleFoodSelect,
     calculateMealNutrition,
     handleServingAdjustment,
@@ -325,7 +326,17 @@ export const MealPlanner = () => {
 
   const handleToggleVisibility = async (food: Food) => {
     const newHiddenState = !food.hiddenFromChild;
+    // Check if the food is currently selected in the current meal
+    const currentMealSelections =
+      // @ts-expect-error TypeScript doesn't understand dynamic keys
+      selections[selectedKid]?.[selectedDay]?.[selectedMeal];
 
+    const isCurrentlySelected =
+      currentMealSelections &&
+      Object.values(currentMealSelections).some(
+        // @ts-expect-error TypeScript doesn't understand dynamic keys
+        (selectedFood) => selectedFood?.name === food.name
+      );
     try {
       // Optimistically update UI
       setFoodOptions((prev) => {
@@ -338,6 +349,25 @@ export const MealPlanner = () => {
         );
         return updated;
       });
+
+      // If food is currently selected and being hidden, remove it from the current meal
+      if (isCurrentlySelected && newHiddenState) {
+        setSelections((prev) => {
+          const newSelections = structuredClone(prev);
+          const currentMeal =
+            // @ts-expect-error TypeScript doesn't understand dynamic keys
+            newSelections[selectedKid][selectedDay][selectedMeal];
+
+          // Find and remove the selected food
+          Object.keys(currentMeal).forEach((category) => {
+            if (currentMeal[category]?.name === food.name) {
+              currentMeal[category] = null;
+            }
+          });
+
+          return newSelections;
+        });
+      }
 
       // Make the API call
       const response = await fetch(`/api/foods/${food.id}`, {
@@ -365,6 +395,24 @@ export const MealPlanner = () => {
           return updated;
         });
 
+        // Revert meal selection removal if it occurred
+        if (isCurrentlySelected && newHiddenState) {
+          setSelections((prev) => {
+            const newSelections = structuredClone(prev);
+            const currentMeal = // @ts-expect-error TypeScript doesn't understand dynamic keys
+              newSelections[selectedKid][selectedDay][selectedMeal];
+
+            // Restore the selected food
+            Object.keys(currentMeal).forEach((category) => {
+              if (currentMeal[category] === null) {
+                currentMeal[category] = food;
+              }
+            });
+
+            return newSelections;
+          });
+        }
+
         console.error("Failed to update food visibility:", data.error);
         return;
       }
@@ -388,6 +436,25 @@ export const MealPlanner = () => {
         );
         return updated;
       });
+
+      // Revert meal selection removal if it occurred
+      if (isCurrentlySelected && newHiddenState) {
+        setSelections((prev) => {
+          const newSelections = structuredClone(prev);
+          const currentMeal =
+            // @ts-expect-error TypeScript doesn't understand dynamic keys
+            newSelections[selectedKid][selectedDay][selectedMeal];
+
+          // Restore the selected food
+          Object.keys(currentMeal).forEach((category) => {
+            if (currentMeal[category] === null) {
+              currentMeal[category] = food;
+            }
+          });
+
+          return newSelections;
+        });
+      }
     }
   };
   return (

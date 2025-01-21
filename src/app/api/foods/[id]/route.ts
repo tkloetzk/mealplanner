@@ -3,9 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { DatabaseService } from "@/app/utils/DatabaseService";
 
-export async function DELETE(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const foodId = searchParams.get("id");
+export async function DELETE(
+  request: Request,
+  context: { params: { id: string } }
+) {
+  const { params } = await context; // Await the params object
+  const foodId = params?.id; // Safely access the id property
+
   try {
     const service = DatabaseService.getInstance();
     const foodsCollection = await service.getCollection("foods");

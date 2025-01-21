@@ -105,6 +105,12 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     async (category: CategoryType, food: Food) => {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
 
+      // Check if the food is hidden
+      if (food.hiddenFromChild) {
+        console.log(`Hidden food ${food.name} cannot be selected`);
+        return;
+      }
+
       try {
         // Optimistically update local state
         setSelections((prev) => {
@@ -113,6 +119,7 @@ export const useMealPlanState = (initialKids: Kid[]) => {
             // @ts-expect-error TypeScript doesn't understand the dynamic keys here
             newSelections[selectedKid][selectedDay][selectedMeal];
 
+          console.log("food", food);
           // Toggle food selection
           currentMeal[category] =
             currentMeal[category]?.name === food.name

@@ -17,7 +17,7 @@ interface FoodItemProps {
   onEditFood?: () => void;
   isHidden: boolean;
   onToggleVisibility: () => void;
-  showVisibilityControls?: boolean; // Only show in parent view
+  showVisibilityControls?: boolean;
 }
 
 export const FoodItem = ({
@@ -63,6 +63,14 @@ export const FoodItem = ({
             <div className="flex items-center gap-2">
               <h4 className="font-medium">{food.name}</h4>
               {food.score && <NutriScore score={food.score} />}
+              {isHidden && (
+                <div
+                  className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded"
+                  title="This food is hidden from children's view"
+                >
+                  Hidden
+                </div>
+              )}
             </div>
             <div className="text-sm text-gray-600 mt-1">
               {food.servingSize} {food.servingSizeUnit}

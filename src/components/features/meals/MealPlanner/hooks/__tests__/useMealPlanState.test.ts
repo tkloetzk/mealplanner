@@ -223,39 +223,40 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("handles daily nutrition calculation with multiple foods", async () => {
+  it("handles daily totals with hidden foods", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
+    // Create hidden versions of foods
+    const hiddenProtein = {
+      ...MOCK_FOODS.proteins[0],
+      hiddenFromChild: true,
+    };
+    const hiddenFruit = {
+      ...MOCK_FOODS.fruits[0],
+      hiddenFromChild: true,
+    };
+
+    // Prepare the context
     await act(async () => {
-      result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
+      result.current.setSelectedDay(SELECTED_DAY);
+      result.current.setSelectedMeal(BREAKFAST);
+
+      // Add some foods, including hidden ones
       result.current.handleFoodSelect(PROTEINS, MOCK_FOODS.proteins[0]);
-      result.current.handleMilkToggle(BREAKFAST, true);
-      result.current.handleRanchToggle(BREAKFAST, true, 1);
+      result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
+      result.current.handleFoodSelect(PROTEINS, hiddenProtein);
+      result.current.handleFoodSelect(FRUITS, hiddenFruit);
     });
 
-    const dailyNutrition = result.current.calculateDailyTotals();
+    // Calculate daily totals
+    const dailyTotals = result.current.calculateDailyTotals();
 
-    expect(dailyNutrition).toEqual({
-      calories:
-        MOCK_FOODS.fruits[0].calories +
-        MOCK_FOODS.proteins[0].calories +
-        MILK_OPTION.calories +
-        RANCH_OPTION.calories,
-      protein:
-        MOCK_FOODS.fruits[0].protein +
-        MOCK_FOODS.proteins[0].protein +
-        MILK_OPTION.protein +
-        RANCH_OPTION.protein,
-      carbs:
-        MOCK_FOODS.fruits[0].carbs +
-        MOCK_FOODS.proteins[0].carbs +
-        MILK_OPTION.carbs +
-        RANCH_OPTION.carbs,
-      fat:
-        MOCK_FOODS.fruits[0].fat +
-        MOCK_FOODS.proteins[0].fat +
-        MILK_OPTION.fat +
-        RANCH_OPTION.fat,
+    // Expect only the non-hidden foods' nutrition
+    expect(dailyTotals).toEqual({
+      calories: MOCK_FOODS.proteins[0].calories + MOCK_FOODS.fruits[0].calories,
+      protein: MOCK_FOODS.proteins[0].protein + MOCK_FOODS.fruits[0].protein,
+      carbs: MOCK_FOODS.proteins[0].carbs + MOCK_FOODS.fruits[0].carbs,
+      fat: MOCK_FOODS.proteins[0].fat + MOCK_FOODS.fruits[0].fat,
     });
   });
 
@@ -426,6 +427,78 @@ describe("Advanced useMealPlanState Scenarios", () => {
 
     // Verify the food is deselected
     expect(selectedFood).toBeNull();
+  });
+
+  it("excludes hidden foods from nutrition calculations", async () => {
+    const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
+
+    // Create a hidden version of a food
+    const hiddenFood = {
+      ...MOCK_FOODS.fruits[0],
+      hiddenFromChild: true,
+    };
+
+    // Prepare the context
+    await act(async () => {
+      result.current.setSelectedDay(SELECTED_DAY);
+      result.current.setSelectedMeal(BREAKFAST);
+
+      // Add a normal food
+      result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
+
+      // Now add a hidden food
+      result.current.handleFoodSelect(FRUITS, hiddenFood);
+    });
+
+    // Calculate meal nutrition
+    const mealNutrition = result.current.calculateMealNutrition(BREAKFAST);
+
+    // Expect only the non-hidden food's nutrition
+    expect(mealNutrition).toEqual({
+      calories: MOCK_FOODS.fruits[0].calories,
+      protein: MOCK_FOODS.fruits[0].protein,
+      carbs: MOCK_FOODS.fruits[0].carbs,
+      fat: MOCK_FOODS.fruits[0].fat,
+    });
+  });
+
+  it("allows selecting a hidden food initially", async () => {
+    const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
+
+    // Create a hidden version of a food
+    const hiddenFood = {
+      ...MOCK_FOODS.fruits[0],
+      hiddenFromChild: true,
+    };
+
+    // Prepare the context
+    await act(async () => {
+      result.current.setSelectedDay(SELECTED_DAY);
+      result.current.setSelectedMeal(BREAKFAST);
+
+      // Add a hidden food
+      result.current.handleFoodSelect(FRUITS, hiddenFood);
+    });
+
+    // Verify the food is in the selections
+    const selections =
+      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST];
+
+    expect(selections.fruits).toEqual(
+      expect.objectContaining({
+        name: hiddenFood.name,
+        hiddenFromChild: true,
+      })
+    );
+
+    // Calculate meal nutrition (should be zero due to hidden food)
+    const mealNutrition = result.current.calculateMealNutrition(BREAKFAST);
+    expect(mealNutrition).toEqual({
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+    });
   });
 
   it("should allow selecting different foods in the same category", async () => {
