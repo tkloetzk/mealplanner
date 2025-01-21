@@ -54,10 +54,7 @@ function AnalysisDialog({
 }: AnalysisDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent
-        className="max-w-3xl"
-        onEscapeKeyDown={() => onOpenChange(false)}
-      >
+      <AlertDialogContent className="max-w-3xl">
         <div className="flex justify-between items-start mb-4">
           <AlertDialogHeader>
             <AlertDialogTitle>AI Analysis</AlertDialogTitle>
@@ -773,8 +770,7 @@ export const MealPlanner = () => {
           </p>
           <FoodImageAnalysis
             onAnalysisComplete={(analysis) => {
-              console.log("Image analysis completed:", analysis);
-              setShowImageAnalysis(false);
+              console.log("Analysis completed:", analysis);
             }}
           />
         </div>

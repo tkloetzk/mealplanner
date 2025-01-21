@@ -102,7 +102,7 @@ export async function POST(request: Request) {
           },
         },
         `This is a picture of a plate of food. Originally this plate consisted of ${originalMeal}. Analyze the photo and tell me how much was eaten of each food.
-        Response in percentage. For example if there were originally 5 large strawberries, and only 1 in the picture, that means 4 strawberries were eaten, so return 0.8 as 80% were eaten, or if there is 1 cup of cereal and only a small amount is visible in the picture, return your best guess of the percentage that is missing`,
+        Respond in percentage. For example if there were originally 5 large strawberries, and only 1 in the picture, that means 4 strawberries were eaten, so return 0.8 as 80% were eaten, or if there is 1 cup of cereal and only a small amount is visible in the picture, return your best guess of the percentage that is missing`,
         // `Analyze this plate photo and determine how much of each food item was eaten compared to the original meal which contained: ${originalMeal}. Respond with ONLY a JSON object in this format: {"foods":[{"name":"food name","percentageEaten":number,"notes":"string"}],"summary":"string"}`,
       ]);
       //const prompt = "Explain how AI works";
@@ -129,7 +129,6 @@ export async function POST(request: Request) {
 
       return NextResponse.json(JSON.parse(output));
     } catch (error) {
-      console.error("7. OpenRouter request failed:", error); // Debug point 7
       if (error instanceof Error && error.name === "AbortError") {
         return NextResponse.json(
           { error: "Analysis request timed out" },
@@ -141,7 +140,6 @@ export async function POST(request: Request) {
       clearTimeout(timeout);
     }
   } catch (error) {
-    console.error("8. Final error handler:", error); // Debug point 8
     return NextResponse.json(
       {
         error:
