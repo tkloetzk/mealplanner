@@ -39,8 +39,9 @@ export type ServingSizeUnit =
   | "oz"
   | "tsp";
 
+// src/types/food.ts
+
 export interface Food {
-  _id?: ObjectId; // Optional MongoDB ID
   id: string;
   name: string;
   calories: number;
@@ -50,10 +51,10 @@ export interface Food {
   servingSize: string;
   servingSizeUnit: ServingSizeUnit;
   category: CategoryType;
-  meal: typeof MEAL_TYPES; // Use readonly to prevent mutation
+  meal: MealType[];
   cloudinaryUrl?: string;
-  imagePath?: string; // public
-  imageUrl?: string; // openfooddatabase
+  imagePath?: string;
+  imageUrl?: string;
   upc?: string;
   ingredients?: string;
   novaGroup?: number;
@@ -65,6 +66,7 @@ export interface Food {
   };
   score?: string;
   additives?: string[];
+  hiddenFromChild?: boolean;
 }
 
 export interface SelectedFood extends Food {

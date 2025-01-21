@@ -35,18 +35,18 @@ export function ChildView({
           ([category, foods]) => {
             // Filter foods for current meal type
             const compatibleFoods = foods.filter((food) =>
-              // @ts-expect-error Idk what to do
               food.meal?.includes(selectedMeal)
             );
 
             if (compatibleFoods.length === 0) return null;
+            const visibleFoods = foods.filter((food) => !food.hiddenFromChild);
 
             return (
               <CategoryFoodGrid
                 key={category}
                 // @ts-expect-error Idk what to do
                 category={category}
-                foods={compatibleFoods}
+                foods={visibleFoods} // Use filtered foods
                 selectedDay={selectedDay}
                 selectedMeal={selectedMeal}
                 selections={selections}

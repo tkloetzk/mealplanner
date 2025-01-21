@@ -50,22 +50,23 @@ export function FoodEditor({
   onDelete,
   initialFood,
 }: FoodEditorProps) {
-  console.log("im in foode");
+  const initialFoodState: Partial<Food> = {
+    name: "",
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    servingSize: "1",
+    servingSizeUnit: "g" as ServingSizeUnit,
+    category: "proteins" as CategoryType,
+    meal: [],
+    ...initialFood, // Spread initialFood last to override defaults
+  };
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [food, setFood] = useState<Partial<Food>>(
-    initialFood || {
-      name: "",
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-      servingSize: "1",
-      servingSizeUnit: "g",
-      category: "proteins",
-      meal: [],
-    }
-  );
+  const [food, setFood] = useState<Partial<Food>>(initialFoodState);
+
   const [capturedImage, setCapturedImage] = useState<string | null>(
     initialFood?.cloudinaryUrl ||
       initialFood?.imageUrl ||
@@ -118,6 +119,18 @@ export function FoodEditor({
       };
     });
   };
+
+  // Input change handlers with type safety
+  const handleNumberInput =
+    (field: keyof Food) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value === "" ? 0 : Number(e.target.value);
+      setFood((prev) => ({ ...prev, [field]: value }));
+    };
+
+  const handleTextInput =
+    (field: keyof Food) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFood((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const uploadImage = async (imageData: string) => {
     try {
@@ -280,11 +293,9 @@ export function FoodEditor({
               Name
             </Label>
             <Input
-              value={food.name}
               id="name"
-              onChange={(e) =>
-                setFood((prev) => ({ ...prev, name: e.target.value }))
-              }
+              value={food.name ?? ""} // Provide empty string fallback
+              onChange={handleTextInput("name")}
               required
             />
           </div>
@@ -293,14 +304,10 @@ export function FoodEditor({
             <div>
               <Label className="text-sm">Calories</Label>
               <Input
-                type="text"
-                value={food.calories}
-                onChange={(e) =>
-                  setFood((prev) => ({
-                    ...prev,
-                    calories: Number(e.target.value),
-                  }))
-                }
+                type="number"
+                value={food.calories ?? 0} // Provide number fallback
+                onChange={handleNumberInput("calories")}
+                min={0}
                 required
               />
             </div>
@@ -329,40 +336,33 @@ export function FoodEditor({
             <div>
               <Label className="text-sm">Protein (g)</Label>
               <Input
-                type="text"
+                type="number"
+                value={food.protein ?? 0}
+                onChange={handleNumberInput("protein")}
+                min={0}
                 step="0.1"
-                value={food.protein}
-                onChange={(e) =>
-                  setFood((prev) => ({
-                    ...prev,
-                    protein: Number(e.target.value),
-                  }))
-                }
               />
             </div>
+
             <div>
               <Label className="text-sm">Carbs (g)</Label>
               <Input
-                type="text"
+                type="number"
+                value={food.carbs ?? 0}
+                onChange={handleNumberInput("carbs")}
+                min={0}
                 step="0.1"
-                value={food.carbs}
-                onChange={(e) =>
-                  setFood((prev) => ({
-                    ...prev,
-                    carbs: Number(e.target.value),
-                  }))
-                }
               />
             </div>
+
             <div>
               <Label className="text-sm">Fat (g)</Label>
               <Input
-                type="text"
+                type="number"
+                value={food.fat ?? 0}
+                onChange={handleNumberInput("fat")}
+                min={0}
                 step="0.1"
-                value={food.fat}
-                onChange={(e) =>
-                  setFood((prev) => ({ ...prev, fat: Number(e.target.value) }))
-                }
               />
             </div>
           </div>
@@ -371,10 +371,8 @@ export function FoodEditor({
             <div>
               <Label className="text-sm">Serving Size</Label>
               <Input
-                value={food.servingSize}
-                onChange={(e) =>
-                  setFood((prev) => ({ ...prev, servingSize: e.target.value }))
-                }
+                value={food.servingSize ?? "1"}
+                onChange={handleTextInput("servingSize")}
               />
             </div>
             <div>

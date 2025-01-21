@@ -40,6 +40,7 @@ import { MealAnalysis } from "../MealAnalysis/MealAnalysis";
 import { FAB } from "../shared/FAB/FAB";
 import { MealPlannerHeader } from "../MealPlannerHeader";
 import { useMealPlanState } from "./hooks/useMealPlanState";
+import { ObjectId } from "mongodb";
 // import { ConsumptionAnalysis } from "@/components/ConsumptionAnalysis";
 
 // The AnalysisDialog component handles the modal display of AI analysis results
@@ -107,7 +108,20 @@ export const MealPlanner = () => {
     food: Food;
     mode: "serving" | "edit" | "add";
     currentServings?: number;
-  } | null>(null);
+  } | null>({
+    food: {
+      hiddenFromChild: false,
+      name: "",
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      servingSize: "1",
+      servingSizeUnit: "g",
+      category: "proteins",
+      meal: [],
+    },
+  });
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -234,22 +248,39 @@ export const MealPlanner = () => {
   };
 
   // Data loading effect
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     try {
+  //       const [foodsRes] = await Promise.all([fetch("/api/foods")]);
+  //       if (!foodsRes.ok) throw new Error("Failed to fetch foods");
+  //       const foods = await foodsRes.json();
+  //       setFoodOptions(foods);
+  //     } catch (error) {
+  //       console.error("Error loading data:", error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+
+  //   loadData();
+  // }, []);
+
+  // Use useEffect for initial data fetching
   useEffect(() => {
-    const loadData = async () => {
+    const fetchFoods = async () => {
       try {
-        const [foodsRes] = await Promise.all([fetch("/api/foods")]);
-        if (!foodsRes.ok) throw new Error("Failed to fetch foods");
-        const foods = await foodsRes.json();
-        setFoodOptions(foods);
+        const response = await fetch("/api/foods");
+        if (response.ok) {
+          const data = await response.json();
+          setFoodOptions(data);
+        }
       } catch (error) {
-        console.error("Error loading data:", error);
-      } finally {
-        setIsLoading(false);
+        console.error("Error fetching foods:", error);
       }
     };
 
-    loadData();
-  }, []);
+    fetchFoods();
+  }, []); // Empty dependency array means this runs once on mount
 
   const includesMilk = useMemo(() => {
     if (!selectedKid || !selectedDay)
@@ -294,18 +325,78 @@ export const MealPlanner = () => {
     );
   }, [selections, selectedKid, selectedDay]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div
-        role="status"
-        className="flex justify-center items-center min-h-screen"
-      >
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
+  // src/components/features/meals/MealPlanner/MealPlanner.tsx
 
+  // Add this to the existing component
+  // src/components/features/meals/MealPlanner/MealPlanner.tsx
+
+  const handleToggleVisibility = async (food: Food) => {
+    const newHiddenState = !food.hiddenFromChild;
+
+    try {
+      // Optimistically update UI
+      setFoodOptions((prev) => {
+        const updated = { ...prev };
+        const category = food.category;
+        if (!updated[category]) return prev; // Safety check
+
+        updated[category] = updated[category].map((f) =>
+          f.id === food.id ? { ...f, hiddenFromChild: newHiddenState } : f
+        );
+        return updated;
+      });
+
+      // Make the API call
+      const response = await fetch(`/api/foods/${food.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          hiddenFromChild: newHiddenState,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Revert optimistic update on failure
+        setFoodOptions((prev) => {
+          const updated = { ...prev };
+          const category = food.category;
+          if (!updated[category]) return prev; // Safety check
+
+          updated[category] = updated[category].map((f) =>
+            f.id === food.id ? { ...f, hiddenFromChild: !newHiddenState } : f
+          );
+          return updated;
+        });
+
+        console.error("Failed to update food visibility:", data.error);
+        return;
+      }
+
+      // We successfully updated the visibility
+      console.log("Successfully updated food visibility:", {
+        food: food.name,
+        hiddenFromChild: newHiddenState,
+      });
+    } catch (error) {
+      console.error("Error updating food visibility:", error);
+
+      // Revert optimistic update on error
+      setFoodOptions((prev) => {
+        const updated = { ...prev };
+        const category = food.category;
+        if (!updated[category]) return prev;
+
+        updated[category] = updated[category].map((f) =>
+          f.id === food.id ? { ...f, hiddenFromChild: !newHiddenState } : f
+        );
+        return updated;
+      });
+    }
+  };
   return (
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
       <MealPlannerHeader
@@ -492,7 +583,6 @@ export const MealPlanner = () => {
                                 return (
                                   <FoodItem
                                     key={index}
-                                    index={index}
                                     food={food}
                                     category={category}
                                     isSelected={isSelected}
@@ -508,6 +598,11 @@ export const MealPlanner = () => {
                                     onEditFood={() =>
                                       handleEditFood(category, food)
                                     }
+                                    isHidden={food.hiddenFromChild || false}
+                                    onToggleVisibility={() =>
+                                      handleToggleVisibility(food)
+                                    }
+                                    showVisibilityControls={!isChildView}
                                   />
                                 );
                               })}
