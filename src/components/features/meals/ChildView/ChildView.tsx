@@ -39,7 +39,9 @@ export function ChildView({
             );
 
             if (compatibleFoods.length === 0) return null;
-            const visibleFoods = foods.filter((food) => !food.hiddenFromChild);
+            const visibleFoods = compatibleFoods.filter(
+              (food) => !food.hiddenFromChild
+            );
 
             return (
               <CategoryFoodGrid

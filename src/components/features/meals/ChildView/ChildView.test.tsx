@@ -65,7 +65,7 @@ describe("ChildView Component", () => {
     expect(asFragment()).toMatchSnapshot();
   });
 
-  it.only("matches snapshot with meal selected", () => {
+  it("matches snapshot with meal selected", () => {
     const { asFragment } = render(
       <ChildView {...defaultProps} selectedMeal={BREAKFAST} />
     );

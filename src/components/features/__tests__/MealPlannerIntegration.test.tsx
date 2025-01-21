@@ -4,6 +4,7 @@ import { MOCK_FOODS } from "@/__mocks__/testConstants";
 import { DAILY_GOALS, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
 import { MealPlanner } from "../meals/MealPlanner";
 import { act } from "react";
+import { CategoryType } from "@/types/food";
 
 describe("MealPlanner Integration Tests", () => {
   // Reusable render function with common setup
@@ -17,7 +18,7 @@ describe("MealPlanner Integration Tests", () => {
   };
 
   // Helper functions to make tests more readable and maintainable
-  const selectFood = async (category: string, index: number) => {
+  const selectFood = async (category: CategoryType, index: number) => {
     const foodElement = screen.getByTestId(`${category}-${index}`);
 
     await act(async () => {
@@ -96,24 +97,47 @@ describe("MealPlanner Integration Tests", () => {
   it("handles serving size adjustments correctly", async () => {
     await renderMealPlanner();
 
-    // Select food and open serving selector
-    await selectFood(MOCK_FOODS.proteins[0].category, 0);
+    // Select kid (first step in most interactions)
+    const kidSelector = screen.getByText("Presley");
     await act(async () => {
-      fireEvent.click(screen.getByTitle("Adjust Servings"));
+      fireEvent.click(kidSelector);
     });
-    const servingInput = screen.getByTestId("custom-serving-input");
-    const initialServingSize = parseFloat(MOCK_FOODS.proteins[0].servingSize);
 
+    // Select a protein food
+    const proteinFood = MOCK_FOODS.proteins[0];
+    const foodElement = screen.getByTestId(`proteins-0`);
+
+    await act(async () => {
+      fireEvent.click(foodElement);
+    });
+
+    // Open serving selector
+    const servingsButton = screen.getByTitle("Adjust Servings");
+    await act(async () => {
+      fireEvent.click(servingsButton);
+    });
+
+    // Find serving input
+    const servingInput = screen.getByTestId("custom-serving-input");
+    const initialServingSize = parseFloat(proteinFood.servingSize);
+
+    // Verify initial serving size
     expect(servingInput).toHaveValue(initialServingSize);
 
-    // Increment serving and verify
+    // Increment serving
+    const incrementButton = screen.getByTestId("increment-serving");
     await act(async () => {
-      fireEvent.click(screen.getByTestId("increment-serving"));
+      fireEvent.click(incrementButton);
     });
+
+    // Verify incremented serving size
     expect(servingInput).toHaveValue(initialServingSize + 0.25);
 
-    // Confirm and verify nutrition updates
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
+    // Confirm serving change
+    const confirmButton = screen.getByRole("button", { name: /confirm/i });
+    await act(async () => {
+      fireEvent.click(confirmButton);
+    });
 
     await waitFor(() => {
       expect(

@@ -1,5 +1,59 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`ChildView Component matches snapshot when no meal is selected 1`] = `
+<DocumentFragment>
+  <div
+    class="text-center py-12"
+  >
+    <h2
+      class="text-2xl font-bold mb-6"
+    >
+      What are you eating?
+    </h2>
+    <div
+      class="grid grid-cols-2 gap-4 max-w-md mx-auto"
+    >
+      <div
+        class="rounded-xl border bg-card text-card-foreground shadow p-6 text-center cursor-pointer hover:bg-blue-50 transition-colors"
+      >
+        <div
+          class="text-xl capitalize"
+        >
+          breakfast
+        </div>
+      </div>
+      <div
+        class="rounded-xl border bg-card text-card-foreground shadow p-6 text-center cursor-pointer hover:bg-blue-50 transition-colors"
+      >
+        <div
+          class="text-xl capitalize"
+        >
+          lunch
+        </div>
+      </div>
+      <div
+        class="rounded-xl border bg-card text-card-foreground shadow p-6 text-center cursor-pointer hover:bg-blue-50 transition-colors"
+      >
+        <div
+          class="text-xl capitalize"
+        >
+          dinner
+        </div>
+      </div>
+      <div
+        class="rounded-xl border bg-card text-card-foreground shadow p-6 text-center cursor-pointer hover:bg-blue-50 transition-colors"
+      >
+        <div
+          class="text-xl capitalize"
+        >
+          snack
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
 exports[`ChildView Component matches snapshot with meal selected 1`] = `
 <DocumentFragment>
   <div

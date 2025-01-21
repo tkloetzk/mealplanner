@@ -23,7 +23,7 @@ export const MOCK_FOODS = {
     {
       id: "1",
       name: "Chicken Breast",
-      category: "proteins" as CategoryType,
+      category: PROTEINS,
       calories: 165,
       protein: 31,
       carbs: 0.1,
@@ -31,6 +31,7 @@ export const MOCK_FOODS = {
       meal: [BREAKFAST, LUNCH, DINNER],
       servingSize: "1",
       servingSizeUnit: "piece" as ServingSizeUnit,
+      hiddenFromKids: false,
     },
     {
       id: "4",

@@ -23,6 +23,12 @@ export const mockHistoryData = {
 export const setupFetchMock = () => {
   const mockFetch = jest.fn().mockImplementation((url) => {
     if (typeof url === "string") {
+      if (url.includes("/api/foods")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(MOCK_FOODS),
+        });
+      }
       if (url.includes("/api/meal-history")) {
         return Promise.resolve({
           ok: true,

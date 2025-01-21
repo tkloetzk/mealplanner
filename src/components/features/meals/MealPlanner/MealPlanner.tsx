@@ -545,13 +545,11 @@ export const MealPlanner = () => {
                     }
                     className="z-40 mb-16" // Add margin to avoid overlap with nutrition bar
                   />
-
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
                   ).map(([category, foods]) => {
                     const compatibleFoods = selectedMeal
                       ? foods.filter((food) =>
-                          // @ts-expect-error Idk what to do
                           food.meal?.includes(selectedMeal)
                         )
                       : foods;
@@ -583,6 +581,7 @@ export const MealPlanner = () => {
                                 return (
                                   <FoodItem
                                     key={index}
+                                    index={index}
                                     food={food}
                                     category={category}
                                     isSelected={isSelected}

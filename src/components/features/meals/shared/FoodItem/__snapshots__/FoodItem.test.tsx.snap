@@ -4,7 +4,8 @@ exports[`FoodItem Component matches snapshot of selected food 1`] = `
 <DocumentFragment>
   <div
     class="relative p-4 rounded-lg transition-all duration-200 cursor-pointer
-        bg-blue-100 ring-2 ring-blue-500"
+      bg-blue-100 ring-2 ring-blue-500
+      "
     data-testid="proteins-0"
   >
     <div
@@ -53,7 +54,8 @@ exports[`FoodItem Component matches snapshot of unselected food 1`] = `
 <DocumentFragment>
   <div
     class="relative p-4 rounded-lg transition-all duration-200 cursor-pointer
-        hover:bg-gray-50 bg-white"
+      hover:bg-gray-50 bg-white
+      "
     data-testid="proteins-0"
   >
     <div
