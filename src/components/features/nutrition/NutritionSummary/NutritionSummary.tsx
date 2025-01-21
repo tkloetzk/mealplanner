@@ -23,6 +23,7 @@ export function NutritionSummary({
   dailyNutrition,
   selectedMeal,
 }: NutritionSummaryProps) {
+  console.log(mealNutrition, selectedMeal);
   const [showDailyTotal, setShowDailyTotal] = useState(false);
   const currentNutrition = showDailyTotal ? dailyNutrition : mealNutrition;
 

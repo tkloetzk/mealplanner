@@ -8,6 +8,7 @@ class DatabaseConnection {
 
   private constructor() {
     const env = process.env.NODE_ENV || "development";
+    console.log("env", env);
     this.databaseName =
       env === "production" ? "mealplanner" : "mealplanner_dev";
 

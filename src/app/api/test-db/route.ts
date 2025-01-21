@@ -4,7 +4,7 @@ import clientPromise from "@/services/infrastructure/database/mongodb/mongodb";
 export async function GET() {
   try {
     const client = await clientPromise;
-    const db = client.db("mealplanner");
+    const db = client.db("mealplanner_dev");
 
     // Test database connection with a ping
     await db.command({ ping: 1 });

@@ -132,6 +132,7 @@ export const MealPlanner = () => {
     handleMilkToggle,
     handleRanchToggle,
   } = useMealPlanState(kids);
+  console.log(selections);
   // Helper function to get ordered days starting from today
   const getOrderedDays = (): DayType[] => {
     const days: DayType[] = [
@@ -427,6 +428,7 @@ export const MealPlanner = () => {
                     />
                   </div>
                 )}
+
                 <div className="mb-6">
                   <RanchToggle
                     // @ts-expect-error Idk what to do
@@ -452,6 +454,7 @@ export const MealPlanner = () => {
                     }
                     className="z-40 mb-16" // Add margin to avoid overlap with nutrition bar
                   />
+
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
                   ).map(([category, foods]) => {
@@ -463,52 +466,66 @@ export const MealPlanner = () => {
                       : foods;
 
                     if (compatibleFoods.length === 0) return null;
-
                     return (
                       <Card key={category}>
                         <CardContent className="p-4">
                           <h3 className="text-lg font-semibold capitalize mb-3">
                             {category}
                           </h3>
-                          <div className="space-y-2">
-                            {compatibleFoods.map((food, index) => {
-                              const selectedFoodInCategory =
-                                selectedKid && selectedDay && selectedMeal
-                                  ? // @ts-expect-error Idk what to do
-                                    selections[selectedKid]?.[selectedDay]?.[
-                                      selectedMeal
-                                    ]?.[category]
-                                  : null;
-                              const isSelected =
-                                selectedFoodInCategory?.name === food.name;
+                          {compatibleFoods.length === 0 ? (
+                            <div className="text-center text-gray-500 py-4">
+                              <span>No food options available</span>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {compatibleFoods.map((food, index) => {
+                                const selectedFoodInCategory =
+                                  selectedKid && selectedDay && selectedMeal
+                                    ? // @ts-expect-error Idk what to do
+                                      selections[selectedKid]?.[selectedDay]?.[
+                                        selectedMeal
+                                      ]?.[category]
+                                    : null;
+                                const isSelected =
+                                  selectedFoodInCategory?.name === food.name;
 
-                              return (
-                                <FoodItem
-                                  key={index}
-                                  index={index}
-                                  food={food}
-                                  category={category}
-                                  isSelected={isSelected}
-                                  selectedFoodInCategory={
-                                    selectedFoodInCategory
-                                  }
-                                  onSelect={() =>
-                                    handleFoodSelect(category, food)
-                                  }
-                                  onServingClick={(e) =>
-                                    handleServingClick(e, category, food)
-                                  }
-                                  onEditFood={() =>
-                                    handleEditFood(category, food)
-                                  }
-                                />
-                              );
-                            })}
-                          </div>
+                                return (
+                                  <FoodItem
+                                    key={index}
+                                    index={index}
+                                    food={food}
+                                    category={category}
+                                    isSelected={isSelected}
+                                    selectedFoodInCategory={
+                                      selectedFoodInCategory
+                                    }
+                                    onSelect={() =>
+                                      handleFoodSelect(category, food)
+                                    }
+                                    onServingClick={(e) =>
+                                      handleServingClick(e, category, food)
+                                    }
+                                    onEditFood={() =>
+                                      handleEditFood(category, food)
+                                    }
+                                  />
+                                );
+                              })}
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     );
                   })}
+                  {/* Add a global check for completely empty foodOptions */}
+                  {Object.values(foodOptions).every(
+                    (categoryFoods) => categoryFoods.length === 0
+                  ) && (
+                    <div className="text-center text-gray-500 py-12">
+                      <p className="text-xl mb-4">No food options available</p>
+                      <p>Please add some foods to get started</p>
+                    </div>
+                  )}
                 </div>
               </>
             )}

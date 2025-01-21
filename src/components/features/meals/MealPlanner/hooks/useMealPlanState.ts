@@ -248,7 +248,6 @@ export function useMealPlanState(initialKids: Kid[]) {
     [selectedMeal, selectedDay, selectedKid]
   );
 
-  // Calculate meal nutrition
   const calculateMealNutrition = useCallback(
     (meal: MealType) => {
       if (!selectedKid || !selectedDay || !meal) {
@@ -257,7 +256,12 @@ export function useMealPlanState(initialKids: Kid[]) {
 
       // @ts-expect-error TypeScript doesn't understand the dynamic keys here
       const mealSelections = selections[selectedKid]?.[selectedDay]?.[meal];
-      if (!mealSelections) {
+
+      // Add an early return if mealSelections is null or contains no foods
+      if (
+        !mealSelections ||
+        Object.values(mealSelections).every((food) => food === null)
+      ) {
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
       }
 
@@ -265,17 +269,13 @@ export function useMealPlanState(initialKids: Kid[]) {
         (sum, food) => {
           if (!food) return sum;
           return {
-            // @ts-expect-error TODO: fix
-
+            // @ts-expect-error TypeScript doesn't understand the dynamic keys here
             calories: sum.calories + (food.adjustedCalories ?? food.calories),
-            // @ts-expect-error TODO: fix
-
+            // @ts-expect-error TypeScript doesn't understand the dynamic keys here
             protein: sum.protein + (food.adjustedProtein ?? food.protein),
-            // @ts-expect-error TODO: fix
-
+            // @ts-expect-error TypeScript doesn't understand the dynamic keys here
             carbs: sum.carbs + (food.adjustedCarbs ?? food.carbs),
-            // @ts-expect-error TODO: fix
-
+            // @ts-expect-error TypeScript doesn't understand the dynamic keys here
             fat: sum.fat + (food.adjustedFat ?? food.fat),
           };
         },
@@ -285,7 +285,6 @@ export function useMealPlanState(initialKids: Kid[]) {
     [selections, selectedKid, selectedDay]
   );
 
-  // Calculate daily totals
   const calculateDailyTotals = useCallback(() => {
     if (!selectedKid || !selectedDay) {
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -295,17 +294,13 @@ export function useMealPlanState(initialKids: Kid[]) {
       (dailyTotals, mealType) => {
         const mealNutrition = calculateMealNutrition(mealType);
         return {
-          // @ts-expect-error TODO: fix
-
+          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
           calories: dailyTotals.calories + mealNutrition.calories,
-          // @ts-expect-error TODO: fix
-
+          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
           protein: dailyTotals.protein + mealNutrition.protein,
-          // @ts-expect-error TODO: fix
-
+          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
           carbs: dailyTotals.carbs + mealNutrition.carbs,
-          // @ts-expect-error TODO: fix
-
+          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
           fat: dailyTotals.fat + mealNutrition.fat,
         };
       },
