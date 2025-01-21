@@ -77,8 +77,6 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
     return acc;
   }, {} as Record<string, MealHistoryRecord[]>);
 
-  console.log(historyEntries);
-
   const formatMealSelections = (selections: MealSelection): string => {
     //return "1 serving of Kashi Oat Cereal, 1 cup of strawberries (red fruit with a little green on top), 1 cup of blueberries (small round blue fruit), and 1 scrambled egg";
     return Object.entries(selections)
@@ -125,7 +123,6 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
       {Object.entries(entriesByDate).map(([date, entries]) => {
         const dateObj = new Date(date);
 
-        console.log(entries[0]?.consumptionData?.foods);
         return (
           <div key={date} className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center justify-between">

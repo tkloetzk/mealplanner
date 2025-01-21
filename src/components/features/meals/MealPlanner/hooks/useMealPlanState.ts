@@ -119,7 +119,6 @@ export const useMealPlanState = (initialKids: Kid[]) => {
             // @ts-expect-error TypeScript doesn't understand the dynamic keys here
             newSelections[selectedKid][selectedDay][selectedMeal];
 
-          console.log("food", food);
           // Toggle food selection
           currentMeal[category] =
             currentMeal[category]?.name === food.name
