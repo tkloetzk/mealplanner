@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { DatabaseService } from "@/app/utils/DatabaseService";
-import { MealHistoryDocument } from "@/components/features/meals/shared/MealHistory/MealHistory";
 // In your API route response
 export async function GET(request: Request) {
   try {
@@ -46,33 +45,42 @@ export async function POST(request: Request) {
     today.setHours(0, 0, 0, 0);
 
     const service = DatabaseService.getInstance();
-    const mealHistoryCollection =
-      await service.getCollection<MealHistoryDocument>("mealHistory");
+    const mealHistoryCollection = await service.getCollection("mealHistory");
 
+    // Find existing record for today's meal
     const existingRecord = await mealHistoryCollection.findOne({
       kidId,
-      date: today,
+      date: { $gte: today },
       meal: mealData.meal,
     });
 
-    // Correctly typed document
-    // @ts-expect-error Idk what to do
-    const historyEntry: MealHistoryDocument = {
+    // Prepare history entry
+    const historyEntry = {
       kidId,
       date: today,
       meal: mealData.meal,
       selections: mealData.selections,
+      // Add timestamp for sorting
+      timestamp: new Date(),
     };
 
+    // Update or insert record
     if (existingRecord) {
       await mealHistoryCollection.updateOne(
         { _id: existingRecord._id },
         { $set: historyEntry }
       );
-      return NextResponse.json({ ...historyEntry, _id: existingRecord._id });
+      return NextResponse.json({
+        ...historyEntry,
+        _id: existingRecord._id,
+      });
     } else {
+      // @ts-expect-error IDK why this is happening
       const result = await mealHistoryCollection.insertOne(historyEntry);
-      return NextResponse.json({ ...historyEntry, _id: result.insertedId });
+      return NextResponse.json({
+        ...historyEntry,
+        _id: result.insertedId,
+      });
     }
   } catch (error) {
     console.error("Error saving meal history:", error);

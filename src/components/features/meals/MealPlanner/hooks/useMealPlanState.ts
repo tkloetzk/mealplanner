@@ -18,23 +18,6 @@ import { Kid } from "@/types/user";
 import { BREAKFAST, MEAL_TYPES } from "@/constants";
 
 // Utility function for safe local storage operations
-const safeLocalStorage = {
-  getItem: <T>(key: string, defaultValue: T): T => {
-    try {
-      const serializedItem = localStorage.getItem(key);
-      return serializedItem ? JSON.parse(serializedItem) : defaultValue;
-    } catch {
-      return defaultValue;
-    }
-  },
-  setItem: (key: string, value: unknown): void => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error saving ${key} to localStorage:`, error);
-    }
-  },
-};
 
 // Utility function to get the current day
 const DAYS: readonly DayType[] = [
@@ -64,57 +47,29 @@ const deepClone = <T>(obj: T): T => {
   return clonedObj as T;
 };
 
-// Create initial meal plan
-const createInitialMealPlan = (
-  initialKids: Kid[]
-): Record<string, MealPlan> => {
-  if (initialKids.length === 0) {
-    throw new Error("At least one kid is required to initialize meal plan");
-  }
-  return initialKids.reduce<Record<string, MealPlan>>((acc, kid) => {
-    acc[kid.id] = deepClone(DEFAULT_MEAL_PLAN);
-    return acc;
-  }, {});
-};
-
-export function useMealPlanState(initialKids: Kid[]) {
+export const useMealPlanState = (initialKids: Kid[]) => {
   if (initialKids.length === 0) {
     throw new Error("At least one kid is required to use meal plan state");
   }
+  const [selectedKid, setSelectedKid] = useState<string | null>(
+    initialKids.length > 0 ? initialKids[0].id : null
+  );
 
   // Core selection state
-  const [selectedKid, setSelectedKid] = useState<string>(initialKids[0].id);
   const [selectedDay, setSelectedDay] = useState<DayType>(getCurrentDay());
   const [selectedMeal, setSelectedMeal] = useState<MealType>(BREAKFAST);
   // Selections state with persistent storage
-  const [selections, setSelections] = useState<Record<string, MealPlan>>(() => {
-    const savedSelections = safeLocalStorage.getItem(
-      "meal-selections",
-      createInitialMealPlan(initialKids)
-    );
-
-    initialKids.forEach((kid) => {
-      if (!savedSelections[kid.id]) {
-        savedSelections[kid.id] = deepClone(DEFAULT_MEAL_PLAN);
-      }
-    });
-
-    return savedSelections;
-  });
+  const [selections, setSelections] = useState<Record<string, MealPlan>>(() =>
+    initialKids.reduce<Record<string, MealPlan>>((acc, kid) => {
+      acc[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
+      return acc;
+    }, {})
+  );
 
   // Meal history state
   const [mealHistory, setMealHistory] = useState<
     Record<string, MealHistoryRecord[]>
-  >({
-    [initialKids[0].id]: [],
-  });
-
-  // Synchronize selections with local storage
-  useEffect(() => {
-    if (selectedKid) {
-      safeLocalStorage.setItem("meal-selections", selections);
-    }
-  }, [selections, selectedKid]);
+  >({});
 
   useEffect(() => {
     const fetchMealHistory = async () => {
@@ -124,9 +79,7 @@ export function useMealPlanState(initialKids: Kid[]) {
         const response = await fetch(`/api/meal-history?kidId=${selectedKid}`);
 
         if (!response.ok) {
-          // Get the error message from the response if available
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Failed to fetch meal history");
+          throw new Error("Failed to fetch meal history");
         }
 
         const history = await response.json();
@@ -147,76 +100,71 @@ export function useMealPlanState(initialKids: Kid[]) {
     fetchMealHistory();
   }, [selectedKid]);
 
-  // Food selection handler
+  // Food selection handler with server synchronization
   const handleFoodSelect = useCallback(
     async (category: CategoryType, food: Food) => {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
 
-      setSelections((prev) => {
-        const newSelections = structuredClone(prev);
-        const currentMeal =
-          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
-          newSelections[selectedKid][selectedDay][selectedMeal];
+      try {
+        // Optimistically update local state
+        setSelections((prev) => {
+          const newSelections = structuredClone(prev);
+          const currentMeal =
+            // @ts-expect-error TypeScript doesn't understand the dynamic keys here
+            newSelections[selectedKid][selectedDay][selectedMeal];
 
-        currentMeal[category] =
-          currentMeal[category]?.name === food.name
-            ? null
-            : {
-                ...food,
-                servings: 1,
-                adjustedCalories: food.calories,
-                adjustedProtein: food.protein,
-                adjustedCarbs: food.carbs,
-                adjustedFat: food.fat,
-              };
+          // Toggle food selection
+          currentMeal[category] =
+            currentMeal[category]?.name === food.name
+              ? null
+              : {
+                  ...food,
+                  servings: 1,
+                  adjustedCalories: food.calories,
+                  adjustedProtein: food.protein,
+                  adjustedCarbs: food.carbs,
+                  adjustedFat: food.fat,
+                };
 
-        // Save to history
-        const saveToHistory = async () => {
-          try {
-            const response = await fetch("/api/meal-history", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
+          return newSelections;
+        });
+
+        // Send to server for persistent storage
+        const response = await fetch("/api/meal-history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            kidId: selectedKid,
+            mealData: {
+              meal: selectedMeal,
+              date: new Date(),
+              selections: {
+                [category]: food,
               },
-              body: JSON.stringify({
-                kidId: selectedKid,
-                mealData: {
-                  meal: selectedMeal,
-                  selections: currentMeal,
-                },
-              }),
-            });
+            },
+          }),
+        });
 
-            if (!response.ok) {
-              throw new Error("Failed to save meal history");
-            }
+        if (!response.ok) {
+          throw new Error("Failed to save meal selection");
+        }
 
-            const savedEntry = await response.json();
-            setMealHistory((prev) => ({
-              ...prev,
-              [selectedKid]: [
-                ...(prev[selectedKid] || []).filter(
-                  (entry) =>
-                    !(
-                      entry.meal === savedEntry.meal &&
-                      new Date(entry.date).toDateString() ===
-                        new Date(savedEntry.date).toDateString()
-                    )
-                ),
-                savedEntry,
-              ].sort(
-                (a, b) =>
-                  new Date(b.date).getTime() - new Date(a.date).getTime()
-              ),
-            }));
-          } catch (error) {
-            console.error("Failed to save meal history:", error);
-          }
-        };
-
-        saveToHistory();
-        return newSelections;
-      });
+        // Optionally update local history if server responds with updated record
+        const savedEntry = await response.json();
+        setMealHistory((prev) => {
+          const updatedHistory = {
+            ...prev,
+            [selectedKid]: [savedEntry, ...(prev[selectedKid] || [])],
+          };
+          return updatedHistory;
+        });
+      } catch (error) {
+        console.error("Error saving meal selection:", error);
+        // Optionally revert local state if server save fails
+        setSelections((prev) => structuredClone(prev));
+      }
     },
     [selectedKid, selectedDay, selectedMeal]
   );
@@ -253,11 +201,9 @@ export function useMealPlanState(initialKids: Kid[]) {
       if (!selectedKid || !selectedDay || !meal) {
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
       }
-
       // @ts-expect-error TypeScript doesn't understand the dynamic keys here
       const mealSelections = selections[selectedKid]?.[selectedDay]?.[meal];
 
-      // Add an early return if mealSelections is null or contains no foods
       if (
         !mealSelections ||
         Object.values(mealSelections).every((food) => food === null)
@@ -375,9 +321,9 @@ export function useMealPlanState(initialKids: Kid[]) {
     selections,
     mealHistory,
     setSelectedKid,
+    setSelections,
     setSelectedDay,
     setSelectedMeal,
-    setSelections,
     handleFoodSelect,
     handleServingAdjustment,
     handleMilkToggle,
@@ -385,4 +331,4 @@ export function useMealPlanState(initialKids: Kid[]) {
     calculateMealNutrition,
     calculateDailyTotals,
   };
-}
+};

@@ -132,7 +132,6 @@ export const MealPlanner = () => {
     handleMilkToggle,
     handleRanchToggle,
   } = useMealPlanState(kids);
-  console.log(selections);
   // Helper function to get ordered days starting from today
   const getOrderedDays = (): DayType[] => {
     const days: DayType[] = [
@@ -311,6 +310,7 @@ export const MealPlanner = () => {
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
       <MealPlannerHeader
         kids={kids}
+        // @ts-expect-error TypeScript doesn't understand the dynamic keys here
         selectedKid={selectedKid}
         onKidSelect={setSelectedKid}
         isChildView={isChildView}
