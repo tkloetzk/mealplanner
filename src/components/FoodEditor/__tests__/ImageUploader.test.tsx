@@ -27,14 +27,6 @@ jest.mock("@/components/ImageCapture", () => {
   };
 });
 
-jest.mock("next/image", () => ({
-  __esModule: true,
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img {...props} alt={props.alt} />;
-  },
-}));
-
 describe("ImageUploader Component", () => {
   const mockOnUpload = jest.fn();
   it("renders take photo button when no image", () => {

@@ -54,10 +54,10 @@ function AnalysisDialog({
 }: AnalysisDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-3xl">
+      <AlertDialogContent className="max-w-xl">
         <div className="flex justify-between items-start mb-4">
           <AlertDialogHeader>
-            <AlertDialogTitle>AI Analysis</AlertDialogTitle>
+            <AlertDialogTitle>Plate Photo Analysis</AlertDialogTitle>
           </AlertDialogHeader>
           <Button
             variant="ghost"
@@ -763,7 +763,6 @@ export const MealPlanner = () => {
         onOpenChange={setShowImageAnalysis}
       >
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Plate Photo Analysis</h2>
           <p className="text-sm text-gray-600">
             Take a photo of a prepared meal to get nutritional insights and
             recommendations.

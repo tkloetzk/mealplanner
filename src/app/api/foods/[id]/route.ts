@@ -29,9 +29,12 @@ export async function DELETE(request: Request) {
     );
   }
 }
-export async function PUT(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const foodId = searchParams.get("id");
+export async function PUT(
+  request: Request,
+  context: { params: { id: string } }
+) {
+  const { params } = await context; // Await the params object
+  const foodId = params?.id; // Safely access the id property
 
   try {
     const service = DatabaseService.getInstance();

@@ -37,6 +37,14 @@ if (!global.structuredClone) {
   global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
 }
 
+jest.mock("next/image", () => ({
+  __esModule: true,
+  default: (props) => {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img {...props} alt={props.alt} />;
+  },
+}));
+
 jest.mock("lucide-react", () => {
   return new Proxy(
     {},
