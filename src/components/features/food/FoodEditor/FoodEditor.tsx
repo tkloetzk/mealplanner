@@ -105,10 +105,8 @@ export function FoodEditor({
   };
 
   const handleMealCompatibilityChange = (mealType: MealType) => {
-    // @ts-expect-error Idk what to do
     setFood((prev) => {
       const currentCompatibility = prev.meal || [];
-      // @ts-expect-error Idk what to do
       const newCompatibility = currentCompatibility.includes(mealType)
         ? currentCompatibility.filter((meal) => meal !== mealType)
         : [...currentCompatibility, mealType];

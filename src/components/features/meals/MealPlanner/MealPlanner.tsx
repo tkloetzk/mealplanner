@@ -40,10 +40,7 @@ import { MealAnalysis } from "../MealAnalysis/MealAnalysis";
 import { FAB } from "../shared/FAB/FAB";
 import { MealPlannerHeader } from "../MealPlannerHeader";
 import { useMealPlanState } from "./hooks/useMealPlanState";
-import { ObjectId } from "mongodb";
-// import { ConsumptionAnalysis } from "@/components/ConsumptionAnalysis";
 
-// The AnalysisDialog component handles the modal display of AI analysis results
 interface AnalysisDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -109,6 +106,7 @@ export const MealPlanner = () => {
     mode: "serving" | "edit" | "add";
     currentServings?: number;
   } | null>({
+    // @ts-expect-error Idk what to do
     food: {
       hiddenFromChild: false,
       name: "",
@@ -122,8 +120,6 @@ export const MealPlanner = () => {
       meal: [],
     },
   });
-
-  const [isLoading, setIsLoading] = useState(true);
 
   const [showPlateAnalysis, setShowPlateAnalysis] = useState(false);
   const [selectedHistoryEntry, setSelectedHistoryEntry] =
@@ -545,6 +541,7 @@ export const MealPlanner = () => {
                     }
                     className="z-40 mb-16" // Add margin to avoid overlap with nutrition bar
                   />
+
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
                   ).map(([category, foods]) => {
