@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MOCK_FOODS } from "@/__mocks__/testConstants";
 import { DAILY_GOALS, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
 import { MealPlanner } from "../meals/MealPlanner";
+import { act } from "react";
 
 describe("MealPlanner Integration Tests", () => {
   // Reusable render function with common setup
@@ -18,13 +19,18 @@ describe("MealPlanner Integration Tests", () => {
   // Helper functions to make tests more readable and maintainable
   const selectFood = async (category: string, index: number) => {
     const foodElement = screen.getByTestId(`${category}-${index}`);
-    fireEvent.click(foodElement);
+
+    await act(async () => {
+      fireEvent.click(foodElement);
+    });
     return foodElement;
   };
 
   const toggleSwitch = async (name: RegExp) => {
     const switchElement = screen.getByRole("switch", { name });
-    fireEvent.click(switchElement);
+    await act(async () => {
+      fireEvent.click(switchElement);
+    });
     return switchElement;
   };
 
@@ -34,8 +40,9 @@ describe("MealPlanner Integration Tests", () => {
 
     // Select kid
     const kidSelector = screen.getByText("Presley");
-    fireEvent.click(kidSelector);
-
+    await act(async () => {
+      fireEvent.click(kidSelector);
+    });
     // Add protein
     await selectFood(MOCK_FOODS.proteins[0].category, 0);
 
@@ -91,15 +98,18 @@ describe("MealPlanner Integration Tests", () => {
 
     // Select food and open serving selector
     await selectFood(MOCK_FOODS.proteins[0].category, 0);
-    fireEvent.click(screen.getByTitle("Adjust Servings"));
-
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Adjust Servings"));
+    });
     const servingInput = screen.getByTestId("custom-serving-input");
     const initialServingSize = parseFloat(MOCK_FOODS.proteins[0].servingSize);
 
     expect(servingInput).toHaveValue(initialServingSize);
 
     // Increment serving and verify
-    fireEvent.click(screen.getByTestId("increment-serving"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("increment-serving"));
+    });
     expect(servingInput).toHaveValue(initialServingSize + 0.25);
 
     // Confirm and verify nutrition updates
@@ -182,8 +192,9 @@ describe("MealPlanner Integration Tests", () => {
 
     // Switch to history tab
     const historyTab = screen.getByRole("tab", { name: /history/i });
-    fireEvent.click(historyTab);
-
+    await act(async () => {
+      fireEvent.click(historyTab);
+    });
     // Verify the history entry is displayed
     await waitFor(() => {
       // First verify the food name appears
@@ -201,7 +212,9 @@ describe("MealPlanner Integration Tests", () => {
   it("updates existing history entry when modifying meal", async () => {
     await renderMealPlanner();
     const kidSelector = screen.getByText("Presley");
-    fireEvent.click(kidSelector);
+    await act(async () => {
+      fireEvent.click(kidSelector);
+    });
 
     // Add first food
     await selectFood(MOCK_FOODS.proteins[0].category, 0);
@@ -221,7 +234,9 @@ describe("MealPlanner Integration Tests", () => {
 
     // Verify both foods appear in history
     const historyTab = screen.getByRole("tab", { name: /history/i });
-    fireEvent.click(historyTab);
+    await act(async () => {
+      fireEvent.click(historyTab);
+    });
 
     await waitFor(() => {
       expect(screen.getByText(MOCK_FOODS.proteins[0].name)).toBeInTheDocument();

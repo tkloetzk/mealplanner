@@ -39,3 +39,28 @@ describe("MealPlanner Food Selection", () => {
     });
   });
 });
+
+describe("MealPlanner Empty Food Options", () => {
+  it("displays 'No food options available' message when foodOptions are empty", async () => {
+    // Mock fetch to return empty food options
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          proteins: [],
+          fruits: [],
+          vegetables: [],
+          grains: [],
+          milk: [],
+        }),
+    });
+
+    render(<MealPlanner />);
+
+    // Wait for loading to complete and check for empty message
+    await waitFor(() => {
+      const emptyMessage = screen.getByText("No food options available");
+      expect(emptyMessage).toBeInTheDocument();
+    });
+  });
+});

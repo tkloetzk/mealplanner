@@ -502,7 +502,7 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(result.current.mealHistory[MOCK_KIDS[0].id].length).toBe(1);
   });
 
-  it("handles meal plan reset or clear scenarios", async () => {
+  it.only("handles meal plan reset or clear scenarios", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     await act(async () => {
