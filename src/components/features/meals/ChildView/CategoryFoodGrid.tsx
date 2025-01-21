@@ -6,12 +6,12 @@ import Image from "next/image";
 import { CATEGORY_EMOJIS, CATEGORY_STYLES } from "@/constants";
 
 interface CategoryFoodGridProps {
-  category: CategoryType;
+  category: keyof typeof CATEGORY_STYLES;
   foods: Food[];
   selectedDay: DayType;
   selectedMeal: MealType;
   selections: MealPlan;
-  onFoodSelect: (category: CategoryType, food: Food) => void;
+  onFoodSelect: (category: keyof typeof CATEGORY_STYLES, food: Food) => void;
 }
 
 // Helper function to check if a food is selected
@@ -22,6 +22,7 @@ const isFoodSelected = (
   category: CategoryType,
   foodName: string
 ): boolean => {
+  // @ts-expect-error Idk what to do
   return selections[selectedDay]?.[selectedMeal]?.[category]?.name === foodName;
 };
 

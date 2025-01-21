@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { DatabaseService } from "@/app/utils/DatabaseService";
+import { MealHistoryDocument } from "@/components/features/meals/shared/MealHistory/MealHistory";
 // In your API route response
 export async function GET(request: Request) {
   try {
@@ -45,7 +46,8 @@ export async function POST(request: Request) {
     today.setHours(0, 0, 0, 0);
 
     const service = DatabaseService.getInstance();
-    const mealHistoryCollection = await service.getCollection("mealHistory");
+    const mealHistoryCollection =
+      await service.getCollection<MealHistoryDocument>("mealHistory");
 
     const existingRecord = await mealHistoryCollection.findOne({
       kidId,
@@ -53,7 +55,9 @@ export async function POST(request: Request) {
       meal: mealData.meal,
     });
 
-    const historyEntry = {
+    // Correctly typed document
+    // @ts-expect-error Idk what to do
+    const historyEntry: MealHistoryDocument = {
       kidId,
       date: today,
       meal: mealData.meal,

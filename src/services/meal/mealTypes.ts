@@ -1,5 +1,4 @@
-import type { MealType, MealSelection, MealHistoryRecord } from "@/types/food";
-import type { Kid } from "@/types/user";
+import type { MealType } from "@/types/food";
 
 // Service-specific types
 export interface MealPlanServiceConfig {
@@ -10,7 +9,7 @@ export interface MealPlanServiceConfig {
 export interface MealPlanOperationResult {
   success: boolean;
   error?: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface MealHistoryFilters {

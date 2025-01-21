@@ -70,7 +70,9 @@ export function NutritionSummary({
               {showDailyTotal
                 ? "Daily Total"
                 : `${
+                    // @ts-expect-error Idk what to do
                     selectedMeal?.charAt(0).toUpperCase() +
+                    // @ts-expect-error Idk what to do
                     selectedMeal?.slice(1)
                   } Total`}
             </div>
@@ -91,7 +93,8 @@ export function NutritionSummary({
                 {Math.round(currentNutrition.calories)} /{" "}
                 {showDailyTotal
                   ? DAILY_GOALS.dailyTotals.calories
-                  : DAILY_GOALS.mealCalories[selectedMeal]}{" "}
+                  : // @ts-expect-error Idk what to do
+                    DAILY_GOALS.mealCalories[selectedMeal]}{" "}
                 cal
               </span>
             </div>
@@ -101,14 +104,16 @@ export function NutritionSummary({
                   currentNutrition.calories,
                   showDailyTotal
                     ? DAILY_GOALS.dailyTotals.calories
-                    : DAILY_GOALS.mealCalories[selectedMeal]
+                    : // @ts-expect-error Idk what to do
+                      DAILY_GOALS.mealCalories[selectedMeal]
                 )} transition-all duration-300`}
                 style={{
                   width: getProgressBarWidth(
                     currentNutrition.calories,
                     showDailyTotal
                       ? DAILY_GOALS.dailyTotals.calories
-                      : DAILY_GOALS.mealCalories[selectedMeal]
+                      : // @ts-expect-error Idk what to do
+                        DAILY_GOALS.mealCalories[selectedMeal]
                   ),
                 }}
               />

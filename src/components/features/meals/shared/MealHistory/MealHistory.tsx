@@ -3,6 +3,7 @@ import {
   ConsumptionData,
   MealHistoryRecord,
   MealSelection,
+  MealType,
 } from "@/types/food";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistance, format, isToday, isYesterday } from "date-fns";
@@ -16,9 +17,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FoodImageConsumptionAnalysis } from "@/components/features/food/FoodAnalysis/components/FoodImageConsumptionAnalysis";
+import { ObjectId } from "mongodb";
 
 interface MealHistoryProps {
   historyEntries: MealHistoryRecord[];
+}
+
+// Define an interface that extends MongoDB Document
+
+export interface MealHistoryDocument extends Document {
+  _id?: ObjectId;
+  kidId: string;
+  date: Date;
+  meal: MealType;
+  selections: MealSelection;
+  consumptionData?: {
+    foods: Array<{
+      name: string;
+      percentageEaten: number;
+      notes?: string;
+    }>;
+    summary?: string;
+  };
 }
 
 // Helper function to get a human-readable date label
@@ -62,8 +82,8 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
   const formatMealSelections = (selections: MealSelection): string => {
     //return "1 serving of Kashi Oat Cereal, 1 cup of strawberries (red fruit with a little green on top), 1 cup of blueberries (small round blue fruit), and 1 scrambled egg";
     return Object.entries(selections)
-      .filter(([_, food]) => food !== null)
-      .map(([category, food]) => {
+      .filter(([, food]) => food !== null)
+      .map(([, food]) => {
         // Include serving size information for more accurate analysis
         return `${food?.servingSize} ${food.servingSizeUnit} of ${food?.name}`;
       })
@@ -237,7 +257,10 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
               onAnalysisComplete={(analysisData) => {
                 // TypeScript knows selectedEntry is not null here
                 // because of the conditional rendering
-                handleAnalysisComplete(selectedEntry._id, analysisData);
+                handleAnalysisComplete(
+                  selectedEntry._id?.toString(),
+                  analysisData
+                );
               }}
             />
           )}

@@ -4,10 +4,9 @@ import { DatabaseService } from "@/app/utils/DatabaseService";
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
   try {
     const { consumptionData } = await request.json();
 
@@ -15,7 +14,7 @@ export async function PATCH(
     const mealHistoryCollection = await service.getCollection("mealHistory");
 
     await mealHistoryCollection.updateOne(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id?.toString()) },
       { $set: { consumptionData } }
     );
 

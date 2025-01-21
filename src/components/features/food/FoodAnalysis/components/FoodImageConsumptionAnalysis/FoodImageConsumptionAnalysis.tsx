@@ -69,7 +69,7 @@ export function FoodImageConsumptionAnalysis({
         setIsCapturing(false);
       }
     },
-    [onAnalysisComplete]
+    [onAnalysisComplete, originalMeal]
   );
   return (
     <div className="space-y-4">

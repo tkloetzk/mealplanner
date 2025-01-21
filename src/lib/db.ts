@@ -1,22 +1,32 @@
-// lib/db.ts
 import { MongoClient } from "mongodb";
 
 class DatabaseConnection {
   private static instance: DatabaseConnection;
   private client: MongoClient | undefined;
   private clientPromise: Promise<MongoClient>;
+  private databaseName: string;
 
   private constructor() {
-    if (process.env.NODE_ENV === "development") {
-      // In development mode, use a global variable to preserve across HMR
-      if (!(global as any)._mongoClientPromise) {
-        this.client = new MongoClient(process.env.MONGODB_URI!);
-        (global as any)._mongoClientPromise = this.client.connect();
+    const env = process.env.NODE_ENV || "development";
+    this.databaseName =
+      env === "production" ? "mealplanner" : "mealplanner_dev";
+
+    if (!process.env.MONGODB_URI) {
+      throw new Error("Please add your Mongo URI to .env.local");
+    }
+
+    if (env === "development") {
+      const globalWithMongo = global as typeof globalThis & {
+        _mongoClientPromise?: Promise<MongoClient>;
+      };
+
+      if (!globalWithMongo._mongoClientPromise) {
+        this.client = new MongoClient(process.env.MONGODB_URI);
+        globalWithMongo._mongoClientPromise = this.client.connect();
       }
-      this.clientPromise = (global as any)._mongoClientPromise;
+      this.clientPromise = globalWithMongo._mongoClientPromise;
     } else {
-      // In production, create a new connection
-      this.client = new MongoClient(process.env.MONGODB_URI!);
+      this.client = new MongoClient(process.env.MONGODB_URI);
       this.clientPromise = this.client.connect();
     }
   }
@@ -28,13 +38,13 @@ class DatabaseConnection {
     return DatabaseConnection.instance;
   }
 
-  public getClient(): Promise<MongoClient> {
+  public async getClient(): Promise<MongoClient> {
     return this.clientPromise;
   }
 
-  public async getDatabase(dbName = "mealplanner") {
+  public async getDatabase(customDbName?: string) {
     const client = await this.getClient();
-    return client.db(dbName);
+    return client.db(customDbName || this.databaseName);
   }
 }
 

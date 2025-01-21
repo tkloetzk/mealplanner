@@ -3,18 +3,17 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { DatabaseService } from "@/app/utils/DatabaseService";
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const foodId = searchParams.get("id");
   try {
     const service = DatabaseService.getInstance();
     const foodsCollection = await service.getCollection("foods");
-    const foodId = params.id;
 
-    const result = foodsCollection.deleteOne({ _id: new ObjectId(foodId) });
-    // return result.deletedCount === 1;
-    if (result) {
+    const result = await foodsCollection.deleteOne({
+      _id: new ObjectId(foodId?.toString()),
+    });
+    if (result.deletedCount === 1) {
       return NextResponse.json({ message: "Food deleted successfully" });
     } else {
       return NextResponse.json(
@@ -30,15 +29,17 @@ export async function DELETE(
     );
   }
 }
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const foodId = searchParams.get("id");
+
   try {
     const service = DatabaseService.getInstance();
     const foodsCollection = await service.getCollection("foods");
-    const foodId = params.id;
     const updatedFood = await request.json(); // Get updated food data from request body
+    if (!foodId) {
+      return NextResponse.json({ error: "Invalid food ID" }, { status: 400 });
+    }
     const result = await foodsCollection.updateOne(
       { _id: new ObjectId(foodId) },
       { $set: updatedFood }

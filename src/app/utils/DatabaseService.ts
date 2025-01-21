@@ -1,6 +1,6 @@
 // lib/DatabaseService.ts
 import DatabaseConnection from "@/lib/db";
-import { ObjectId } from "mongodb";
+import { Collection } from "mongodb";
 
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -17,17 +17,10 @@ export class DatabaseService {
     return DatabaseService.instance;
   }
 
-  public async getCollection<T extends Document>(collectionName: string) {
+  public async getCollection<T extends Document>(
+    collectionName: string
+  ): Promise<Collection<T>> {
     const db = await this.connection.getDatabase();
     return db.collection<T>(collectionName);
-  }
-
-  // Example method for finding by ID
-  public async findById<T extends Document>(
-    collectionName: string,
-    id: string
-  ): Promise<T | null> {
-    const collection = await this.getCollection<T>(collectionName);
-    return collection.findOne({ _id: new ObjectId(id) });
   }
 }

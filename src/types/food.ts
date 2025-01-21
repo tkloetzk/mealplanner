@@ -1,5 +1,10 @@
 // src/types/food.ts
 import { CATEGORY_STYLES, DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
+import { ObjectId } from "mongodb";
+
+export interface FoodDocument extends Food {
+  _id: ObjectId;
+}
 
 export type CategoryType =
   (typeof CATEGORY_STYLES)[keyof typeof CATEGORY_STYLES];
@@ -35,6 +40,7 @@ export type ServingSizeUnit =
   | "tsp";
 
 export interface Food {
+  _id?: ObjectId; // Optional MongoDB ID
   id: string;
   name: string;
   calories: number;
@@ -80,13 +86,30 @@ export interface ConsumptionData {
   summary: string;
 }
 
-export interface MealHistoryRecord {
-  _id: string;
+// export interface MealHistoryRecord {
+//   _id: string;
+//   kidId: string;
+//   date: Date;
+//   meal: MealType;
+//   selections: MealSelection;
+//   consumptionData?: ConsumptionData; // Add this optional field
+// }
+
+// Define an interface that extends MongoDB Document
+export interface MealHistoryRecord extends Document {
+  _id?: ObjectId;
   kidId: string;
   date: Date;
   meal: MealType;
   selections: MealSelection;
-  consumptionData?: ConsumptionData; // Add this optional field
+  consumptionData?: {
+    foods: Array<{
+      name: string;
+      percentageEaten: number;
+      notes?: string;
+    }>;
+    summary?: string;
+  };
 }
 
 export interface NutritionSummary {

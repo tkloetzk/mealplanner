@@ -6,6 +6,9 @@ const nextConfig = {
   devIndicators: {
     appIsrStatus: false,
   },
+  env: {
+    NEXT_PUBLIC_ENV: process.env.NODE_ENV,
+  },
   images: {
     domains: ["images.openfoodfacts.org"],
     remotePatterns: [
