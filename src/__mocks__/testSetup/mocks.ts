@@ -48,24 +48,3 @@ export const setupFetchMock = () => {
   global.fetch = mockFetch;
   return mockFetch;
 };
-
-export const setupLocalStorageMock = () => {
-  let store: Record<string, string> = {};
-  const localStorageMock = {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value.toString();
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    length: 0,
-    key: jest.fn(() => null),
-  };
-
-  Object.defineProperty(window, "localStorage", { value: localStorageMock });
-  return localStorageMock;
-};

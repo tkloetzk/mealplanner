@@ -1,9 +1,6 @@
 // src/jest.setup.ts
 import "@testing-library/jest-dom";
-import {
-  setupFetchMock,
-  setupLocalStorageMock,
-} from "./__mocks__/testSetup/mocks";
+import { setupFetchMock } from "./__mocks__/testSetup/mocks";
 
 const mockGetUserMedia = jest.fn().mockResolvedValue({
   getTracks: () => [
@@ -15,7 +12,6 @@ const mockGetUserMedia = jest.fn().mockResolvedValue({
 
 beforeEach(() => {
   setupFetchMock();
-  setupLocalStorageMock();
   // Reset date mock to Sunday (index 0)
   jest.spyOn(Date.prototype, "getDay").mockReturnValue(0);
 
@@ -35,7 +31,6 @@ beforeEach(() => {
 afterEach(() => {
   jest.clearAllMocks();
   jest.restoreAllMocks();
-  localStorage.clear();
 });
 
 if (!global.structuredClone) {
