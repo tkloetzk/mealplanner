@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
 import { Sliders, Edit } from "lucide-react";
-import { NutriScore } from "@/components/features/nutrition/NutritionSummary/components/NutriScore";
 import { CategoryType, Food, SelectedFood } from "@/types/food";
 import { getFoodImageSource } from "@/utils/imageUtils";
 import Image from "next/image";
 import { EyeOff, Eye } from "lucide-react";
+import { FoodScoreDisplay } from "../FoodScoreDisplay";
 
 interface FoodItemProps {
   food: Food;
@@ -62,7 +62,7 @@ export const FoodItem = ({
           <div>
             <div className="flex items-center gap-2">
               <h4 className="font-medium">{food.name}</h4>
-              {food.score && <NutriScore score={food.score} />}
+              {food.analysis && <FoodScoreDisplay analysis={food.analysis} />}
               {isHidden && (
                 <div
                   className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded"

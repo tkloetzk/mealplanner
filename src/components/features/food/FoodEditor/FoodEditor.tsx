@@ -15,7 +15,7 @@ import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
 import { UPCScanner } from "../../../FoodEditor/UPCScanner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { NutriScore } from "@/components/features/nutrition/NutritionSummary/components/NutriScore/NutriScore";
+// import { NutriScore } from "@/components/features/nutrition/NutritionSummary/components/NutriScore/NutriScore";
 import {
   validateNutrition,
   isValidFood,
@@ -29,6 +29,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { FoodScoreDisplay } from "../../meals/shared/FoodScoreDisplay";
 
 const MEAL_TYPES: { label: string; value: string }[] = [
   { label: "Breakfast", value: "breakfast" },
@@ -230,16 +231,19 @@ export function FoodEditor({
           onManualEntry={(upc) => handleUPCFound({ upc } as Food)}
         />
         <ImageUploader food={food} onUpload={handleImageCaptured} />{" "}
-        {food.score && (
+        {food.analysis && (
           <div className="p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 justify-between">
               <div>
                 <h4 className="text-sm font-medium">Nutrition Score</h4>
                 <p className="text-xs text-gray-600">
                   Based on nutritional quality
                 </p>
               </div>
-              <NutriScore score={food.score} size="medium" />
+              {/* <NutriScore score={food.score} size="medium" /> */}
+              {food?.analysis?.score && (
+                <FoodScoreDisplay analysis={food?.analysis} />
+              )}
             </div>
             {food.novaGroup && (
               <div className="mt-2 pt-2 border-t border-gray-200">

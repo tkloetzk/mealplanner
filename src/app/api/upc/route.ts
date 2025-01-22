@@ -16,6 +16,7 @@ export async function GET(request: Request) {
       `https://world.openfoodfacts.org/api/v0/product/${upc}.json`
     );
 
+    console.log(response);
     if (!response.ok) {
       console.error(
         "Open Food Facts API error:",
@@ -42,26 +43,54 @@ export async function GET(request: Request) {
     if (data.status === 1) {
       const product = data.product;
 
-      let score = product.nutriscore_grade;
+      let score = product?.nutriscore_grade;
       if (score === "unknown") {
-        score = calculateNutriScore(product.nutriscore);
+        score = calculateNutriScore(product?.nutriscore);
       }
 
+      console.log(product);
+
+      const ingredientText =
+        product?.ingredients_percent_analysis === -1
+          ? product?.ingredients_hierarchy?.map((ingredient) =>
+              ingredient.replace("en:", "").replace(/-/g, " ")
+            )
+          : product?.ingredients?.map((ingredient) => {
+              return ingredient.percent_estimate + "% of " + ingredient.text;
+            });
+      console.log(ingredientText);
+      const { nutriments } = product;
       return NextResponse.json({
-        name: product.product_name,
-        calories: product.nutriments["energy-kcal"],
-        protein: product.nutriments.proteins,
-        carbs: product.nutriments.carbohydrates,
-        fat: product.nutriments.fat,
-        servingSize: product.serving_quantity,
-        servingSizeUnit: product.serving_quantity_unit,
+        name: product?.product_name,
+        calories: (
+          nutriments["energy-kcal_serving"] || nutriments["energy-kcal_value"]
+        ).toFixed(0),
+        protein: (
+          nutriments.proteins_serving || nutriments.proteins_value
+        ).toFixed(0),
+        carbs: (
+          nutriments.carbohydrates_serving || nutriments.carbohydrates_value
+        ).toFixed(0),
+        fat: (nutriments.fat_serving || nutriments.fat_value).toFixed(0),
+        servingSize: product?.serving_quantity,
+        servingSizeUnit: product?.serving_quantity_unit,
+        servingSizeImported: product?.serving_size_imported,
         upc: data.code,
-        imageUrl: product.image_front_thumb_url,
-        ingredients: product.ingredients_text,
-        novaGroup: product.nova_group,
-        nutrientLevels: product.nutrient_levels,
-        score,
-        additives: product.additives_tags,
+        imageUrl: product?.image_front_thumb_url,
+        ingredients: product?.ingredients_text,
+        novaGroup: product?.nova_group,
+        nutrientLevels: product?.nutrient_levels,
+        additives: product?.additives_tags || [],
+        saturatedFat: nutriments["saturated-fat_serving"] || 0,
+        sugars: nutriments.sugars || 0,
+        sodium: nutriments.sodium || 0,
+        fiber: nutriments.fiber || 0,
+        isOrganic: product?.isOrganic || false,
+        ecoscoreGrade: product?.ecoscore_grade,
+        ecoscoreScore: product?.ecoscore_score,
+        transFat: nutriments["trans-fat_serving"] || 0,
+        polyUnsaturatedFat: nutriments["polyunsaturated-fat_serving"] || 0,
+        ingredientText,
       });
     } else {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
