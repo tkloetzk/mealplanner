@@ -20,6 +20,7 @@ import {
   validateNutrition,
   isValidFood,
 } from "@/components/features/food/FoodEditor/utils/validateNutrition";
+import { FoodSearch } from "../../../FoodEditor/FoodSearch";
 import { ImageUploader } from "./components/BarcodeScanner/ImageUploader";
 import {
   Dialog,
@@ -30,6 +31,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { FoodScoreDisplay } from "../../meals/shared/FoodScoreDisplay";
+import { BarcodeScanner } from "./components/BarcodeScanner";
 
 const MEAL_TYPES: { label: string; value: string }[] = [
   { label: "Breakfast", value: "breakfast" },
@@ -67,7 +69,23 @@ export function FoodEditor({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [food, setFood] = useState<Partial<Food>>(initialFoodState);
+  const [isScanning, setIsScanning] = useState(false);
 
+  // Add the handleUpcSearch function:
+  const handleUpcSearch = async (upc: string) => {
+    try {
+      const response = await fetch(`/api/upc?upc=${upc}`);
+      if (!response.ok) {
+        throw new Error("Product not found");
+      }
+      const data = await response.json();
+      handleUPCFound(data);
+    } catch (error) {
+      setValidationErrors([
+        error instanceof Error ? error.message : "Failed to look up UPC",
+      ]);
+    }
+  };
   const [capturedImage, setCapturedImage] = useState<string | null>(
     initialFood?.cloudinaryUrl ||
       initialFood?.imageUrl ||
@@ -226,10 +244,23 @@ export function FoodEditor({
             </Button>
           )}
         </div>
-        <UPCScanner
+        {/* <UPCScanner
           onUPCFound={handleUPCFound}
           onManualEntry={(upc) => handleUPCFound({ upc } as Food)}
+        /> */}
+        <FoodSearch
+          onFoodFound={handleUPCFound} // Using the existing handler
+          onError={(error) => setValidationErrors([error])}
         />
+        {isScanning && (
+          <BarcodeScanner
+            onScan={(upc) => {
+              setIsScanning(false);
+              handleUpcSearch(upc);
+            }}
+            onClose={() => setIsScanning(false)}
+          />
+        )}
         <ImageUploader food={food} onUpload={handleImageCaptured} />{" "}
         {food.analysis && (
           <div className="p-3 bg-gray-50 rounded-lg">

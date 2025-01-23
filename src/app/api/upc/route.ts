@@ -60,6 +60,7 @@ export async function GET(request: Request) {
             });
       console.log(ingredientText);
       const { nutriments } = product;
+
       return NextResponse.json({
         name: product?.product_name,
         calories: (
