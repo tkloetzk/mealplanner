@@ -1,4 +1,3 @@
-// components/FoodEditor.tsx
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +13,7 @@ import { AlertCircle, Trash2 } from "lucide-react";
 import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-// import { NutriScore } from "@/components/features/nutrition/NutritionSummary/components/NutriScore/NutriScore";
-import {
-  validateNutrition,
-  isValidFood,
-} from "@/components/features/food/FoodEditor/utils/validateNutrition";
+import { validateNutrition, isValidFood } from "./utils/validateNutrition";
 import { FoodSearch } from "../../../FoodEditor/FoodSearch";
 import { ImageUploader } from "./components/BarcodeScanner/ImageUploader";
 import {
@@ -69,9 +64,8 @@ export function FoodEditor({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [food, setFood] = useState<Partial<Food>>(initialFoodState);
   const [isScanning, setIsScanning] = useState(false);
-  const [showToChild, setShowToChild] = useState(false);
+  const [showToChild, setShowToChild] = useState(!initialFood?.hiddenFromChild);
 
-  // Add the handleUpcSearch function:
   const handleUpcSearch = async (upc: string | Food) => {
     try {
       const response = await fetch(`/api/upc?upc=${upc}`);
@@ -86,6 +80,7 @@ export function FoodEditor({
       ]);
     }
   };
+
   const [capturedImage, setCapturedImage] = useState<string | null>(
     initialFood?.cloudinaryUrl ||
       initialFood?.imageUrl ||
@@ -137,7 +132,6 @@ export function FoodEditor({
     });
   };
 
-  // Input change handlers with type safety
   const handleNumberInput =
     (field: keyof Food) => (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value === "" ? 0 : Number(e.target.value);
@@ -222,7 +216,9 @@ export function FoodEditor({
       }
     }
   };
+
   const isNew = initialFood && Object.keys(initialFood).length === 0;
+
   return (
     <div
       onClick={(e) => {
@@ -248,14 +244,13 @@ export function FoodEditor({
             </Button>
           )}
         </div>
-        {/* <UPCScanner
-          onUPCFound={handleUPCFound}
-          onManualEntry={(upc) => handleUPCFound({ upc } as Food)}
-        /> */}
+
         <FoodSearch
-          onFoodFound={handleUPCFound} // Using the existing handler
+          onFoodFound={handleUPCFound}
           onError={(error) => setValidationErrors([error])}
+          onScanRequest={() => setIsScanning(true)}
         />
+
         {isScanning && (
           <BarcodeScanner
             onScan={(upc) => {
@@ -265,7 +260,9 @@ export function FoodEditor({
             onClose={() => setIsScanning(false)}
           />
         )}
-        <ImageUploader food={food} onUpload={handleImageCaptured} />{" "}
+
+        <ImageUploader food={food} onUpload={handleImageCaptured} />
+
         {food.analysis && (
           <div className="p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-3 justify-between">
@@ -275,7 +272,6 @@ export function FoodEditor({
                   Based on nutritional quality
                 </p>
               </div>
-              {/* <NutriScore score={food.score} size="medium" /> */}
               {food?.analysis?.score && (
                 <FoodScoreDisplay analysis={food?.analysis} />
               )}
@@ -314,6 +310,7 @@ export function FoodEditor({
             )}
           </div>
         )}
+
         {validationErrors.length > 0 && (
           <div>
             {validationErrors.map((error, index) => (
@@ -324,6 +321,7 @@ export function FoodEditor({
             ))}
           </div>
         )}
+
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="mt-4">
             <Label className="flex items-center space-x-2">
@@ -334,13 +332,14 @@ export function FoodEditor({
               <span>Show to children</span>
             </Label>
           </div>
+
           <div>
             <Label className="text-sm" htmlFor="name">
               Name
             </Label>
             <Input
               id="name"
-              value={food.name ?? ""} // Provide empty string fallback
+              value={food.name ?? ""}
               onChange={handleTextInput("name")}
               required
             />
@@ -351,7 +350,7 @@ export function FoodEditor({
               <Label className="text-sm">Calories</Label>
               <Input
                 type="number"
-                value={food.calories ?? 0} // Provide number fallback
+                value={food.calories ?? 0}
                 onChange={handleNumberInput("calories")}
                 min={0}
                 required
@@ -390,7 +389,6 @@ export function FoodEditor({
                 step="0.1"
               />
             </div>
-
             <div>
               <Label className="text-sm">Carbs (g)</Label>
               <Input
@@ -401,7 +399,6 @@ export function FoodEditor({
                 step="0.1"
               />
             </div>
-
             <div>
               <Label className="text-sm">Fat (g)</Label>
               <Input
@@ -481,6 +478,7 @@ export function FoodEditor({
             </Button>
           </div>
         </form>
+
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>

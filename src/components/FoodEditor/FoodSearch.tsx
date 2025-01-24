@@ -2,15 +2,18 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Food } from "@/types/food";
+import { Camera } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 interface FoodSearchProps {
   onFoodFound: (food: Food) => void;
   onError: (error: string) => void;
+  onScanRequest?: () => void;
 }
 
 interface SearchResult {
@@ -20,33 +23,15 @@ interface SearchResult {
   isGeneric?: boolean;
 }
 
-export function FoodSearch({ onFoodFound, onError }: FoodSearchProps) {
+export function FoodSearch({
+  onFoodFound,
+  onError,
+  onScanRequest,
+}: FoodSearchProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-
-  const handleAnalyzeFood = async (searchText: string): Promise<Food> => {
-    try {
-      const response = await fetch("/api/analyze-food", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `Can you give me nutritional information on ${searchText}?
-          I need these information: calories, carbs, saturated fat, protein, sugar, sodium, trans fat, fiber, poly unsaturated fat, if there are any additives, serving size, serving size unit,  nova group, nutrient levels, and ecoscoreGrade`,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Analysis failed");
-      const data = await response.json();
-      return {
-        ...data,
-        name: searchText,
-      };
-    } catch (error) {
-      onError("Could not find nutritional information");
-      throw error;
-    }
-  };
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleSearch = async () => {
     setIsLoading(true);
@@ -69,6 +54,7 @@ export function FoodSearch({ onFoodFound, onError }: FoodSearchProps) {
         }
         const data = await response.json();
         setSearchResults(data.products || []);
+        setShowDropdown(true);
       }
     } catch (error) {
       console.error(error);
@@ -80,12 +66,50 @@ export function FoodSearch({ onFoodFound, onError }: FoodSearchProps) {
     }
   };
 
+  const handleAnalyzeFood = async (searchText: string) => {
+    try {
+      const response = await fetch("/api/analyze-food", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `Can you give me nutritional information on ${searchText}?`,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Analysis failed");
+      const data = await response.json();
+
+      console.log("Raw analysis response:", data);
+      // Create a properly structured food object from the analysis
+      const analyzedFood: Partial<Food> = {
+        name: searchText,
+        calories: parseFloat(data.output.calories || 0),
+        protein: parseFloat(data.output.protein || 0),
+        carbs: parseFloat(data.output.carbs || 0),
+        fat: parseFloat(data.output.fat || 0),
+        servingSize: data.output.servingSize || "1",
+        servingSizeUnit: data.output.servingSizeUnit || "piece",
+        category: data.output.category || "other",
+        meal: data.output.meal || ["breakfast", "lunch", "dinner"],
+        analysis: data.output.analysis || null,
+        cloudinaryUrl: data.output.imageUrl || null,
+      };
+      console.log("Structured food object:", analyzedFood);
+
+      onFoodFound(analyzedFood as Food);
+      setShowDropdown(false);
+      return analyzedFood;
+    } catch (error) {
+      onError("Could not find nutritional information");
+      throw error;
+    }
+  };
+
   const handleSelectProduct = async (result: SearchResult) => {
     setIsLoading(true);
     try {
       if (result.isGeneric) {
-        const analyzedFood = await handleAnalyzeFood(searchTerm);
-        onFoodFound(analyzedFood);
+        await handleAnalyzeFood(searchTerm);
       } else {
         const response = await fetch(`/api/foods/search?id=${result.id}`);
         if (!response.ok) {
@@ -109,7 +133,7 @@ export function FoodSearch({ onFoodFound, onError }: FoodSearchProps) {
       onError("Failed to get product details");
     } finally {
       setIsLoading(false);
-      setSearchResults([]);
+      setShowDropdown(false);
     }
   };
 
@@ -125,11 +149,19 @@ export function FoodSearch({ onFoodFound, onError }: FoodSearchProps) {
         <Button onClick={handleSearch} disabled={isLoading || !searchTerm}>
           {isLoading ? "Searching..." : "Search"}
         </Button>
+        {onScanRequest && (
+          <Button variant="outline" onClick={onScanRequest}>
+            <Camera className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
-      {searchResults.length > 0 && (
-        <DropdownMenu open={true}>
-          <DropdownMenuContent>
+      {searchResults.length > 0 && showDropdown && (
+        <DropdownMenu open={true} onOpenChange={setShowDropdown}>
+          <DropdownMenuTrigger asChild>
+            <div />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-full" align="start">
             <DropdownMenuItem
               onSelect={() =>
                 handleSelectProduct({ title: searchTerm, isGeneric: true })
@@ -145,11 +177,13 @@ export function FoodSearch({ onFoodFound, onError }: FoodSearchProps) {
                 onSelect={() => handleSelectProduct(result)}
                 className="flex items-center gap-2 cursor-pointer"
               >
-                <img
-                  src={result.image}
-                  alt={result.title}
-                  className="w-8 h-8 object-cover rounded"
-                />
+                {result.image && (
+                  <img
+                    src={result.image}
+                    alt={result.title}
+                    className="w-8 h-8 object-cover rounded"
+                  />
+                )}
                 <span>{result.title}</span>
               </DropdownMenuItem>
             ))}
