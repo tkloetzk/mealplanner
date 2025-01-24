@@ -3,17 +3,18 @@ import {
   SpoonacularSearchResponse,
 } from "@/types/spoonacular";
 
+// src/services/spoonacular/spoonacularService.ts
 const SPOONACULAR_API_BASE =
   "https://spoonacular-recipe-food-nutrition-v1.p.rapidapi.com";
-
-const headers = {
-  "X-RapidAPI-Key": process.env.SPOONACULAR_API_KEY!,
-  "X-RapidAPI-Host": "spoonacular-recipe-food-nutrition-v1.p.rapidapi.com",
-};
 
 export async function searchFoodProducts(
   searchTerm: string
 ): Promise<SpoonacularSearchResponse> {
+  // Validate API key first
+  if (!process.env.SPOONACULAR_API_KEY) {
+    throw new Error("Spoonacular API key is not configured");
+  }
+
   const params = new URLSearchParams({
     maxCalories: "5000",
     minProtein: "0",
@@ -28,10 +29,11 @@ export async function searchFoodProducts(
     number: "10",
   });
 
-  console.log(
-    "process.env.SPOONACULAR_API_KEY",
-    process.env.SPOONACULAR_API_KEY
-  );
+  const headers = {
+    "X-RapidAPI-Key": process.env.SPOONACULAR_API_KEY,
+    "X-RapidAPI-Host": "spoonacular-recipe-food-nutrition-v1.p.rapidapi.com",
+  };
+
   const response = await fetch(
     `${SPOONACULAR_API_BASE}/food/products/search?${params}`,
     { headers }
@@ -47,6 +49,16 @@ export async function searchFoodProducts(
 export async function getProductDetails(
   id: number
 ): Promise<SpoonacularProductResponse> {
+  // Validate API key first
+  if (!process.env.SPOONACULAR_API_KEY) {
+    throw new Error("Spoonacular API key is not configured");
+  }
+
+  const headers = {
+    "X-RapidAPI-Key": process.env.SPOONACULAR_API_KEY,
+    "X-RapidAPI-Host": "spoonacular-recipe-food-nutrition-v1.p.rapidapi.com",
+  };
+
   const response = await fetch(`${SPOONACULAR_API_BASE}/food/products/${id}`, {
     headers,
   });
