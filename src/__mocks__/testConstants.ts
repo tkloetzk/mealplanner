@@ -16,6 +16,7 @@ export const PROTEINS = "proteins";
 export const FRUITS = "fruits";
 export const VEGETABLES = "vegetables";
 export const GRAINS = "grains";
+export const OTHER = "other";
 
 // Mock Foods
 export const MOCK_FOODS = {
@@ -76,5 +77,34 @@ export const MOCK_FOODS = {
       servingSizeUnit: "cup" as ServingSizeUnit,
     },
     // Add more vegetable foods
+  ],
+
+  other: [
+    {
+      id: "5",
+      name: "Mixed Snack Plate",
+      calories: 200,
+      protein: 5,
+      carbs: 25,
+      fat: 10,
+      servingSize: "1",
+      servingSizeUnit: "plate" as ServingSizeUnit,
+      category: "other" as CategoryType,
+      meal: [BREAKFAST, LUNCH, DINNER, "snack"],
+      hiddenFromChild: true,
+    },
+    {
+      id: "6",
+      name: "Visible Snack",
+      calories: 150,
+      protein: 3,
+      carbs: 20,
+      fat: 5,
+      servingSize: "1",
+      servingSizeUnit: "serving" as ServingSizeUnit,
+      category: "other" as CategoryType,
+      meal: [BREAKFAST, LUNCH],
+      hiddenFromChild: false,
+    },
   ],
 };

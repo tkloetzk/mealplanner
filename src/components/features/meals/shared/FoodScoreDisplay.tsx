@@ -7,13 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
-
-interface FoodScoreAnalysis {
-  score: string;
-  summary: string;
-  positives: string[];
-  negatives: string[];
-}
+import { FoodScoreAnalysis } from "@/types/food";
 
 export const FoodScoreDisplay: React.FC<{ analysis: FoodScoreAnalysis }> = ({
   analysis,

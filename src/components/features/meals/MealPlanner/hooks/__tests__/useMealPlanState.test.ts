@@ -7,6 +7,7 @@ import {
   PROTEINS,
   FRUITS,
   VEGETABLES,
+  OTHER,
 } from "@/__mocks__/testConstants";
 import { defaultObj, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
 import { BREAKFAST, DAYS_OF_WEEK, LUNCH, MILK, RANCH } from "@/constants";
@@ -555,6 +556,30 @@ describe("Advanced useMealPlanState Scenarios", () => {
       protein: multiServingFood.protein * 3,
       carbs: multiServingFood.carbs * 3,
       fat: multiServingFood.fat * 3,
+    });
+  });
+  it('handles "Other" category food selection', async () => {
+    const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
+
+    // Select a food from the "Other" category
+    const otherFood = MOCK_FOODS.other[1]; // The visible food
+
+    await act(async () => {
+      result.current.handleFoodSelect(OTHER, otherFood);
+    });
+
+    const selectedFood =
+      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST][
+        OTHER
+      ];
+
+    expect(selectedFood).toEqual({
+      ...otherFood,
+      servings: 1,
+      adjustedCalories: otherFood.calories,
+      adjustedProtein: otherFood.protein,
+      adjustedCarbs: otherFood.carbs,
+      adjustedFat: otherFood.fat,
     });
   });
 });

@@ -50,12 +50,17 @@ export async function GET(request: Request) {
 
       console.log(product);
 
-      const ingredientText =
+      interface Ingredient {
+        percent_estimate: number;
+        text: string;
+      }
+
+      const ingredientText: string[] | undefined =
         product?.ingredients_percent_analysis === -1
-          ? product?.ingredients_hierarchy?.map((ingredient) =>
+          ? product?.ingredients_hierarchy?.map((ingredient: string) =>
               ingredient.replace("en:", "").replace(/-/g, " ")
             )
-          : product?.ingredients?.map((ingredient) => {
+          : product?.ingredients?.map((ingredient: Ingredient) => {
               return ingredient.percent_estimate + "% of " + ingredient.text;
             });
       console.log(ingredientText);

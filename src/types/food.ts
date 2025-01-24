@@ -39,6 +39,12 @@ export type ServingSizeUnit =
   | "oz"
   | "tsp";
 
+export interface FoodScoreAnalysis {
+  score: string;
+  summary: string;
+  positives: string[];
+  negatives: string[];
+}
 // src/types/food.ts
 
 export interface Food {
@@ -67,6 +73,7 @@ export interface Food {
   score?: string;
   additives?: string[];
   hiddenFromChild?: boolean;
+  analysis?: FoodScoreAnalysis; // Updated to use FoodScoreAnalysis type
 }
 
 export interface SelectedFood extends Food {

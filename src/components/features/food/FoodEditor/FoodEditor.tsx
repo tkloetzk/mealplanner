@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/select";
 import { AlertCircle, Trash2 } from "lucide-react";
 import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
-import { UPCScanner } from "../../../FoodEditor/UPCScanner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 // import { NutriScore } from "@/components/features/nutrition/NutritionSummary/components/NutriScore/NutriScore";
@@ -70,9 +69,10 @@ export function FoodEditor({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [food, setFood] = useState<Partial<Food>>(initialFoodState);
   const [isScanning, setIsScanning] = useState(false);
+  const [showToChild, setShowToChild] = useState(false);
 
   // Add the handleUpcSearch function:
-  const handleUpcSearch = async (upc: string) => {
+  const handleUpcSearch = async (upc: string | Food) => {
     try {
       const response = await fetch(`/api/upc?upc=${upc}`);
       if (!response.ok) {
@@ -209,7 +209,11 @@ export function FoodEditor({
           food.cloudinaryUrl = cloudinaryUrl;
         }
 
-        await onSave(food as Food);
+        const foodToSave = {
+          ...food,
+          hiddenFromChild: !showToChild,
+        };
+        await onSave(foodToSave as Food);
       } catch (error) {
         console.error("Error saving food:", error);
         // Optionally set an error state to show to the user
@@ -321,6 +325,15 @@ export function FoodEditor({
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="mt-4">
+            <Label className="flex items-center space-x-2">
+              <Checkbox
+                checked={showToChild}
+                onCheckedChange={(checked) => setShowToChild(!!checked)}
+              />
+              <span>Show to children</span>
+            </Label>
+          </div>
           <div>
             <Label className="text-sm" htmlFor="name">
               Name
@@ -360,6 +373,7 @@ export function FoodEditor({
                   <SelectItem value="grains">Grains</SelectItem>
                   <SelectItem value="fruits">Fruits</SelectItem>
                   <SelectItem value="vegetables">Vegetables</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

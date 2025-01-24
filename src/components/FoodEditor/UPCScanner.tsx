@@ -3,15 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BarcodeScanner } from "@/components/features/food/FoodEditor/components/BarcodeScanner/BarcodeScanner";
 import { Food } from "@/types/food";
-import {
-  calculateYukaScoreFromFood,
-  extractAdditives,
-} from "@/utils/yukaUtils";
 
 interface UPCScannerProps {
   onUPCFound: (food: Food) => void;
   onManualEntry: (upc: string) => void;
 }
+
+// Parse E-numbers from ingredients text
+const extractAdditives = (ingredients: string): string[] => {
+  const eNumberRegex = /E\d{3,4}[a-z]?/g;
+  return ingredients?.match(eNumberRegex) || [];
+};
 
 export function UPCScanner({ onUPCFound, onManualEntry }: UPCScannerProps) {
   const [manualUPC, setManualUPC] = useState("");

@@ -4,7 +4,7 @@ import React, { MouseEvent, useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, MessageSquare, X, Plus } from "lucide-react";
+import { Camera, MessageSquare, X, Plus, Layers } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -132,7 +132,6 @@ export const MealPlanner = () => {
     setSelectedKid,
     setSelectedDay,
     setSelectedMeal,
-    setSelections,
     handleFoodSelect,
     calculateMealNutrition,
     handleServingAdjustment,
@@ -326,23 +325,13 @@ export const MealPlanner = () => {
 
   const handleToggleVisibility = async (food: Food) => {
     const newHiddenState = !food.hiddenFromChild;
-    // Check if the food is currently selected in the current meal
-    const currentMealSelections =
-      // @ts-expect-error TypeScript doesn't understand dynamic keys
-      selections[selectedKid]?.[selectedDay]?.[selectedMeal];
 
-    const isCurrentlySelected =
-      currentMealSelections &&
-      Object.values(currentMealSelections).some(
-        // @ts-expect-error TypeScript doesn't understand dynamic keys
-        (selectedFood) => selectedFood?.name === food.name
-      );
     try {
       // Optimistically update UI
       setFoodOptions((prev) => {
         const updated = { ...prev };
         const category = food.category;
-        if (!updated[category]) return prev; // Safety check
+        if (!updated[category]) return prev;
 
         updated[category] = updated[category].map((f) =>
           f.id === food.id ? { ...f, hiddenFromChild: newHiddenState } : f
@@ -350,26 +339,7 @@ export const MealPlanner = () => {
         return updated;
       });
 
-      // If food is currently selected and being hidden, remove it from the current meal
-      if (isCurrentlySelected && newHiddenState) {
-        setSelections((prev) => {
-          const newSelections = structuredClone(prev);
-          const currentMeal =
-            // @ts-expect-error TypeScript doesn't understand dynamic keys
-            newSelections[selectedKid][selectedDay][selectedMeal];
-
-          // Find and remove the selected food
-          Object.keys(currentMeal).forEach((category) => {
-            if (currentMeal[category]?.name === food.name) {
-              currentMeal[category] = null;
-            }
-          });
-
-          return newSelections;
-        });
-      }
-
-      // Make the API call
+      // API call to update visibility
       const response = await fetch(`/api/foods/${food.id}`, {
         method: "PATCH",
         headers: {
@@ -380,51 +350,11 @@ export const MealPlanner = () => {
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        // Revert optimistic update on failure
-        setFoodOptions((prev) => {
-          const updated = { ...prev };
-          const category = food.category;
-          if (!updated[category]) return prev; // Safety check
-
-          updated[category] = updated[category].map((f) =>
-            f.id === food.id ? { ...f, hiddenFromChild: !newHiddenState } : f
-          );
-          return updated;
-        });
-
-        // Revert meal selection removal if it occurred
-        if (isCurrentlySelected && newHiddenState) {
-          setSelections((prev) => {
-            const newSelections = structuredClone(prev);
-            const currentMeal = // @ts-expect-error TypeScript doesn't understand dynamic keys
-              newSelections[selectedKid][selectedDay][selectedMeal];
-
-            // Restore the selected food
-            Object.keys(currentMeal).forEach((category) => {
-              if (currentMeal[category] === null) {
-                currentMeal[category] = food;
-              }
-            });
-
-            return newSelections;
-          });
-        }
-
-        console.error("Failed to update food visibility:", data.error);
-        return;
+        throw new Error("Failed to update food visibility");
       }
-
-      // We successfully updated the visibility
-      console.log("Successfully updated food visibility:", {
-        food: food.name,
-        hiddenFromChild: newHiddenState,
-      });
     } catch (error) {
       console.error("Error updating food visibility:", error);
-
       // Revert optimistic update on error
       setFoodOptions((prev) => {
         const updated = { ...prev };
@@ -436,27 +366,53 @@ export const MealPlanner = () => {
         );
         return updated;
       });
-
-      // Revert meal selection removal if it occurred
-      if (isCurrentlySelected && newHiddenState) {
-        setSelections((prev) => {
-          const newSelections = structuredClone(prev);
-          const currentMeal =
-            // @ts-expect-error TypeScript doesn't understand dynamic keys
-            newSelections[selectedKid][selectedDay][selectedMeal];
-
-          // Restore the selected food
-          Object.keys(currentMeal).forEach((category) => {
-            if (currentMeal[category] === null) {
-              currentMeal[category] = food;
-            }
-          });
-
-          return newSelections;
-        });
-      }
     }
   };
+  // In MealPlanner.tsx
+  const handleToggleAllOtherFoodVisibility = async () => {
+    try {
+      // Get all "Other" category foods
+      const otherFoods = foodOptions.other;
+
+      // Prepare batch update promises
+      const updatePromises = otherFoods.map(async (food) => {
+        const newHiddenState = !food.hiddenFromChild;
+
+        try {
+          const response = await fetch(`/api/foods/${food.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              hiddenFromChild: newHiddenState,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to update food ${food.id}`);
+          }
+
+          return { ...food, hiddenFromChild: newHiddenState };
+        } catch (error) {
+          console.error(`Error updating food ${food.id}:`, error);
+          return food;
+        }
+      });
+
+      // Wait for all updates to complete
+      const updatedFoods = await Promise.all(updatePromises);
+
+      // Update local state
+      setFoodOptions((prev) => ({
+        ...prev,
+        other: updatedFoods,
+      }));
+    } catch (error) {
+      console.error("Error toggling all Other foods visibility:", error);
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
       <MealPlannerHeader
@@ -619,9 +575,21 @@ export const MealPlanner = () => {
                     return (
                       <Card key={category}>
                         <CardContent className="p-4">
-                          <h3 className="text-lg font-semibold capitalize mb-3">
-                            {category}
-                          </h3>
+                          <div className="flex justify-between items-center mb-3">
+                            <h3 className="text-lg font-semibold capitalize">
+                              {category}
+                            </h3>
+                            {category === "other" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleToggleAllOtherFoodVisibility}
+                                title="Toggle visibility for all 'Other' foods"
+                              >
+                                <Layers className="h-4 w-4 text-gray-500" />
+                              </Button>
+                            )}
+                          </div>
                           {compatibleFoods.length === 0 ? (
                             <div className="text-center text-gray-500 py-4">
                               <span>No food options available</span>

@@ -19,6 +19,8 @@ describe("FoodItem Component", () => {
     onSelect: mockOnSelect,
     onServingClick: mockOnServingClick,
     onEditFood: mockOnEditFood,
+    isHidden: false,
+    onToggleVisibility: jest.fn(),
   };
 
   it("renders food item correctly", () => {
@@ -81,5 +83,32 @@ describe("FoodItem Component", () => {
       <FoodItem {...defaultProps} isSelected={true} />
     );
     expect(asFragment()).toMatchSnapshot();
+  });
+  it('renders "Other" category foods correctly', () => {
+    const otherFood = MOCK_FOODS.other[0];
+
+    render(
+      <FoodItem
+        food={otherFood}
+        category="other"
+        index={0}
+        isSelected={false}
+        selectedFoodInCategory={null}
+        onSelect={() => {}}
+        onServingClick={() => {}}
+        isHidden={otherFood.hiddenFromChild}
+        onToggleVisibility={() => {}}
+        showVisibilityControls={true}
+      />
+    );
+
+    // Check basic rendering
+    expect(screen.getByText(otherFood.name)).toBeInTheDocument();
+    expect(screen.getByText(`${otherFood.calories} cal`)).toBeInTheDocument();
+
+    // Check hidden state
+    if (otherFood.hiddenFromChild) {
+      expect(screen.getByText(/Hidden/i)).toBeInTheDocument();
+    }
   });
 });

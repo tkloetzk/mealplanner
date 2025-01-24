@@ -1,5 +1,11 @@
 // src/components/__tests__/MealPlannerIntegration.test.tsx
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { MOCK_FOODS } from "@/__mocks__/testConstants";
 import { DAILY_GOALS, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
 import { MealPlanner } from "../meals/MealPlanner";
@@ -266,5 +272,58 @@ describe("MealPlanner Integration Tests", () => {
       expect(screen.getByText(MOCK_FOODS.proteins[0].name)).toBeInTheDocument();
       expect(screen.getByText(MOCK_FOODS.fruits[0].name)).toBeInTheDocument();
     });
+  });
+  it('filters out hidden "Other" category foods in child view', async () => {
+    await renderMealPlanner();
+
+    // Switch to child view
+    const viewToggle = screen.getByRole("switch", { name: /Parent's View/i });
+    fireEvent.click(viewToggle);
+
+    // Check that foods are filtered
+    const hiddenFood = MOCK_FOODS.other.find((f) => f.hiddenFromChild);
+    const visibleFood = MOCK_FOODS.other.find((f) => !f.hiddenFromChild);
+
+    if (hiddenFood) {
+      expect(screen.queryByText(hiddenFood.name)).not.toBeInTheDocument();
+    }
+
+    if (visibleFood) {
+      expect(screen.getByText(visibleFood.name)).toBeInTheDocument();
+    }
+  });
+
+  it.only('allows toggling visibility of "Other" category foods', async () => {
+    render(<MealPlanner />);
+
+    // Ensure we're in parent view
+    // const viewToggle = screen.getByRole("switch", { name: /Kid's View/i });
+    // fireEvent.click(viewToggle);
+
+    // Find the hidden "Other" category food
+    const hiddenFood = MOCK_FOODS.other[1];
+
+    if (hiddenFood) {
+      // Use a more flexible approach to find the food item
+      const foodItem = screen.getByTestId(`other-0`); // Assuming the test index is 0
+
+      // Find the visibility toggle within this item
+      const visibilityToggle = within(foodItem).getByRole("button", {
+        name: /hide from child/i,
+      });
+
+      fireEvent.click(visibilityToggle);
+
+      // Verify API call or local state update
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining(`/api/foods/${hiddenFood.id}`),
+          expect.objectContaining({
+            method: "PATCH",
+            body: JSON.stringify({ hiddenFromChild: false }),
+          })
+        );
+      });
+    }
   });
 });

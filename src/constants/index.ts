@@ -5,6 +5,7 @@ export const CATEGORY_STYLES = {
   proteins: "border-l-4 border-blue-400 border-r border-t border-b",
   grains: "border-l-4 border-yellow-400 border-r border-t border-b",
   milk: "border-l-4 border-purple-400 border-r border-t border-b",
+  other: "border-l-4 border-gray-400 border-r border-t border-b",
 };
 
 export const CATEGORY_EMOJIS = {
@@ -13,6 +14,7 @@ export const CATEGORY_EMOJIS = {
   proteins: "🥚",
   grains: "🥖",
   milk: "🥛",
+  other: "🍽️",
 };
 
 export const BREAKFAST = "breakfast";
