@@ -116,6 +116,7 @@ export const FoodItem = ({
                 }}
                 className="p-2 rounded-full hover:bg-blue-200 transition-colors"
                 title="Edit Food"
+                data-testid="edit-food-icon"
               >
                 <Edit className="h-4 w-4 text-blue-600" />
               </div>

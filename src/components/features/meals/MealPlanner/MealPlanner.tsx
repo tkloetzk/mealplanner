@@ -183,6 +183,8 @@ export const MealPlanner = () => {
   };
 
   // Save food handler
+  // In MealPlanner.tsx, modify the handleSaveFood function:
+
   const handleSaveFood = async (food: Food) => {
     try {
       if (selectedFoodContext?.mode === "add") {
@@ -195,7 +197,9 @@ export const MealPlanner = () => {
         if (response.ok) {
           setFoodOptions((prev) => ({
             ...prev,
-            [food.category]: [...prev[food.category], food],
+            [food.category]: Array.isArray(prev[food.category])
+              ? [...prev[food.category], food]
+              : [food],
           }));
           setSelectedFoodContext(null);
         }
@@ -205,9 +209,17 @@ export const MealPlanner = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(food),
         });
+
         if (response.ok) {
-          console.log(response);
-          setFoodOptions((prev) => ({ ...prev }));
+          setFoodOptions((prev) => {
+            const updated = { ...prev };
+            if (Array.isArray(updated[food.category])) {
+              updated[food.category] = updated[food.category].map((item) =>
+                item.id === food.id ? food : item
+              );
+            }
+            return updated;
+          });
           setSelectedFoodContext(null);
         }
       }

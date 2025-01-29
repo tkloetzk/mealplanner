@@ -16,6 +16,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
   const handleScan = async (result: Result) => {
     setScanning(false);
+
     try {
       const response = await fetch(`/api/upc?upc=${result.getText()}`);
       if (!response.ok) {
@@ -28,6 +29,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         return;
       }
       const data = await response.json();
+      console.log(data);
       onScan(data); // Now we're actually using the data
       onClose();
     } catch (error) {

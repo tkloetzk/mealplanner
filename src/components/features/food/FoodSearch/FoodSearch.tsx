@@ -38,6 +38,8 @@ export function FoodSearch({
     try {
       if (/^\d+$/.test(searchTerm)) {
         // UPC search
+        console.log("searchTermupc", searchTerm);
+
         const response = await fetch(`/api/upc?upc=${searchTerm}`);
         if (!response.ok) {
           throw new Error("Product not found");
@@ -45,6 +47,7 @@ export function FoodSearch({
         const data = await response.json();
         onFoodFound(data);
       } else {
+        console.log("searchTerm", searchTerm);
         // Text search
         const response = await fetch(
           `/api/foods/search?query=${encodeURIComponent(searchTerm)}`
@@ -72,7 +75,9 @@ export function FoodSearch({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: `Can you give me nutritional information on ${searchText}?`,
+          prompt: `Can you give me nutritional information on one serving of ${searchText}? 
+          Reply in a JSON object with properties of 
+          note, calories, protein (in grams), carbs (in grams), fat (in grams), servingSize, servingSizeUnit (grams, millileters, ounces, tsp, tbsp, cups, pieces), category (if its a protein, vegetable, grain, fruit, or other) in reference to one serving`,
         }),
       });
 
@@ -83,17 +88,30 @@ export function FoodSearch({
       // Create a properly structured food object from the analysis
       const analyzedFood: Partial<Food> = {
         name: searchText,
-        calories: parseFloat(data.output.calories || 0),
-        protein: parseFloat(data.output.protein || 0),
-        carbs: parseFloat(data.output.carbs || 0),
-        fat: parseFloat(data.output.fat || 0),
-        servingSize: data.output.servingSize || "1",
-        servingSizeUnit: data.output.servingSizeUnit || "piece",
-        category: data.output.category || "other",
-        meal: data.output.meal || ["breakfast", "lunch", "dinner"],
-        analysis: data.output.analysis || null,
-        cloudinaryUrl: data.output.imageUrl || null,
+        calories: parseFloat(data.calories || 0),
+        protein: parseFloat(data.protein || 0),
+        carbs: parseFloat(data.carbs || 0),
+        fat: parseFloat(data.fat || 0),
+        servingSize: data.servingSize || "1",
+        servingSizeUnit: data.servingSizeUnit || "piece",
+        category: data.category || "other",
+        meal: data.meal || ["breakfast", "lunch", "dinner"],
+        analysis: data.analysis || null,
+        cloudinaryUrl: data.imageUrl || null,
       };
+      // const analyzedFood: Partial<Food> = {
+      //   name: searchText,
+      //   calories: parseFloat(data.output.calories || 0),
+      //   protein: parseFloat(data.output.protein || 0),
+      //   carbs: parseFloat(data.output.carbs || 0),
+      //   fat: parseFloat(data.output.fat || 0),
+      //   servingSize: data.output.servingSize || "1",
+      //   servingSizeUnit: data.output.servingSizeUnit || "piece",
+      //   category: data.output.category || "other",
+      //   meal: data.output.meal || ["breakfast", "lunch", "dinner"],
+      //   analysis: data.output.analysis || null,
+      //   cloudinaryUrl: data.output.imageUrl || null,
+      // };
       console.log("Structured food object:", analyzedFood);
 
       onFoodFound(analyzedFood as Food);
@@ -150,7 +168,11 @@ export function FoodSearch({
           {isLoading ? "Searching..." : "Search"}
         </Button>
         {onScanRequest && (
-          <Button variant="outline" onClick={onScanRequest}>
+          <Button
+            variant="outline"
+            onClick={onScanRequest}
+            data-testid="barcode-scanner"
+          >
             <Camera className="h-4 w-4" />
           </Button>
         )}

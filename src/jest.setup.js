@@ -2,6 +2,14 @@
 import "@testing-library/jest-dom";
 import { setupFetchMock } from "./__mocks__/testSetup/mocks";
 
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+global.ResizeObserver = MockResizeObserver;
+
 const mockGetUserMedia = jest.fn().mockResolvedValue({
   getTracks: () => [
     {

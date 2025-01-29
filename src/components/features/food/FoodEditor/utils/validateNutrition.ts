@@ -46,6 +46,7 @@ export function validateNutrition(foodData: Partial<Food>): string[] {
     errors.push("Select at least one compatible meal type");
   }
 
+  console.error(errors);
   return errors;
 }
 

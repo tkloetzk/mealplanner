@@ -14,7 +14,7 @@ import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { validateNutrition, isValidFood } from "./utils/validateNutrition";
-import { FoodSearch } from "../../../FoodEditor/FoodSearch";
+import { FoodSearch } from "../FoodSearch/FoodSearch";
 import { ImageUploader } from "./components/BarcodeScanner/ImageUploader";
 import {
   Dialog,
@@ -32,6 +32,7 @@ const MEAL_TYPES: { label: string; value: string }[] = [
   { label: "Lunch", value: "lunch" },
   { label: "Dinner", value: "dinner" },
   { label: "Snack", value: "snack" },
+  { label: "Grazing", value: "grazing" },
 ];
 
 interface FoodEditorProps {
@@ -47,6 +48,7 @@ export function FoodEditor({
   onDelete,
   initialFood,
 }: FoodEditorProps) {
+  console.log(initialFood, "initialFood");
   const initialFoodState: Partial<Food> = {
     name: "",
     calories: 0,
@@ -68,6 +70,7 @@ export function FoodEditor({
 
   const handleUpcSearch = async (upc: string | Food) => {
     try {
+      console.log("upc", upc);
       const response = await fetch(`/api/upc?upc=${upc}`);
       if (!response.ok) {
         throw new Error("Product not found");
@@ -255,7 +258,7 @@ export function FoodEditor({
           <BarcodeScanner
             onScan={(upc) => {
               setIsScanning(false);
-              handleUpcSearch(upc);
+              handleUPCFound(upc);
             }}
             onClose={() => setIsScanning(false)}
           />
@@ -347,17 +350,22 @@ export function FoodEditor({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-sm">Calories</Label>
+              <Label className="text-sm" htmlFor="calories">
+                Calories
+              </Label>
               <Input
                 type="number"
                 value={food.calories ?? 0}
                 onChange={handleNumberInput("calories")}
                 min={0}
+                id="calories"
                 required
               />
             </div>
             <div>
-              <Label className="text-sm">Category</Label>
+              <Label className="text-sm" htmlFor="category">
+                Category
+              </Label>
               <Select
                 value={food.category}
                 onValueChange={(value: CategoryType) =>
@@ -365,7 +373,7 @@ export function FoodEditor({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue data-testid="category-select" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="proteins">Proteins</SelectItem>
@@ -380,8 +388,11 @@ export function FoodEditor({
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-sm">Protein (g)</Label>
+              <Label className="text-sm" htmlFor="protein">
+                Protein (g)
+              </Label>
               <Input
+                id="protein"
                 type="number"
                 value={food.protein ?? 0}
                 onChange={handleNumberInput("protein")}
@@ -390,8 +401,11 @@ export function FoodEditor({
               />
             </div>
             <div>
-              <Label className="text-sm">Carbs (g)</Label>
+              <Label className="text-sm" htmlFor="carbs">
+                Carbs (g)
+              </Label>
               <Input
+                id="carbs"
                 type="number"
                 value={food.carbs ?? 0}
                 onChange={handleNumberInput("carbs")}
@@ -400,8 +414,11 @@ export function FoodEditor({
               />
             </div>
             <div>
-              <Label className="text-sm">Fat (g)</Label>
+              <Label className="text-sm" htmlFor="fat">
+                Fat (g)
+              </Label>
               <Input
+                id="fat"
                 type="number"
                 value={food.fat ?? 0}
                 onChange={handleNumberInput("fat")}
@@ -413,8 +430,11 @@ export function FoodEditor({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-sm">Serving Size</Label>
+              <Label className="text-sm" htmlFor="servingSize">
+                Serving Size
+              </Label>
               <Input
+                id="servingSize"
                 value={food.servingSize ?? "1"}
                 onChange={handleTextInput("servingSize")}
               />
