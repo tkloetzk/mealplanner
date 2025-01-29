@@ -111,4 +111,91 @@ describe("FoodItem Component", () => {
       expect(screen.getByText(/Hidden/i)).toBeInTheDocument();
     }
   });
+  describe("FoodItem Interactions", () => {
+    it("prevents event propagation when clicking visibility toggle", async () => {
+      const mockSelect = jest.fn();
+      const mockToggleVisibility = jest.fn();
+
+      render(
+        <FoodItem
+          {...defaultProps}
+          onSelect={mockSelect}
+          onToggleVisibility={mockToggleVisibility}
+          showVisibilityControls={true}
+        />
+      );
+
+      const visibilityToggle = screen.getByTitle(
+        /hide from child|show to child/i
+      );
+      await userEvent.click(visibilityToggle);
+
+      expect(mockToggleVisibility).toHaveBeenCalled();
+      expect(mockSelect).not.toHaveBeenCalled();
+    });
+
+    it("shows serving information when selected with multiple servings", () => {
+      const multipleServings = {
+        ...defaultProps,
+        isSelected: true,
+        selectedFoodInCategory: {
+          ...defaultProps.food,
+          servings: 2,
+          adjustedCalories: defaultProps.food.calories * 2,
+        },
+      };
+
+      render(<FoodItem {...multipleServings} />);
+
+      expect(screen.getByText("2 serving(s)")).toBeInTheDocument();
+      expect(
+        screen.getByText(`${defaultProps.food.calories * 2} cal total`)
+      ).toBeInTheDocument();
+    });
+  });
+  describe("FoodItem Analysis Display", () => {
+    it("displays food score when analysis is available", () => {
+      const foodWithAnalysis = {
+        ...defaultProps,
+        food: {
+          ...defaultProps.food,
+          analysis: {
+            score: "85",
+            summary: "Healthy choice",
+            positives: ["High protein"],
+            negatives: ["High sodium"],
+          },
+        },
+      };
+
+      render(<FoodItem {...foodWithAnalysis} />);
+      expect(screen.getByText("85/100")).toBeInTheDocument();
+    });
+  });
+  describe("FoodItem UI States", () => {
+    it("shows correct styling when food is hidden from children", () => {
+      render(
+        <FoodItem
+          {...defaultProps}
+          isHidden={true}
+          showVisibilityControls={true}
+        />
+      );
+
+      const foodItem = screen.getByTestId(
+        `${defaultProps.category}-${defaultProps.index}`
+      );
+      expect(foodItem).toHaveClass("opacity-50");
+      expect(screen.getByText(/Hidden/i)).toBeInTheDocument();
+    });
+
+    it("displays nutrition information in correct format", () => {
+      render(<FoodItem {...defaultProps} />);
+
+      const nutritionText = screen.getByText(
+        `P: ${defaultProps.food.protein}g | C: ${defaultProps.food.carbs}g | F: ${defaultProps.food.fat}g`
+      );
+      expect(nutritionText).toBeInTheDocument();
+    });
+  });
 });

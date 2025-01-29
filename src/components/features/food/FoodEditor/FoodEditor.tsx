@@ -303,7 +303,9 @@ export function FoodEditor({
             {validationErrors.map((error, index) => (
               <Alert variant="destructive" key={index} className="mb-2 py-2">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription data-testid="validation-error">
+                  {error}
+                </AlertDescription>
               </Alert>
             ))}
           </div>
