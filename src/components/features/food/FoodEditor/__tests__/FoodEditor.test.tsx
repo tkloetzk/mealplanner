@@ -1,15 +1,12 @@
-import React, { act } from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import React from "react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
-import { FoodEditor } from "../FoodEditor";
 import { MealPlanner } from "@/components/features/meals/MealPlanner";
 import { MOCK_FOODS, PROTEINS } from "@/__mocks__/testConstants";
-import { CategoryType, Food, ServingSizeUnit } from "@/types/food";
 import { FoodItem } from "@/components/features/meals/shared/FoodItem";
 
 // Mock functions
-const mockFn = jest.fn();
 
 const mockOnSelect = jest.fn();
 const mockOnServingClick = jest.fn();
@@ -30,12 +27,12 @@ const defaultProps = {
 
 describe("FoodEditor Component", () => {
   describe("Opening modes", () => {
-    const selectFood = async (category: CategoryType, food: Food) => {
-      console.log("selectFood", category, food);
-      const foodCard = screen.getByText(food.name);
-      await userEvent.click(foodCard);
-      return foodCard;
-    };
+    // const selectFood = async (category: CategoryType, food: Food) => {
+    //   console.log("selectFood", category, food);
+    //   const foodCard = screen.getByText(food.name);
+    //   await userEvent.click(foodCard);
+    //   return foodCard;
+    // };
     test("clicking FAB opens blank food editor", async () => {
       render(<MealPlanner />);
 

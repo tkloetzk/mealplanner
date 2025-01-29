@@ -68,22 +68,6 @@ export function FoodEditor({
   const [isScanning, setIsScanning] = useState(false);
   const [showToChild, setShowToChild] = useState(!initialFood?.hiddenFromChild);
 
-  const handleUpcSearch = async (upc: string | Food) => {
-    try {
-      console.log("upc", upc);
-      const response = await fetch(`/api/upc?upc=${upc}`);
-      if (!response.ok) {
-        throw new Error("Product not found");
-      }
-      const data = await response.json();
-      handleUPCFound(data);
-    } catch (error) {
-      setValidationErrors([
-        error instanceof Error ? error.message : "Failed to look up UPC",
-      ]);
-    }
-  };
-
   const [capturedImage, setCapturedImage] = useState<string | null>(
     initialFood?.cloudinaryUrl ||
       initialFood?.imageUrl ||
