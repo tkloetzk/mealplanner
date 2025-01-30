@@ -1,5 +1,10 @@
 // src/types/food.ts
-import { CATEGORY_STYLES, DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
+import {
+  CATEGORY_STYLES,
+  CondimentSelection,
+  DAYS_OF_WEEK,
+  MEAL_TYPES,
+} from "@/constants";
 import { ObjectId } from "mongodb";
 
 export interface FoodDocument extends Food {
@@ -18,6 +23,7 @@ export interface MealSelection {
   vegetables: SelectedFood | null;
   milk: SelectedFood | null;
   ranch: SelectedFood | null;
+  condiments: CondimentSelection[]; // Now an array of selections
 }
 
 export interface DayMeals {
@@ -56,6 +62,7 @@ export interface Food {
   fat: number;
   servingSize: string;
   servingSizeUnit: ServingSizeUnit;
+  servingSizeImported?: string;
   category: CategoryType;
   meal: MealType[];
   cloudinaryUrl?: string;
@@ -74,6 +81,10 @@ export interface Food {
   additives?: string[];
   hiddenFromChild?: boolean;
   analysis?: FoodScoreAnalysis; // Updated to use FoodScoreAnalysis type
+  subcategory?: string; // For organizing condiments (e.g., "spreads", "dressings", "sauces")
+  recommendedUses?: string[]; // e.g., ["breads", "vegetables", "proteins"]
+  maxServingsPerMeal?: number; // Optional limit on servings
+  isCondiment?: boolean; // Quick flag to identify condiments
 }
 
 export interface SelectedFood extends Food {

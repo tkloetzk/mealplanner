@@ -28,6 +28,7 @@ export const defaultObj = {
   proteins: null,
   vegetables: null,
   milk: null,
+  condiments: [],
   ranch: null,
 };
 

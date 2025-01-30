@@ -90,7 +90,7 @@ export function NutritionSummary({
             <div className="flex justify-between text-sm">
               <span>Calories</span>
               <span className="font-medium">
-                {Math.round(currentNutrition.calories)} /{" "}
+                {Math.round(currentNutrition.calories || 0)} /{" "}
                 {showDailyTotal
                   ? DAILY_GOALS.dailyTotals.calories
                   : // @ts-expect-error Idk what to do
@@ -135,7 +135,7 @@ export function NutritionSummary({
                   DAILY_GOALS.dailyTotals.protein.max
                 )}`}
               >
-                {currentNutrition.protein.toFixed(1)}g
+                {(currentNutrition.protein || 0).toFixed(1)}g
               </div>
               {showDailyTotal && (
                 <div className="text-xs text-gray-500">
@@ -153,7 +153,7 @@ export function NutritionSummary({
             >
               <div className="text-sm font-medium mb-1">Carbs</div>
               <div className="text-lg font-bold">
-                {currentNutrition.carbs.toFixed(1)}g
+                {(currentNutrition.carbs || 0).toFixed(1)}g
               </div>
             </div>
 
@@ -171,7 +171,7 @@ export function NutritionSummary({
                   DAILY_GOALS.dailyTotals.fat.max
                 )}`}
               >
-                {currentNutrition.fat.toFixed(1)}g
+                {(currentNutrition.fat || 0).toFixed(1)}g
               </div>
               {showDailyTotal && (
                 <div className="text-xs text-gray-500">

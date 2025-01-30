@@ -1,5 +1,5 @@
 // src/components/features/food/FoodEditor/__tests__/FoodEditor.test.tsx
-import React, { act } from "react";
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";

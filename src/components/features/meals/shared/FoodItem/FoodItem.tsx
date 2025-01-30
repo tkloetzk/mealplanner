@@ -35,6 +35,12 @@ export const FoodItem = ({
 }: FoodItemProps) => {
   const imageSource = useMemo(() => getFoodImageSource(food), [food]);
 
+  // Find the selected condiment's data if this is a condiment
+  const selectedCondiment =
+    category === "condiments" && selectedFoodInCategory?.condiments
+      ? selectedFoodInCategory.condiments.find((c) => c.foodId === food.id)
+      : null;
+
   return (
     <div
       data-testid={`${category}-${index}`}
@@ -101,11 +107,18 @@ export const FoodItem = ({
         </div>
       </div>
 
-      {isSelected && selectedFoodInCategory && (
+      {isSelected && (
         <div className="flex items-center justify-between mt-3 pt-3 border-t">
           <div className="text-sm font-medium text-blue-600">
-            {selectedFoodInCategory.servings} serving(s) •{" "}
-            {Math.round(selectedFoodInCategory.adjustedCalories)} cal total
+            {category === "condiments"
+              ? // Display condiment servings
+                `${selectedCondiment?.servings} serving(s) • ${Math.round(
+                  selectedCondiment?.adjustedCalories || 0
+                )} cal total`
+              : // Display regular food servings
+                `${selectedFoodInCategory?.servings} serving(s) • ${Math.round(
+                  selectedFoodInCategory?.adjustedCalories || 0
+                )} cal total`}
           </div>
           <div className="flex items-center gap-2">
             {onEditFood && (

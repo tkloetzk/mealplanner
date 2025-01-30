@@ -15,7 +15,6 @@ import {
 // Import components
 import { ServingSelector } from "@/components/features/meals/shared/ServingSelector";
 import { MilkToggle } from "@/components/features/meals/shared/MilkToggle";
-import { RanchToggle } from "@/components/features/meals/shared/RanchToggle";
 import { FoodEditor } from "@/components/features/food/FoodEditor";
 import { CompactNutritionProgress } from "@/components/features/nutrition/NutritionSummary/components/CompactNutritionProgress";
 import { NutritionSummary } from "@/components/features/nutrition/NutritionSummary";
@@ -137,7 +136,6 @@ export const MealPlanner = () => {
     handleServingAdjustment,
     calculateDailyTotals,
     handleMilkToggle,
-    handleRanchToggle,
   } = useMealPlanState(kids);
   // Helper function to get ordered days starting from today
   const getOrderedDays = (): DayType[] => {
@@ -304,30 +302,6 @@ export const MealPlanner = () => {
       return acc;
       // @ts-expect-error TypeScript doesn't understand the dynamic keys here
     }, {} as Record<MealType, boolean>);
-  }, [selections, selectedKid, selectedDay]);
-
-  const includesRanch = useMemo(() => {
-    if (!selectedKid || !selectedDay)
-      return {
-        breakfast: { has: false, servings: 0 },
-        lunch: { has: false, servings: 0 },
-        dinner: { has: false, servings: 0 },
-        snack: { has: false, servings: 0 },
-      };
-
-    return MEAL_TYPES.reduce(
-      // @ts-expect-error TODO: fix
-      (acc: Record<MealType, { has: boolean; servings: number }>, mealType) => {
-        // @ts-expect-error Idk what to do
-        const ranch = selections[selectedKid]?.[selectedDay]?.[mealType]?.ranch;
-        acc[mealType] = {
-          has: !!ranch,
-          servings: ranch?.servings || 1,
-        };
-        return acc;
-      }, // @ts-expect-error TODO: fix
-      {} as Record<MealType, { has: boolean; servings: number }>
-    );
   }, [selections, selectedKid, selectedDay]);
 
   // src/components/features/meals/MealPlanner/MealPlanner.tsx
@@ -533,31 +507,25 @@ export const MealPlanner = () => {
                   dailyNutrition={calculateDailyTotals()}
                   selectedMeal={selectedMeal}
                 />
-                {selectedMeal && selectedMeal !== "snack" && (
-                  <div className="mb-6" data-testid="milk-toggle">
-                    <MilkToggle
-                      isSelected={
-                        // @ts-expect-error Idk what to do
-                        selectedMeal ? includesMilk[selectedMeal] : false
-                      }
-                      onChange={(value) =>
-                        // @ts-expect-error Idk what to do
-                        handleMilkToggle(selectedMeal, value)
-                      }
-                    />
-                  </div>
-                )}
 
                 <div className="mb-6">
-                  <RanchToggle
-                    // @ts-expect-error Idk what to do
-                    isSelected={includesRanch[selectedMeal].has}
-                    // @ts-expect-error Idk what to do
-                    servings={includesRanch[selectedMeal].servings}
-                    onChange={(value, servings) =>
-                      handleRanchToggle(selectedMeal, value, servings)
-                    }
-                  />
+                  {!isChildView && selectedMeal && (
+                    <>
+                      {/* Milk toggle remains the same */}
+                      {selectedMeal !== "snack" && (
+                        <div className="mb-6" data-testid="milk-toggle">
+                          <MilkToggle
+                            isSelected={
+                              selectedMeal ? includesMilk[selectedMeal] : false
+                            }
+                            onChange={(value) =>
+                              handleMilkToggle(selectedMeal, value)
+                            }
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Food Selection Grid */}
@@ -609,16 +577,26 @@ export const MealPlanner = () => {
                           ) : (
                             <div className="space-y-2">
                               {compatibleFoods.map((food, index) => {
-                                const selectedFoodInCategory =
+                                const currentMealSelections =
                                   selectedKid && selectedDay && selectedMeal
-                                    ? // @ts-expect-error Idk what to do
-                                      selections[selectedKid]?.[selectedDay]?.[
+                                    ? selections[selectedKid]?.[selectedDay]?.[
                                         selectedMeal
-                                      ]?.[category]
+                                      ]
                                     : null;
-                                const isSelected =
-                                  selectedFoodInCategory?.name === food.name;
 
+                                // For condiments, pass the entire selections object so we have access to the condiments array
+                                const selectedFoodInCategory =
+                                  category === "condiments"
+                                    ? currentMealSelections
+                                    : currentMealSelections?.[category];
+
+                                const isSelected =
+                                  category === "condiments"
+                                    ? currentMealSelections?.condiments?.some(
+                                        (c) => c.foodId === food.id
+                                      )
+                                    : selectedFoodInCategory?.name ===
+                                      food.name;
                                 return (
                                   <FoodItem
                                     key={index}

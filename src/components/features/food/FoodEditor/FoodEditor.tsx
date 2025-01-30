@@ -27,6 +27,23 @@ import {
 import { FoodScoreDisplay } from "../../meals/shared/FoodScoreDisplay";
 import { BarcodeScanner } from "./components/BarcodeScanner";
 
+// Add these constants at the top of the file
+const SUBCATEGORIES = [
+  { label: "Spreads", value: "spreads" },
+  { label: "Dressings", value: "dressings" },
+  { label: "Sauces", value: "sauces" },
+  { label: "Dips", value: "dips" },
+  { label: "Toppings", value: "toppings" },
+] as const;
+
+const RECOMMENDED_USES = [
+  { label: "Breads", value: "breads" },
+  { label: "Vegetables", value: "vegetables" },
+  { label: "Fruits", value: "fruits" },
+  { label: "Proteins", value: "proteins" },
+  { label: "Any", value: "any" },
+] as const;
+
 const MEAL_TYPES: { label: string; value: string }[] = [
   { label: "Breakfast", value: "breakfast" },
   { label: "Lunch", value: "lunch" },
@@ -56,10 +73,14 @@ export function FoodEditor({
     carbs: 0,
     fat: 0,
     servingSize: "1",
-    servingSizeUnit: "g" as ServingSizeUnit,
+    servingSizeUnit: "tbsp" as ServingSizeUnit,
     category: "proteins" as CategoryType,
     meal: [],
-    ...initialFood, // Spread initialFood last to override defaults
+    subcategory: "",
+    recommendedUses: [],
+    maxServingsPerMeal: 2,
+    isCondiment: false,
+    ...initialFood,
   };
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -190,14 +211,22 @@ export function FoodEditor({
           food.cloudinaryUrl = cloudinaryUrl;
         }
 
+        // Add condiment-specific fields if category is condiments
         const foodToSave = {
           ...food,
           hiddenFromChild: !showToChild,
+          isCondiment: food.category === "condiments",
+          ...(food.category === "condiments" && {
+            subcategory: food.subcategory || "other",
+            recommendedUses: food.recommendedUses || ["any"],
+            maxServingsPerMeal: food.maxServingsPerMeal || 2,
+          }),
         };
+
         await onSave(foodToSave as Food);
       } catch (error) {
         console.error("Error saving food:", error);
-        // Optionally set an error state to show to the user
+        setValidationErrors(["Failed to save food"]);
       } finally {
         setLoading(false);
       }
@@ -207,14 +236,7 @@ export function FoodEditor({
   const isNew = initialFood && Object.keys(initialFood).length === 0;
 
   return (
-    <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onCancel();
-        }
-      }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 z-50 overflow-auto"
-    >
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 z-50 overflow-auto">
       <div className="bg-white rounded-lg w-full max-w-md p-4 flex flex-col space-y-3 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">
@@ -366,10 +388,87 @@ export function FoodEditor({
                   <SelectItem value="grains">Grains</SelectItem>
                   <SelectItem value="fruits">Fruits</SelectItem>
                   <SelectItem value="vegetables">Vegetables</SelectItem>
+                  <SelectItem value="condiments">Condiments</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {food.category === "condiments" && (
+              <div className="space-y-4 border-t pt-4 mt-4">
+                <div>
+                  <Label className="text-sm mb-2">Subcategory</Label>
+                  <Select
+                    value={food.subcategory}
+                    onValueChange={(value) =>
+                      setFood((prev) => ({ ...prev, subcategory: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a subcategory" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUBCATEGORIES.map(({ label, value }) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm mb-2 block">Recommended Uses</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {RECOMMENDED_USES.map(({ label, value }) => (
+                      <div key={value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`use-${value}`}
+                          checked={food.recommendedUses?.includes(value)}
+                          onCheckedChange={(checked) =>
+                            setFood((prev) => ({
+                              ...prev,
+                              recommendedUses: checked
+                                ? [...(prev.recommendedUses || []), value]
+                                : (prev.recommendedUses || []).filter(
+                                    (use) => use !== value
+                                  ),
+                            }))
+                          }
+                        />
+                        <Label
+                          htmlFor={`use-${value}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm mb-2">
+                    Maximum Servings per Meal
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0.5"
+                    max="5"
+                    step="0.5"
+                    value={food.maxServingsPerMeal || 2}
+                    onChange={(e) =>
+                      setFood((prev) => ({
+                        ...prev,
+                        maxServingsPerMeal: parseFloat(e.target.value),
+                      }))
+                    }
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Recommended: 2-3 servings maximum
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-3">
