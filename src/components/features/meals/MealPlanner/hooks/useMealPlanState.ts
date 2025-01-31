@@ -102,98 +102,73 @@ export const useMealPlanState = (initialKids: Kid[]) => {
 
   // Food selection handler with server synchronization
   const handleFoodSelect = useCallback(
-    async (category: CategoryType, food: Food, servings?: number) => {
+    async (category: CategoryType, food: Food) => {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
 
-      try {
-        setSelections((prev) => {
-          const newSelections = structuredClone(prev);
-          const currentMeal =
-            newSelections[selectedKid][selectedDay][selectedMeal];
+      setSelections((prev) => {
+        const newSelections = structuredClone(prev);
+        const currentMeal =
+          newSelections[selectedKid][selectedDay][selectedMeal];
 
-          if (category === "condiments") {
-            // Handle condiments differently as they can have multiple selections
-            const existingCondimentIndex = currentMeal.condiments?.findIndex(
-              (c) => c.foodId === food.id
+        if (category === "condiments") {
+          // Handle condiments as an array
+          const existingCondimentIndex = currentMeal.condiments.findIndex(
+            (c) => c.foodId === food.id
+          );
+
+          if (existingCondimentIndex >= 0) {
+            // Remove condiment if it exists
+            currentMeal.condiments = currentMeal.condiments.filter(
+              (c) => c.foodId !== food.id
             );
-
-            if (existingCondimentIndex >= 0) {
-              // Remove existing condiment
-              currentMeal.condiments.splice(existingCondimentIndex, 1);
-            } else {
-              // Add new condiment with specified servings
-              const servingCount = servings || 1;
-              currentMeal.condiments.push({
-                foodId: food.id,
-                servings: servingCount,
-                adjustedCalories: food.calories * servingCount,
-                adjustedProtein: food.protein * servingCount,
-                adjustedCarbs: food.carbs * servingCount,
-                adjustedFat: food.fat * servingCount,
-              });
-            }
           } else {
-            // Handle other food categories as before
-            currentMeal[category] =
-              currentMeal[category]?.name === food.name
-                ? null
-                : {
-                    ...food,
-                    servings: 1,
-                    adjustedCalories: food.calories,
-                    adjustedProtein: food.protein,
-                    adjustedCarbs: food.carbs,
-                    adjustedFat: food.fat,
-                  };
+            // Add new condiment
+            currentMeal.condiments.push({
+              foodId: food.id,
+              servings: 1,
+              adjustedCalories: food.calories,
+              adjustedProtein: food.protein,
+              adjustedCarbs: food.carbs,
+              adjustedFat: food.fat,
+            });
           }
+        } else {
+          // Handle regular food categories
+          currentMeal[category] =
+            currentMeal[category]?.name === food.name
+              ? null
+              : {
+                  ...food,
+                  servings: 1,
+                  adjustedCalories: food.calories,
+                  adjustedProtein: food.protein,
+                  adjustedCarbs: food.carbs,
+                  adjustedFat: food.fat,
+                };
+        }
 
-          return newSelections;
-        });
+        return newSelections;
+      });
 
-        // Send to server for persistent storage
+      // Save to meal history
+      try {
         const mealData = {
           meal: selectedMeal,
           date: new Date(),
           selections: selections[selectedKid][selectedDay][selectedMeal],
         };
 
-        console.log(
-          "Sending meal history data:",
-          JSON.stringify(mealData, null, 2)
-        );
-
-        const response = await fetch("/api/meal-history", {
+        await fetch("/api/meal-history", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            kidId: selectedKid,
-            mealData,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to save meal selection");
-        }
-
-        // Optionally update local history if server responds with updated record
-        const savedEntry = await response.json();
-        setMealHistory((prev) => {
-          const updatedHistory = {
-            ...prev,
-            [selectedKid]: [savedEntry, ...(prev[selectedKid] || [])],
-          };
-          return updatedHistory;
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kidId: selectedKid, mealData }),
         });
       } catch (error) {
         console.error("Error saving meal selection:", error);
-        setSelections((prev) => structuredClone(prev));
       }
     },
     [selectedKid, selectedDay, selectedMeal, selections]
   );
-
   // Serving adjustment handler
   const handleServingAdjustment = useCallback(
     async (category: CategoryType, adjustedFood: SelectedFood) => {

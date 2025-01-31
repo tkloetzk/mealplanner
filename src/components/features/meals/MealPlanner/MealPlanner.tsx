@@ -502,9 +502,59 @@ export const MealPlanner = () => {
 
                 {/* Nutrition Summary */}
                 <NutritionSummary
-                  // @ts-expect-error Idk what to do
-                  mealNutrition={calculateMealNutrition(selectedMeal)}
-                  dailyNutrition={calculateDailyTotals()}
+                  mealSelections={
+                    selectedKid && selectedDay && selectedMeal
+                      ? selections[selectedKid][selectedDay][selectedMeal]
+                      : {
+                          proteins: null,
+                          fruits: null,
+                          vegetables: null,
+                          grains: null,
+                          milk: null,
+                          ranch: null,
+                          condiments: [],
+                        }
+                  }
+                  dailySelections={
+                    selectedKid && selectedDay
+                      ? Object.values(
+                          selections[selectedKid][selectedDay]
+                        ).reduce(
+                          (acc, meal) => {
+                            // Combine all meals into one selection
+                            return {
+                              proteins: acc.proteins || meal.proteins,
+                              fruits: acc.fruits || meal.fruits,
+                              vegetables: acc.vegetables || meal.vegetables,
+                              grains: acc.grains || meal.grains,
+                              milk: acc.milk || meal.milk,
+                              ranch: acc.ranch || meal.ranch,
+                              condiments: [
+                                ...acc.condiments,
+                                ...(meal.condiments || []),
+                              ],
+                            };
+                          },
+                          {
+                            proteins: null,
+                            fruits: null,
+                            vegetables: null,
+                            grains: null,
+                            milk: null,
+                            ranch: null,
+                            condiments: [],
+                          }
+                        )
+                      : {
+                          proteins: null,
+                          fruits: null,
+                          vegetables: null,
+                          grains: null,
+                          milk: null,
+                          ranch: null,
+                          condiments: [],
+                        }
+                  }
                   selectedMeal={selectedMeal}
                 />
 
@@ -804,14 +854,14 @@ export const MealPlanner = () => {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
         <CompactNutritionProgress
           currentCalories={
-            selectedMeal
-              ? // @ts-expect-error Idk what to do
-                calculateMealNutrition(selectedMeal).calories
-              : calculateDailyTotals().calories
+            selectedMeal && selectedKid && selectedDay
+              ? calculateMealNutrition(
+                  selections[selectedKid][selectedDay][selectedMeal]
+                ).calories
+              : 0
           }
           currentProtein={calculateDailyTotals().protein}
           currentFat={calculateDailyTotals().fat}
-          // @ts-expect-error Idk what to do
           selectedMeal={selectedMeal}
         />
       </div>
