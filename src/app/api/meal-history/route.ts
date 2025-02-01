@@ -51,6 +51,7 @@ export async function POST(request: Request) {
   try {
     const { kidId, mealData } = await request.json();
 
+    // Validate input
     if (!kidId) {
       return NextResponse.json(
         { error: "Kid ID is required" },
@@ -64,49 +65,37 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create proper Date object for today
-    const now = new Date();
-    const date = now.toISOString();
-
-    // Validate and transform numeric fields before saving
-    const validatedMealData = ensureNestedNumericFields({
-      ...mealData,
-      date, // Set the date explicitly
-    });
+    // Create date filter for exact day match
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
 
     const service = DatabaseService.getInstance();
     const mealHistoryCollection = await service.getCollection("mealHistory");
 
-    // Use start and end of day for filtering
-    const startOfDay = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    );
-    const endOfDay = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + 1
-    );
-
+    // Create precise filter for existing entry
     const existingRecordFilter = {
       kidId,
-      date: { $gte: startOfDay, $lt: endOfDay },
-      meal: validatedMealData.meal,
+      date: { $gte: today, $lt: tomorrow }, // Exact day match
+      meal: mealData.meal,
     };
 
+    // Prepare update operation
     const updateOperation = {
       $set: {
-        selections: validatedMealData.selections,
-        date: date, // Ensure we set the date in the update
-        timestamp: now,
+        selections: mealData.selections,
+        timestamp: new Date(),
       },
       $setOnInsert: {
+        // Only set these fields on insert
+        date: today,
         kidId,
-        meal: validatedMealData.meal,
+        meal: mealData.meal,
       },
     };
 
+    // Update existing entry or create new one
     const result = await mealHistoryCollection.findOneAndUpdate(
       existingRecordFilter,
       updateOperation,
@@ -116,23 +105,18 @@ export async function POST(request: Request) {
       }
     );
 
+    // Create index to support the query
     await mealHistoryCollection.createIndex(
       { kidId: 1, date: 1, meal: 1 },
       { unique: true }
     );
 
-    // Ensure numeric fields are properly converted in the response
-    const validatedResult = ensureNestedNumericFields({
-      ...result,
-      date:
-        result.date instanceof Date
-          ? result.date.toISOString()
-          : new Date(result.date).toISOString(),
-    });
-
-    return NextResponse.json(validatedResult);
+    // Return the saved/updated document
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error saving meal history:", error);
+
+    // Detailed error logging
     return NextResponse.json(
       {
         error: "Failed to save meal history",

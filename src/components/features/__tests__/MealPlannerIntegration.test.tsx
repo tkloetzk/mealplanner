@@ -482,9 +482,8 @@ describe("Meal History Management", () => {
 describe("Meal Selection Isolation", () => {
   // Add this to MealPlannerIntegration.test.tsx
 
-  it.only("maintains unique food selection states between meals", async () => {
-    render(<MealPlanner />);
-
+  it("maintains unique food selection states between meals", async () => {
+    await renderMealPlanner();
     // Select kid
     await act(async () => {
       fireEvent.click(screen.getByText("Presley"));

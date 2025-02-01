@@ -286,6 +286,7 @@ export const useMealPlanState = (initialKids: Kid[]) => {
   }, []);
 
   // Effect to handle saving meal history
+  // Effect to handle saving meal history
   useEffect(() => {
     const updateMealHistory = async () => {
       if (!selectedKid || !selectedDay || !selectedMeal) return;
@@ -299,6 +300,11 @@ export const useMealPlanState = (initialKids: Kid[]) => {
       if (!hasMealSelections(currentSelections)) return;
 
       try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+
         const mealData = {
           meal: selectedMeal,
           date: new Date(),
@@ -308,22 +314,27 @@ export const useMealPlanState = (initialKids: Kid[]) => {
         const response = await fetch("/api/meal-history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ kidId: selectedKid, mealData }),
+          body: JSON.stringify({
+            kidId: selectedKid,
+            mealData,
+          }),
         });
 
         if (!response.ok) {
           throw new Error("Failed to save meal history");
         }
 
-        // Fetch updated history
+        // After successful save, fetch only today's history
         const historyResponse = await fetch(
-          `/api/meal-history?kidId=${selectedKid}`
+          `/api/meal-history?kidId=${selectedKid}&startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`
         );
+
         if (!historyResponse.ok) {
           throw new Error("Failed to fetch meal history");
         }
 
         const history = await historyResponse.json();
+        // Update just today's entries in the meal history
         setMealHistory((prev) => ({
           ...prev,
           [selectedKid]: history,
