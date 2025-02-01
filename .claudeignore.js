@@ -7,6 +7,10 @@ __pycache__/
 .vscode/
 
 .next/
+public/
+.swc/
+.vscode/
+src/components/ui/
 out/
 
 npm-debug.log*
