@@ -1,43 +1,74 @@
-// components/MealHistory.tsx
+// src/components/features/meals/shared/MealHistory/MealHistory.tsx
 import { format } from "date-fns";
 import { MealHistoryRecord } from "@/types/food";
 import { MealHistoryEntry } from "./MealHistoryEntry";
+import { useEffect, useState } from "react";
 
 interface MealHistoryProps {
   historyEntries: MealHistoryRecord[];
 }
 
 export function MealHistory({ historyEntries }: MealHistoryProps) {
-  // Group entries by date
-  const entriesByDate = historyEntries.reduce((acc, entry) => {
-    const dateKey = format(new Date(entry.date), "yyyy-MM-dd");
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
-    }
-    acc[dateKey].push(entry);
-    return acc;
-  }, {} as Record<string, MealHistoryRecord[]>);
+  const [sortedEntries, setSortedEntries] = useState<
+    Record<string, MealHistoryRecord[]>
+  >({});
+
+  // Sort and group entries whenever historyEntries changes
+  useEffect(() => {
+    const grouped = historyEntries.reduce((acc, entry) => {
+      const dateKey = format(new Date(entry.date), "yyyy-MM-dd");
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(entry);
+      return acc;
+    }, {} as Record<string, MealHistoryRecord[]>);
+
+    // Sort entries within each day by time
+    Object.keys(grouped).forEach((date) => {
+      grouped[date].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+    });
+
+    setSortedEntries(grouped);
+  }, [historyEntries]);
 
   return (
     <div className="space-y-8">
-      {Object.entries(entriesByDate).map(([date, entries]) => {
-        const dateObj = new Date(date);
+      {Object.entries(sortedEntries)
+        .sort(
+          ([dateA], [dateB]) =>
+            new Date(dateB).getTime() - new Date(dateA).getTime()
+        )
+        .map(([date, entries]) => {
+          const dateObj = new Date(date);
 
-        return (
-          <div key={date} className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center justify-between">
-              <span>{getDateLabel(dateObj)}</span>
-              <span className="text-sm text-gray-500">
-                {format(dateObj, "PPp")}
-              </span>
-            </h3>
+          return (
+            <div key={date} className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center justify-between">
+                <span>{getDateLabel(dateObj)}</span>
+                <span className="text-sm text-gray-500">
+                  {format(dateObj, "PPp")}
+                </span>
+              </h3>
 
-            {entries.map((entry, index) => (
-              <MealHistoryEntry key={index} entry={entry} />
-            ))}
-          </div>
-        );
-      })}
+              {entries.map((entry) => (
+                <MealHistoryEntry
+                  key={entry._id?.toString() || `${entry.date}-${entry.meal}`}
+                  entry={entry}
+                />
+              ))}
+            </div>
+          );
+        })}
+
+      {/* Show empty state if no entries */}
+      {Object.keys(sortedEntries).length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          No meal history available
+        </div>
+      )}
     </div>
   );
 }

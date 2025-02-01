@@ -18,9 +18,9 @@ export function MealHistoryEntry({ entry }: MealHistoryEntryProps) {
       return condiments.reduce((acc, condiment) => {
         const subcategory = condiment.subcategory || "Other";
         if (!acc[subcategory]) {
-          acc[subcategory] = [];
+          acc[subcategory ?? "Other"] = [];
         }
-        acc[subcategory].push(condiment);
+        acc[subcategory ?? "Other"].push(condiment);
         return acc;
       }, {} as Record<string, unknown[]>);
     }
@@ -45,7 +45,9 @@ export function MealHistoryEntry({ entry }: MealHistoryEntryProps) {
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <span className="font-medium capitalize">{entry.meal}</span>
+          <span className="font-medium capitalize">
+            {typeof entry.meal === "function" ? entry.meal() : entry.meal}
+          </span>
           <span className="text-sm text-gray-500">
             {format(new Date(entry.date), "h:mm a")}
           </span>

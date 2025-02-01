@@ -53,37 +53,50 @@ export async function POST(request: Request) {
       );
     }
 
-    // Reset time to start of day for consistent comparison
+    // Create date filter for exact day match
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
 
     const service = DatabaseService.getInstance();
     const mealHistoryCollection = await service.getCollection("mealHistory");
 
-    // Combine day, meal type, and kidId for unique identification
+    // Create precise filter for existing entry
     const existingRecordFilter = {
       kidId,
-      date: { $gte: today },
+      date: { $gte: today, $lt: tomorrow }, // Exact day match
       meal: mealData.meal,
     };
 
-    // Prepare history entry with full data
-    const historyEntry = {
-      kidId,
-      date: today,
-      meal: mealData.meal,
-      selections: mealData.selections,
-      timestamp: new Date(),
+    // Prepare update operation
+    const updateOperation = {
+      $set: {
+        selections: mealData.selections,
+        timestamp: new Date(),
+      },
+      $setOnInsert: {
+        // Only set these fields on insert
+        date: today,
+        kidId,
+        meal: mealData.meal,
+      },
     };
 
-    // Update or insert record
+    // Update existing entry or create new one
     const result = await mealHistoryCollection.findOneAndUpdate(
       existingRecordFilter,
-      { $set: historyEntry },
+      updateOperation,
       {
         upsert: true,
         returnDocument: "after",
       }
+    );
+
+    // Create index to support the query
+    await mealHistoryCollection.createIndex(
+      { kidId: 1, date: 1, meal: 1 },
+      { unique: true }
     );
 
     // Return the saved/updated document

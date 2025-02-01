@@ -71,86 +71,137 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     Record<string, MealHistoryRecord[]>
   >({});
 
-  useEffect(() => {
-    const fetchMealHistory = async () => {
-      if (!selectedKid) return;
-
-      try {
-        const response = await fetch(`/api/meal-history?kidId=${selectedKid}`);
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch meal history");
-        }
-
-        const history = await response.json();
-        setMealHistory((prev) => ({
-          ...prev,
-          [selectedKid]: history,
-        }));
-      } catch (error) {
-        console.error("Meal history fetch error:", error);
-        // Set an empty array to prevent repeated failed fetches
-        setMealHistory((prev) => ({
-          ...prev,
-          [selectedKid]: [],
-        }));
+  const fetchMealHistory = useCallback(async (kidId: string) => {
+    try {
+      const response = await fetch(`/api/meal-history?kidId=${kidId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch meal history");
       }
-    };
+      const history = await response.json();
+      setMealHistory((prev) => ({
+        ...prev,
+        [kidId]: history,
+      }));
+    } catch (error) {
+      console.error("Error fetching meal history:", error);
+    }
+  }, []);
 
-    fetchMealHistory();
-  }, [selectedKid]);
+  useEffect(() => {
+    if (selectedKid) {
+      fetchMealHistory(selectedKid);
+    }
+  }, [selectedKid, fetchMealHistory]);
 
-  // Food selection handler with server synchronization
+  // In useMealPlanState.ts
+
+  // Remove the fetch and update logic from individual handlers
   const handleFoodSelect = useCallback(
     async (category: CategoryType, food: Food) => {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
 
-      setSelections((prev) => {
-        const newSelections = structuredClone(prev);
-        const currentMeal =
-          newSelections[selectedKid][selectedDay][selectedMeal];
+      const newSelections = structuredClone(selections);
+      const currentMeal = newSelections[selectedKid][selectedDay][selectedMeal];
 
-        if (category === "condiments") {
-          // Handle condiments as an array
-          const existingCondimentIndex = currentMeal.condiments.findIndex(
-            (c) => c.foodId === food.id
+      if (category === "condiments") {
+        const existingCondimentIndex = currentMeal.condiments.findIndex(
+          (c) => c.foodId === food.id
+        );
+
+        if (existingCondimentIndex >= 0) {
+          currentMeal.condiments = currentMeal.condiments.filter(
+            (c) => c.foodId !== food.id
           );
-
-          if (existingCondimentIndex >= 0) {
-            // Remove condiment if it exists
-            currentMeal.condiments = currentMeal.condiments.filter(
-              (c) => c.foodId !== food.id
-            );
-          } else {
-            // Add new condiment
-            currentMeal.condiments.push({
-              foodId: food.id,
-              servings: 1,
-              adjustedCalories: food.calories,
-              adjustedProtein: food.protein,
-              adjustedCarbs: food.carbs,
-              adjustedFat: food.fat,
-            });
-          }
         } else {
-          // Handle regular food categories
-          currentMeal[category] =
-            currentMeal[category]?.name === food.name
-              ? null
-              : {
-                  ...food,
-                  servings: 1,
-                  adjustedCalories: food.calories,
-                  adjustedProtein: food.protein,
-                  adjustedCarbs: food.carbs,
-                  adjustedFat: food.fat,
-                };
+          currentMeal.condiments.push({
+            foodId: food.id,
+            servings: 1,
+            adjustedCalories: food.calories,
+            adjustedProtein: food.protein,
+            adjustedCarbs: food.carbs,
+            adjustedFat: food.fat,
+          });
         }
+      } else {
+        currentMeal[category] =
+          currentMeal[category]?.name === food.name
+            ? null
+            : {
+                ...food,
+                servings: 1,
+                adjustedCalories: food.calories,
+                adjustedProtein: food.protein,
+                adjustedCarbs: food.carbs,
+                adjustedFat: food.fat,
+              };
+      }
 
-        return newSelections;
-      });
+      setSelections(newSelections);
+    },
+    [selectedKid, selectedDay, selectedMeal, selections]
+  );
 
-      // Save to meal history
+  const handleServingAdjustment = useCallback(
+    (category: CategoryType, adjustedFood: SelectedFood) => {
+      if (!selectedMeal || !selectedDay || !selectedKid) return;
+
+      const newSelections = structuredClone(selections);
+      const currentMeal = newSelections[selectedKid][selectedDay][selectedMeal];
+
+      if (category === "condiments") {
+        const condimentIndex = currentMeal.condiments?.findIndex(
+          (c) => c.foodId === adjustedFood.id
+        );
+
+        if (condimentIndex >= 0 && currentMeal.condiments) {
+          currentMeal.condiments[condimentIndex] = {
+            foodId: adjustedFood.id,
+            servings: adjustedFood.servings,
+            adjustedCalories: adjustedFood.calories * adjustedFood.servings,
+            adjustedProtein: adjustedFood.protein * adjustedFood.servings,
+            adjustedCarbs: adjustedFood.carbs * adjustedFood.servings,
+            adjustedFat: adjustedFood.fat * adjustedFood.servings,
+          };
+        }
+      } else {
+        currentMeal[category] = adjustedFood;
+      }
+
+      setSelections(newSelections);
+    },
+    [selectedKid, selectedDay, selectedMeal, selections]
+  );
+
+  const handleMilkToggle = useCallback(
+    (mealType: string, value: boolean) => {
+      if (!selectedKid || !selectedDay) return;
+
+      const newSelections = structuredClone(selections);
+      const milkFood: SelectedFood = {
+        ...MILK_OPTION,
+        category: "milk",
+        servings: 1,
+        adjustedCalories: MILK_OPTION.calories,
+        adjustedProtein: MILK_OPTION.protein,
+        adjustedCarbs: MILK_OPTION.carbs,
+        adjustedFat: MILK_OPTION.fat,
+      };
+
+      //@ts-expect-error TypeScript doesn't understand the dynamic keys here
+      newSelections[selectedKid][selectedDay][mealType].milk = value
+        ? milkFood
+        : null;
+
+      setSelections(newSelections);
+    },
+    [selectedKid, selectedDay, selections]
+  );
+
+  // Add a useEffect to handle meal history updates
+  useEffect(() => {
+    const updateMealHistory = async () => {
+      if (!selectedKid || !selectedDay || !selectedMeal) return;
+
       try {
         const mealData = {
           meal: selectedMeal,
@@ -158,54 +209,38 @@ export const useMealPlanState = (initialKids: Kid[]) => {
           selections: selections[selectedKid][selectedDay][selectedMeal],
         };
 
-        await fetch("/api/meal-history", {
+        const response = await fetch("/api/meal-history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ kidId: selectedKid, mealData }),
         });
-      } catch (error) {
-        console.error("Error saving meal selection:", error);
-      }
-    },
-    [selectedKid, selectedDay, selectedMeal, selections]
-  );
-  // Serving adjustment handler
-  const handleServingAdjustment = useCallback(
-    async (category: CategoryType, adjustedFood: SelectedFood) => {
-      if (!selectedMeal || !selectedDay || !selectedKid) return;
 
-      setSelections((prev) => {
-        const newSelections = deepClone(prev);
-        const currentMeal =
-          newSelections[selectedKid][selectedDay][selectedMeal];
-
-        if (category === "condiments") {
-          // For condiments, find and update the specific condiment in the array
-          const condimentIndex = currentMeal.condiments?.findIndex(
-            (c) => c.foodId === adjustedFood.id
-          );
-
-          if (condimentIndex >= 0 && currentMeal.condiments) {
-            // Update existing condiment
-            currentMeal.condiments[condimentIndex] = {
-              foodId: adjustedFood.id,
-              servings: adjustedFood.servings,
-              adjustedCalories: adjustedFood.calories * adjustedFood.servings,
-              adjustedProtein: adjustedFood.protein * adjustedFood.servings,
-              adjustedCarbs: adjustedFood.carbs * adjustedFood.servings,
-              adjustedFat: adjustedFood.fat * adjustedFood.servings,
-            };
-          }
-        } else {
-          // For other categories, update as before
-          currentMeal[category] = adjustedFood;
+        if (!response.ok) {
+          throw new Error("Failed to save meal history");
         }
 
-        return newSelections;
-      });
-    },
-    [selectedMeal, selectedDay, selectedKid]
-  );
+        // Fetch updated history
+        const historyResponse = await fetch(
+          `/api/meal-history?kidId=${selectedKid}`
+        );
+        if (!historyResponse.ok) {
+          throw new Error("Failed to fetch meal history");
+        }
+
+        const history = await historyResponse.json();
+        setMealHistory((prev) => ({
+          ...prev,
+          [selectedKid]: history,
+        }));
+      } catch (error) {
+        console.error("Error updating meal history:", error);
+      }
+    };
+
+    // Debounce the update to prevent too many requests
+    const timeoutId = setTimeout(updateMealHistory, 500);
+    return () => clearTimeout(timeoutId);
+  }, [selectedKid, selectedDay, selectedMeal, selections]);
 
   const calculateMealNutrition = useCallback(
     (meal: MealType) => {
@@ -279,66 +314,6 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     );
   }, [selectedKid, selectedDay, calculateMealNutrition]);
 
-  // Milk toggle handler
-  const handleMilkToggle = useCallback(
-    (mealType: string, value: boolean) => {
-      if (!selectedKid || !selectedDay) return;
-
-      setSelections((prev) => {
-        const newSelections = deepClone(prev);
-        // @ts-expect-error TODO: fix
-
-        const milkFood: SelectedFood = {
-          ...MILK_OPTION,
-          category: "milk",
-          servings: 1,
-          adjustedCalories: MILK_OPTION.calories,
-          adjustedProtein: MILK_OPTION.protein,
-          adjustedCarbs: MILK_OPTION.carbs,
-          adjustedFat: MILK_OPTION.fat,
-        };
-
-        //@ts-expect-error TypeScript doesn't understand the dynamic keys here
-        newSelections[selectedKid][selectedDay][mealType].milk = value
-          ? milkFood
-          : null;
-
-        return newSelections;
-      });
-    },
-    [selectedKid, selectedDay]
-  );
-
-  // Ranch toggle handler
-  const handleRanchToggle = useCallback(
-    (mealType: MealType, value: boolean, servings: number) => {
-      if (!selectedKid || !selectedDay) return;
-
-      setSelections((prev) => {
-        const newSelections = deepClone(prev);
-        // @ts-expect-error TODO: fix
-
-        const ranchFood: SelectedFood = {
-          ...RANCH_OPTION,
-          category: "vegetables",
-          servings,
-          adjustedCalories: RANCH_OPTION.calories * servings,
-          adjustedProtein: RANCH_OPTION.protein * servings,
-          adjustedCarbs: RANCH_OPTION.carbs * servings,
-          adjustedFat: RANCH_OPTION.fat * servings,
-        };
-
-        //@ts-expect-error TypeScript doesn't understand the dynamic keys here
-        newSelections[selectedKid][selectedDay][mealType].ranch = value
-          ? ranchFood
-          : null;
-
-        return newSelections;
-      });
-    },
-    [selectedKid, selectedDay]
-  );
-
   return {
     selectedKid,
     selectedDay,
@@ -352,7 +327,6 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     handleFoodSelect,
     handleServingAdjustment,
     handleMilkToggle,
-    handleRanchToggle,
     calculateMealNutrition,
     calculateDailyTotals,
   };

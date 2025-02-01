@@ -183,6 +183,41 @@ export const MealPlanner = () => {
   // Save food handler
   // In MealPlanner.tsx, modify the handleSaveFood function:
 
+  const handleSaveMealPlan = async () => {
+    if (!selectedKid || !selectedDay || !selectedMeal) return;
+
+    try {
+      const currentSelections =
+        selections[selectedKid][selectedDay][selectedMeal];
+      const response = await fetch("/api/meal-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kidId: selectedKid,
+          date: selectedDay,
+          mealType: selectedMeal,
+          selections: currentSelections,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save meal plan");
+
+      // Refresh meal history after successful save
+      const historyResponse = await fetch(
+        `/api/meal-history?kidId=${selectedKid}`
+      );
+      if (historyResponse.ok) {
+        const newHistory = await historyResponse.json();
+        mealHistory[selectedKid] = [
+          ...(mealHistory[selectedKid] || []),
+          ...newHistory,
+        ];
+      }
+    } catch (error) {
+      console.error("Error saving meal plan:", error);
+    }
+  };
+
   const handleSaveFood = async (food: Food) => {
     try {
       if (selectedFoodContext?.mode === "add") {
