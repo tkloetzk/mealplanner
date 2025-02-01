@@ -3,7 +3,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Food } from "@/types/food";
 import { CondimentSelection } from "@/constants";
 
-export function useCondiments() {
+export function useCondiments(condiments: Food[]) {
   const [selectedCondiments, setSelectedCondiments] = useState<
     CondimentSelection[]
   >([]);

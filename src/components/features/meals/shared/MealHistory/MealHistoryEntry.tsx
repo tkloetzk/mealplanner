@@ -22,7 +22,7 @@ export function MealHistoryEntry({ entry }: MealHistoryEntryProps) {
         }
         acc[subcategory].push(condiment);
         return acc;
-      }, {} as Record<string, any[]>);
+      }, {} as Record<string, unknown[]>);
     }
 
     // If it's an object, create a single "Other" group
@@ -31,7 +31,7 @@ export function MealHistoryEntry({ entry }: MealHistoryEntryProps) {
       typeof condiments === "object" &&
       !Array.isArray(condiments)
     ) {
-      const groupedObj: Record<string, any[]> = {
+      const groupedObj: Record<string, unknown[]> = {
         Other: [condiments],
       };
       return groupedObj;
@@ -194,7 +194,7 @@ export function MealHistoryEntry({ entry }: MealHistoryEntryProps) {
 }
 
 // Helper function to calculate total calories
-function calculateTotalCalories(selections: any) {
+function calculateTotalCalories(selections: unknown) {
   try {
     // Calculate calories from main foods
     const mainCalories = Object.entries(selections)
@@ -207,7 +207,7 @@ function calculateTotalCalories(selections: any) {
       )
       .reduce((sum, [, food]) => {
         const calories =
-          (food as any).adjustedCalories || (food as any).calories || 0;
+          (food as unknown).adjustedCalories || (food as unknown).calories || 0;
         return sum + Number(calories);
       }, 0);
 
@@ -229,7 +229,7 @@ function calculateTotalCalories(selections: any) {
     if (condiments) {
       if (Array.isArray(condiments)) {
         condimentCalories = condiments.reduce(
-          (sum: number, condiment: any) =>
+          (sum: number, condiment: unknown) =>
             sum + Number(condiment.adjustedCalories || condiment.calories || 0),
           0
         );

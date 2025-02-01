@@ -64,7 +64,6 @@ export function NutritionSummary({
     ? DAILY_GOALS.mealCalories[selectedMeal]
     : 0;
 
-  console.log(currentNutrition);
   return (
     <Card
       className={`cursor-pointer transition-all duration-300 hover:shadow-md mb-6 ${

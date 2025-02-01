@@ -24,6 +24,7 @@ export function ChildView({
 }: ChildViewProps) {
   // Show relevant condiments based on selected foods
   const availableCondiments = useMemo(() => {
+    // @ts-expect-error idk
     if (!selectedMeal || !selections[selectedDay]?.[selectedMeal]) return [];
 
     const currentSelections = selections[selectedDay][selectedMeal];

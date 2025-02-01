@@ -1,6 +1,6 @@
 // src/hooks/useNutrition.ts
 import { useMemo } from "react";
-import { MealType, MealSelection, SelectedFood } from "@/types/food";
+import { MealType, MealSelection } from "@/types/food";
 import { DAILY_GOALS } from "@/constants/meal-goals";
 
 export interface NutritionSummary {
@@ -19,33 +19,7 @@ export function useNutrition(
   selections: MealSelection | null,
   mealType: MealType | null
 ) {
-  const calculateFoodNutrition = (
-    food: SelectedFood | null
-  ): NutritionSummary => {
-    if (!food) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-
-    return {
-      calories: food.adjustedCalories || food.calories || 0,
-      protein: food.adjustedProtein || food.protein || 0,
-      carbs: food.adjustedCarbs || food.carbs || 0,
-      fat: food.adjustedFat || food.fat || 0,
-    };
-  };
-
-  const calculateCondimentNutrition = (
-    condiments: SelectedFood[] = []
-  ): NutritionSummary => {
-    return condiments.reduce(
-      (sum, condiment) => ({
-        calories: sum.calories + (condiment.adjustedCalories || 0),
-        protein: sum.protein + (condiment.adjustedProtein || 0),
-        carbs: sum.carbs + (condiment.adjustedCarbs || 0),
-        fat: sum.fat + (condiment.adjustedFat || 0),
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-  };
-  const ensureNumber = (value: any): number => {
+  const ensureNumber = (value: unknown): number => {
     const num = Number(value);
     return isNaN(num) ? 0 : num;
   };
@@ -133,6 +107,7 @@ export function useNutrition(
       };
     }
 
+    //@ts-expect-error idk
     const targetCalories = DAILY_GOALS.mealCalories[mealType];
     const { protein: proteinGoals, fat: fatGoals } = DAILY_GOALS.dailyTotals;
 

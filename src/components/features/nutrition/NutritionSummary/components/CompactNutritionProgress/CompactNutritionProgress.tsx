@@ -94,6 +94,7 @@ export const CompactNutritionProgress = ({
     getProgressBarWidth,
     getProgressColor,
     getNutrientColor,
+    getMetricData,
   ]);
 
   const handleMetricClick = () => {

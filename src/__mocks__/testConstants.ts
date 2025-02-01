@@ -2,6 +2,7 @@
 import { CategoryType, ServingSizeUnit } from "@/types/food";
 import { Kid } from "@/types/user";
 import { BREAKFAST, LUNCH, DINNER, DAYS_OF_WEEK } from "@/constants";
+import { RANCH_OPTION } from "@/constants/meal-goals";
 // Constant for selected day
 export const SELECTED_DAY = DAYS_OF_WEEK[6];
 
@@ -78,7 +79,6 @@ export const MOCK_FOODS = {
     },
     // Add more vegetable foods
   ],
-
   other: [
     {
       id: "5",
@@ -107,4 +107,5 @@ export const MOCK_FOODS = {
       hiddenFromChild: false,
     },
   ],
+  condiments: [RANCH_OPTION],
 };
