@@ -490,6 +490,7 @@ export const MealPlanner = () => {
                 <button
                   key={meal}
                   onClick={() => setSelectedMeal(meal)}
+                  data-testid={`${meal}-meal-button`}
                   className={`p-4 rounded-lg text-lg capitalize ${
                     selectedMeal === meal
                       ? "bg-blue-500 text-white"
@@ -680,8 +681,8 @@ export const MealPlanner = () => {
                                     ? currentMealSelections?.condiments?.some(
                                         (c) => c.foodId === food.id
                                       )
-                                    : selectedFoodInCategory?.name ===
-                                      food.name;
+                                    : selectedFoodInCategory?.id === food.id;
+
                                 return (
                                   <FoodItem
                                     key={index}

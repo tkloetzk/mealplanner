@@ -9,17 +9,10 @@ import {
   MealPlan,
   MealHistoryRecord,
 } from "@/types/food";
-import {
-  DEFAULT_MEAL_PLAN,
-  MILK_OPTION,
-  RANCH_OPTION,
-} from "@/constants/meal-goals";
+import { DEFAULT_MEAL_PLAN, MILK_OPTION } from "@/constants/meal-goals";
 import { Kid } from "@/types/user";
 import { BREAKFAST, MEAL_TYPES } from "@/constants";
 
-// Utility function for safe local storage operations
-
-// Utility function to get the current day
 const DAYS: readonly DayType[] = [
   "sunday",
   "monday",
@@ -34,31 +27,17 @@ const getCurrentDay = (): DayType => {
   return DAYS[new Date().getDay()];
 };
 
-// Deep clone utility function
-const deepClone = <T>(obj: T): T => {
-  if (obj === null || typeof obj !== "object") return obj;
-  if (Array.isArray(obj)) return obj.map(deepClone) as T;
-  const clonedObj: Partial<T> = {};
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      clonedObj[key] = deepClone(obj[key]);
-    }
-  }
-  return clonedObj as T;
-};
-
 export const useMealPlanState = (initialKids: Kid[]) => {
   if (initialKids.length === 0) {
     throw new Error("At least one kid is required to use meal plan state");
   }
+
   const [selectedKid, setSelectedKid] = useState<string | null>(
     initialKids.length > 0 ? initialKids[0].id : null
   );
 
-  // Core selection state
   const [selectedDay, setSelectedDay] = useState<DayType>(getCurrentDay());
   const [selectedMeal, setSelectedMeal] = useState<MealType>(BREAKFAST);
-  // Selections state with persistent storage
   const [selections, setSelections] = useState<Record<string, MealPlan>>(() =>
     initialKids.reduce<Record<string, MealPlan>>((acc, kid) => {
       acc[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
@@ -66,7 +45,6 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     }, {})
   );
 
-  // Meal history state
   const [mealHistory, setMealHistory] = useState<
     Record<string, MealHistoryRecord[]>
   >({});
@@ -93,40 +71,51 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     }
   }, [selectedKid, fetchMealHistory]);
 
-  // In useMealPlanState.ts
-
-  // Remove the fetch and update logic from individual handlers
   const handleFoodSelect = useCallback(
-    async (category: CategoryType, food: Food) => {
+    (category: CategoryType, food: Food) => {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
 
-      const newSelections = structuredClone(selections);
-      const currentMeal = newSelections[selectedKid][selectedDay][selectedMeal];
+      setSelections((prevSelections) => {
+        // Create a deep clone of previous selections
+        const newSelections = JSON.parse(JSON.stringify(prevSelections));
 
-      if (category === "condiments") {
-        const existingCondimentIndex = currentMeal.condiments.findIndex(
-          (c) => c.foodId === food.id
-        );
+        // Get the current meal's selections
+        const currentMeal =
+          newSelections[selectedKid][selectedDay][selectedMeal];
 
-        if (existingCondimentIndex >= 0) {
-          currentMeal.condiments = currentMeal.condiments.filter(
-            (c) => c.foodId !== food.id
+        if (category === "condiments") {
+          const existingCondimentIndex = currentMeal.condiments.findIndex(
+            (c) => c.foodId === food.id
           );
+
+          if (existingCondimentIndex >= 0) {
+            // Remove condiment if it exists
+            currentMeal.condiments = currentMeal.condiments.filter(
+              (c) => c.foodId !== food.id
+            );
+          } else {
+            // Add new condiment
+            currentMeal.condiments.push({
+              foodId: food.id,
+              servings: 1,
+              adjustedCalories: food.calories,
+              adjustedProtein: food.protein,
+              adjustedCarbs: food.carbs,
+              adjustedFat: food.fat,
+            });
+          }
         } else {
-          currentMeal.condiments.push({
-            foodId: food.id,
-            servings: 1,
-            adjustedCalories: food.calories,
-            adjustedProtein: food.protein,
-            adjustedCarbs: food.carbs,
-            adjustedFat: food.fat,
-          });
-        }
-      } else {
-        currentMeal[category] =
-          currentMeal[category]?.name === food.name
-            ? null
-            : {
+          // For main food categories
+          const isSelectedInCurrentMeal = currentMeal[category]?.id === food.id;
+
+          if (isSelectedInCurrentMeal) {
+            // Deselect if already selected in this meal
+            currentMeal[category] = null;
+          } else {
+            // Check if the food is compatible with the current meal type
+            if (food.meal.includes(selectedMeal)) {
+              // Select the food only for this meal
+              currentMeal[category] = {
                 ...food,
                 servings: 1,
                 adjustedCalories: food.calories,
@@ -134,13 +123,35 @@ export const useMealPlanState = (initialKids: Kid[]) => {
                 adjustedCarbs: food.carbs,
                 adjustedFat: food.fat,
               };
-      }
+            }
+          }
+        }
 
-      setSelections(newSelections);
+        // Remove the food from meals where it's not compatible or not explicitly selected
+        MEAL_TYPES.forEach((mealType) => {
+          const mealSelections =
+            newSelections[selectedKid][selectedDay][mealType];
+
+          // If the food exists in other meal categories
+          if (
+            mealType !== selectedMeal &&
+            mealSelections[category]?.id === food.id
+          ) {
+            // Remove the food if it's not compatible with this meal type
+            // or it wasn't the meal where it was originally selected
+            if (!food.meal.includes(mealType)) {
+              mealSelections[category] = null;
+            }
+          }
+        });
+
+        return newSelections;
+      });
     },
-    [selectedKid, selectedDay, selectedMeal, selections]
+    [selectedKid, selectedDay, selectedMeal]
   );
 
+  // Rest of the code remains the same...
   const handleServingAdjustment = useCallback(
     (category: CategoryType, adjustedFood: SelectedFood) => {
       if (!selectedMeal || !selectedDay || !selectedKid) return;
@@ -187,7 +198,6 @@ export const useMealPlanState = (initialKids: Kid[]) => {
         adjustedFat: MILK_OPTION.fat,
       };
 
-      //@ts-expect-error TypeScript doesn't understand the dynamic keys here
       newSelections[selectedKid][selectedDay][mealType].milk = value
         ? milkFood
         : null;
@@ -197,14 +207,96 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     [selectedKid, selectedDay, selections]
   );
 
+  const calculateMealNutrition = useCallback(
+    (meal: MealType) => {
+      if (!selectedKid || !selectedDay) {
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
+
+      const mealSelections = selections[selectedKid]?.[selectedDay]?.[meal];
+
+      if (!mealSelections) {
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
+
+      const baseNutrition = Object.entries(mealSelections)
+        .filter(
+          ([category]) => category !== "condiments" && category !== "milk"
+        )
+        .reduce(
+          (sum, [, food]) => ({
+            calories: sum.calories + (food?.adjustedCalories || 0),
+            protein: sum.protein + (food?.adjustedProtein || 0),
+            carbs: sum.carbs + (food?.adjustedCarbs || 0),
+            fat: sum.fat + (food?.adjustedFat || 0),
+          }),
+          { calories: 0, protein: 0, carbs: 0, fat: 0 }
+        );
+
+      const condimentNutrition = mealSelections.condiments?.reduce(
+        (sum, condiment) => ({
+          calories: sum.calories + (condiment?.adjustedCalories || 0),
+          protein: sum.protein + (condiment?.adjustedProtein || 0),
+          carbs: sum.carbs + (condiment?.adjustedCarbs || 0),
+          fat: sum.fat + (condiment?.adjustedFat || 0),
+        }),
+        { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      ) || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+      return {
+        calories: baseNutrition.calories + condimentNutrition.calories,
+        protein: baseNutrition.protein + condimentNutrition.protein,
+        carbs: baseNutrition.carbs + condimentNutrition.carbs,
+        fat: baseNutrition.fat + condimentNutrition.fat,
+      };
+    },
+    [selections, selectedKid, selectedDay]
+  );
+
+  const calculateDailyTotals = useCallback(() => {
+    if (!selectedKid || !selectedDay) {
+      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    }
+
+    return MEAL_TYPES.reduce(
+      (dailyTotals, mealType) => {
+        const mealNutrition = calculateMealNutrition(mealType);
+        return {
+          calories: dailyTotals.calories + mealNutrition.calories,
+          protein: dailyTotals.protein + mealNutrition.protein,
+          carbs: dailyTotals.carbs + mealNutrition.carbs,
+          fat: dailyTotals.fat + mealNutrition.fat,
+        };
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+  }, [selectedKid, selectedDay, calculateMealNutrition]);
+
+  // Helper function to check if a meal has any selections
+  const hasMealSelections = useCallback((meal: MealSelection) => {
+    // Check main food categories
+    const hasMainFoodSelected = Object.entries(meal)
+      .filter(([category]) => category !== "condiments")
+      .some(([, food]) => food !== null);
+
+    // Check condiments
+    const hasCondiments = meal.condiments && meal.condiments.length > 0;
+
+    return hasMainFoodSelected || hasCondiments;
+  }, []);
+
+  // Effect to handle saving meal history
   useEffect(() => {
     const updateMealHistory = async () => {
       if (!selectedKid || !selectedDay || !selectedMeal) return;
 
-      // Get the current meal selections and handle possible null values
+      // Get the current meal selections
       const currentSelections =
         selections[selectedKid]?.[selectedDay]?.[selectedMeal];
       if (!currentSelections) return;
+
+      // Only save if the meal has actual selections
+      if (!hasMealSelections(currentSelections)) return;
 
       try {
         const mealData = {
@@ -247,79 +339,7 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     // Debounce the update to prevent too many requests
     const timeoutId = setTimeout(updateMealHistory, 500);
     return () => clearTimeout(timeoutId);
-  }, [selectedKid, selectedDay, selectedMeal, selections]);
-
-  const calculateMealNutrition = useCallback(
-    (meal: MealType) => {
-      if (!selectedKid || !selectedDay) {
-        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      }
-
-      const mealSelections = selections[selectedKid]?.[selectedDay]?.[meal];
-
-      if (!mealSelections) {
-        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      }
-
-      // Calculate base nutrition from main food selections
-      const baseNutrition = Object.entries(mealSelections)
-        .filter(
-          ([category, food]) => food !== null && category !== "condiments"
-        )
-        .reduce(
-          (sum, [, food]) => ({
-            calories: sum.calories + (food.adjustedCalories ?? food.calories),
-            protein: sum.protein + (food.adjustedProtein ?? food.protein),
-            carbs: sum.carbs + (food.adjustedCarbs ?? food.carbs),
-            fat: sum.fat + (food.adjustedFat ?? food.fat),
-          }),
-          { calories: 0, protein: 0, carbs: 0, fat: 0 }
-        );
-
-      // Add nutrition from condiments
-      const condimentNutrition = mealSelections.condiments?.reduce(
-        (sum, condiment) => ({
-          calories: sum.calories + condiment?.adjustedCalories,
-          protein: sum.protein + condiment?.adjustedProtein,
-          carbs: sum.carbs + condiment?.adjustedCarbs,
-          fat: sum.fat + condiment?.adjustedFat,
-        }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0 }
-      );
-
-      // Combine base and condiment nutrition
-      return {
-        calories: baseNutrition.calories + condimentNutrition?.calories,
-        protein: baseNutrition.protein + condimentNutrition?.protein,
-        carbs: baseNutrition.carbs + condimentNutrition?.carbs,
-        fat: baseNutrition.fat + condimentNutrition?.fat,
-      };
-    },
-    [selections, selectedKid, selectedDay]
-  );
-
-  const calculateDailyTotals = useCallback(() => {
-    if (!selectedKid || !selectedDay) {
-      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    }
-
-    return MEAL_TYPES.reduce(
-      (dailyTotals, mealType) => {
-        const mealNutrition = calculateMealNutrition(mealType);
-        return {
-          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
-          calories: dailyTotals.calories + mealNutrition.calories,
-          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
-          protein: dailyTotals.protein + mealNutrition.protein,
-          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
-          carbs: dailyTotals.carbs + mealNutrition.carbs,
-          // @ts-expect-error TypeScript doesn't understand the dynamic keys here
-          fat: dailyTotals.fat + mealNutrition.fat,
-        };
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-  }, [selectedKid, selectedDay, calculateMealNutrition]);
+  }, [selectedKid, selectedDay, selectedMeal, selections, hasMealSelections]);
 
   return {
     selectedKid,

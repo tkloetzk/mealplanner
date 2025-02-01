@@ -11,27 +11,40 @@ import { DAILY_GOALS, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
 import { MealPlanner } from "../meals/MealPlanner";
 import { act } from "react";
 import { CategoryType } from "@/types/food";
+import { MEAL_TYPES } from "@/constants";
+const renderMealPlanner = async () => {
+  const result = render(<MealPlanner />);
+  // Wait for initial load
+  await waitFor(() => {
+    expect(screen.getByText("Meal Planner")).toBeInTheDocument();
+  });
+  return result;
+};
+const selectMeal = async (meal: string) => {
+  const mealButton = screen.getByTestId(`${meal}-meal-button`);
+  await act(async () => {
+    fireEvent.click(mealButton);
+  });
+  expect(mealButton).toHaveClass("bg-blue-500 text-white");
+  return mealButton;
+};
+const selectFood = async (
+  category: CategoryType,
+  index: number,
+  meal = MEAL_TYPES[0]
+) => {
+  const foodElement = screen.getByTestId(`${category}-${meal}-${index}`);
 
+  await act(async () => {
+    fireEvent.click(foodElement);
+  });
+  expect(foodElement).toHaveClass("ring-2 ring-blue-500");
+  return foodElement;
+};
 describe("MealPlanner Integration Tests", () => {
   // Reusable render function with common setup
-  const renderMealPlanner = async () => {
-    const result = render(<MealPlanner />);
-    // Wait for initial load
-    await waitFor(() => {
-      expect(screen.getByText("Meal Planner")).toBeInTheDocument();
-    });
-    return result;
-  };
 
   // Helper functions to make tests more readable and maintainable
-  const selectFood = async (category: CategoryType, index: number) => {
-    const foodElement = screen.getByTestId(`${category}-${index}`);
-
-    await act(async () => {
-      fireEvent.click(foodElement);
-    });
-    return foodElement;
-  };
 
   const toggleSwitch = async (name: RegExp) => {
     const switchElement = screen.getByRole("switch", { name });
@@ -328,5 +341,317 @@ describe("MealPlanner Integration Tests", () => {
 
     expect(screen.queryByTitle("Edit Food")).not.toBeInTheDocument();
     expect(screen.queryByTitle("Adjust Servings")).not.toBeInTheDocument();
+  });
+});
+
+// Add this to src/components/features/meals/MealPlanner/__tests__/MealPlannerIntegration.test.tsx
+
+describe("Meal History Management", () => {
+  it("only saves meals with actual selections to history", async () => {
+    // Mock fetch to track API calls
+    const mockFetch = jest.fn().mockImplementation((url) => {
+      if (url.includes("/api/meal-history")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      // Return mock food data for other requests
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(MOCK_FOODS),
+      });
+    });
+
+    global.fetch = mockFetch;
+
+    render(<MealPlanner />);
+
+    // Select kid
+    await act(async () => {
+      fireEvent.click(screen.getByText("Presley"));
+    });
+
+    // 1. Select food in lunch
+    await act(async () => {
+      fireEvent.click(screen.getByText(/lunch/i));
+      const proteinElement = screen.getByTestId(`proteins-0`);
+      fireEvent.click(proteinElement);
+    });
+
+    // Wait for debounced save
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    // 2. Switch to dinner without making selections
+    await act(async () => {
+      fireEvent.click(screen.getByText(/dinner/i));
+    });
+
+    // Wait again to ensure no save happens
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    // Analyze fetch calls
+    const mealHistoryPosts = mockFetch.mock.calls.filter(
+      ([url, options]) =>
+        url.includes("/api/meal-history") && options?.method === "POST"
+    );
+
+    // Should only have one POST call for lunch
+    expect(mealHistoryPosts).toHaveLength(1);
+
+    // Verify the saved meal data
+    const savedMealData = JSON.parse(mealHistoryPosts[0][1].body);
+    expect(savedMealData.mealData.meal).toBe("lunch");
+    expect(savedMealData.mealData.selections.proteins).toBeDefined();
+
+    // 3. Make a selection in dinner
+    await act(async () => {
+      const vegetableElement = screen.getByTestId(`vegetables-0`);
+      fireEvent.click(vegetableElement);
+    });
+
+    // Wait for dinner save
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    // Should now have two POST calls (lunch and dinner)
+    const updatedMealHistoryPosts = mockFetch.mock.calls.filter(
+      ([url, options]) =>
+        url.includes("/api/meal-history") && options?.method === "POST"
+    );
+
+    expect(updatedMealHistoryPosts).toHaveLength(2);
+
+    // Verify the second saved meal data
+    const savedDinnerData = JSON.parse(updatedMealHistoryPosts[1][1].body);
+    expect(savedDinnerData.mealData.meal).toBe("dinner");
+    expect(savedDinnerData.mealData.selections.vegetables).toBeDefined();
+  });
+
+  it("handles meal selection changes correctly in history", async () => {
+    const mockFetch = jest.fn().mockImplementation((url) => {
+      if (url.includes("/api/meal-history")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(MOCK_FOODS),
+      });
+    });
+
+    global.fetch = mockFetch;
+
+    render(<MealPlanner />);
+
+    // Select kid
+    await act(async () => {
+      fireEvent.click(screen.getByText("Presley"));
+    });
+
+    // Select a protein in lunch
+    await act(async () => {
+      fireEvent.click(screen.getByText(/lunch/i));
+      const proteinElement = screen.getByTestId(`proteins-0`);
+      fireEvent.click(proteinElement);
+    });
+
+    // Wait for save
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    // Deselect the protein
+    await act(async () => {
+      const proteinElement = screen.getByTestId(`proteins-0`);
+      fireEvent.click(proteinElement);
+    });
+
+    // Wait for update
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    // After deselection, there should be no new save since meal has no selections
+    const finalMealHistoryPosts = mockFetch.mock.calls.filter(
+      ([url, options]) =>
+        url.includes("/api/meal-history") && options?.method === "POST"
+    );
+
+    // Should still have only one POST call from the initial selection
+    expect(finalMealHistoryPosts).toHaveLength(1);
+  });
+});
+describe("Meal Selection Isolation", () => {
+  // Add this to MealPlannerIntegration.test.tsx
+  it.only("maintains separate selections between different meals", async () => {
+    await renderMealPlanner();
+
+    // Select Lunch meal
+    selectMeal(MEAL_TYPES[1]);
+
+    // Select protein in Lunch
+    const protein = MOCK_FOODS.proteins[0];
+    await selectFood(protein.category, 0, MEAL_TYPES[1]);
+    const proteinCard = screen.getByText(protein.name).closest(".rounded-lg");
+    expect(proteinCard).toHaveClass("ring-2 ring-blue-500");
+
+    // Switch to Dinner meal
+    await selectMeal(MEAL_TYPES[2]);
+
+    // Verify no proteins selected in Dinner
+    const dinnerProteinCard = screen
+      .queryByText(protein.name)
+      ?.closest(".rounded-lg");
+    expect(dinnerProteinCard).not.toHaveClass("ring-2");
+
+    // Select vegetable in Dinner
+    const vegetable = MOCK_FOODS.vegetables[0];
+    await selectFood(vegetable.category, 0, MEAL_TYPES[2]);
+    const vegCard = screen.getByText(vegetable.name).closest(".rounded-lg");
+    expect(vegCard).toHaveClass("ring-2 ring-blue-500");
+
+    // Switch back to Lunch
+    // fireEvent.click(lunchButton);
+    await selectMeal(MEAL_TYPES[1]);
+
+    // Verify Lunch retains its protein selection
+    expect(proteinCard).toHaveClass("ring-2 ring-blue-500");
+
+    // Verify no vegetables selected in Lunch
+    const lunchVegCard = screen
+      .queryByText(vegetable.name)
+      ?.closest(".rounded-lg");
+    expect(lunchVegCard).not.toHaveClass("ring-2");
+  });
+  it("maintains unique food selection states between meals", async () => {
+    render(<MealPlanner />);
+
+    // Select kid
+    await act(async () => {
+      fireEvent.click(screen.getByText("Presley"));
+    });
+
+    // Select protein in lunch
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("lunch-meal-button"));
+      const proteinElement = screen.getByTestId("proteins-lunch-0");
+      fireEvent.click(proteinElement);
+    });
+
+    // Verify protein is selected in lunch
+    const selectedProtein = screen.getByTestId("proteins-lunch-0");
+    expect(selectedProtein).toHaveClass("ring-2 ring-blue-500");
+    expect(selectedProtein.closest("div")).toHaveClass("bg-blue-100");
+
+    // Switch to dinner and verify protein is NOT selected there
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dinner-meal-button"));
+    });
+
+    // The same protein should not be selected in dinner
+    const dinnerProtein = screen.getByTestId("proteins-dinner-0");
+    expect(dinnerProtein).not.toHaveClass("ring-2 ring-blue-500");
+    expect(dinnerProtein.closest("div")).not.toHaveClass("bg-blue-100");
+
+    // Switch back to lunch and verify protein is still selected
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("lunch-meal-button"));
+    });
+
+    const lunchProtein = screen.getByTestId("proteins-lunch-0");
+    expect(lunchProtein).toHaveClass("ring-2 ring-blue-500");
+    expect(lunchProtein.closest("div")).toHaveClass("bg-blue-100");
+  });
+
+  it("handles deselection independently between meals", async () => {
+    await renderMealPlanner();
+
+    // 1. Select foods in both lunch and dinner
+    // Select in lunch first
+    await selectMeal(MEAL_TYPES[1]);
+    await selectFood(MOCK_FOODS.proteins[0].category, 0);
+
+    // Select in dinner
+    await selectMeal(MEAL_TYPES[2]);
+    await selectFood(MOCK_FOODS.vegetables[0].category, 0);
+
+    // 2. Deselect protein in lunch
+    await selectMeal(MEAL_TYPES[1]);
+    await act(async () => {
+      const proteinElement = screen.getByTestId(`proteins-0`);
+      fireEvent.click(proteinElement); // Click again to deselect
+    });
+    expect(screen.getByTestId(`proteins-0`)).not.toHaveClass(
+      "ring-2 ring-blue-500"
+    );
+
+    // 3. Verify dinner selection remains unchanged
+    await selectMeal(MEAL_TYPES[2]);
+    expect(screen.getByTestId(`vegetables-0`)).toHaveClass(
+      "ring-2 ring-blue-500"
+    );
+
+    // 4. Verify lunch protein was deselected
+    await selectMeal(MEAL_TYPES[1]);
+    expect(screen.getByTestId(`proteins-0`)).not.toHaveClass(
+      "ring-2 ring-blue-500"
+    );
+  });
+
+  it("maintains meal-specific serving adjustments", async () => {
+    await renderMealPlanner();
+    // Select kid
+    // await act(async () => {
+    //   fireEvent.click(screen.getByText("Presley"));
+    // });
+
+    // 1. Select same protein in both lunch and dinner with different servings
+    // Lunch: 1 serving
+    await selectMeal(MEAL_TYPES[1]);
+    await selectFood("proteins", 0);
+
+    // Dinner: 2 servings
+    await selectMeal(MEAL_TYPES[2]);
+    await selectFood("proteins", 0);
+
+    // Adjust dinner serving to 2
+    await act(async () => {
+      const servingButton = screen.getByTitle("Adjust Servings");
+      fireEvent.click(servingButton);
+    });
+    await act(async () => {
+      const servingInput = screen.getByTestId("custom-serving-input");
+      fireEvent.change(servingInput, { target: { value: "2" } });
+
+      const confirmButton = screen.getByRole("button", { name: /confirm/i });
+      fireEvent.click(confirmButton);
+    });
+
+    // Verify lunch still has 1 serving
+    await selectMeal(MEAL_TYPES[1]);
+    expect(screen.getByText("1 serving(s)")).toBeInTheDocument();
+
+    // Verify dinner has 2 servings
+    await act(async () => {
+      fireEvent.click(screen.getByText(/dinner/i));
+    });
+    expect(screen.getByText("2 serving(s)")).toBeInTheDocument();
+
+    // Verify nutrition calculations reflect different servings
+    const proteinFood = MOCK_FOODS.proteins[0];
+
+    // Check lunch calories (1 serving)
+    await act(async () => {
+      fireEvent.click(screen.getByText(/lunch/i));
+    });
+    expect(
+      screen.getByText(`${proteinFood.calories} / 400 cal`)
+    ).toBeInTheDocument();
+
+    // Check dinner calories (2 servings)
+    await act(async () => {
+      fireEvent.click(screen.getByText(/dinner/i));
+    });
+    expect(
+      screen.getByText(`${proteinFood.calories * 2} / 400 cal`)
+    ).toBeInTheDocument();
   });
 });
