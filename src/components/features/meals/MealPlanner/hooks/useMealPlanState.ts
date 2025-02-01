@@ -197,16 +197,20 @@ export const useMealPlanState = (initialKids: Kid[]) => {
     [selectedKid, selectedDay, selections]
   );
 
-  // Add a useEffect to handle meal history updates
   useEffect(() => {
     const updateMealHistory = async () => {
       if (!selectedKid || !selectedDay || !selectedMeal) return;
+
+      // Get the current meal selections and handle possible null values
+      const currentSelections =
+        selections[selectedKid]?.[selectedDay]?.[selectedMeal];
+      if (!currentSelections) return;
 
       try {
         const mealData = {
           meal: selectedMeal,
           date: new Date(),
-          selections: selections[selectedKid][selectedDay][selectedMeal],
+          selections: currentSelections,
         };
 
         const response = await fetch("/api/meal-history", {
@@ -236,6 +240,9 @@ export const useMealPlanState = (initialKids: Kid[]) => {
         console.error("Error updating meal history:", error);
       }
     };
+
+    // Skip effect if required values aren't present
+    if (!selectedKid || !selectedDay || !selectedMeal) return;
 
     // Debounce the update to prevent too many requests
     const timeoutId = setTimeout(updateMealHistory, 500);
