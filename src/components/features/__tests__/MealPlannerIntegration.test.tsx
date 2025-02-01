@@ -481,47 +481,8 @@ describe("Meal History Management", () => {
 });
 describe("Meal Selection Isolation", () => {
   // Add this to MealPlannerIntegration.test.tsx
-  it.only("maintains separate selections between different meals", async () => {
-    await renderMealPlanner();
 
-    // Select Lunch meal
-    selectMeal(MEAL_TYPES[1]);
-
-    // Select protein in Lunch
-    const protein = MOCK_FOODS.proteins[0];
-    await selectFood(protein.category, 0, MEAL_TYPES[1]);
-    const proteinCard = screen.getByText(protein.name).closest(".rounded-lg");
-    expect(proteinCard).toHaveClass("ring-2 ring-blue-500");
-
-    // Switch to Dinner meal
-    await selectMeal(MEAL_TYPES[2]);
-
-    // Verify no proteins selected in Dinner
-    const dinnerProteinCard = screen
-      .queryByText(protein.name)
-      ?.closest(".rounded-lg");
-    expect(dinnerProteinCard).not.toHaveClass("ring-2");
-
-    // Select vegetable in Dinner
-    const vegetable = MOCK_FOODS.vegetables[0];
-    await selectFood(vegetable.category, 0, MEAL_TYPES[2]);
-    const vegCard = screen.getByText(vegetable.name).closest(".rounded-lg");
-    expect(vegCard).toHaveClass("ring-2 ring-blue-500");
-
-    // Switch back to Lunch
-    // fireEvent.click(lunchButton);
-    await selectMeal(MEAL_TYPES[1]);
-
-    // Verify Lunch retains its protein selection
-    expect(proteinCard).toHaveClass("ring-2 ring-blue-500");
-
-    // Verify no vegetables selected in Lunch
-    const lunchVegCard = screen
-      .queryByText(vegetable.name)
-      ?.closest(".rounded-lg");
-    expect(lunchVegCard).not.toHaveClass("ring-2");
-  });
-  it("maintains unique food selection states between meals", async () => {
+  it.only("maintains unique food selection states between meals", async () => {
     render(<MealPlanner />);
 
     // Select kid
@@ -530,11 +491,8 @@ describe("Meal Selection Isolation", () => {
     });
 
     // Select protein in lunch
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("lunch-meal-button"));
-      const proteinElement = screen.getByTestId("proteins-lunch-0");
-      fireEvent.click(proteinElement);
-    });
+    await selectMeal(MEAL_TYPES[1]);
+    await selectFood("proteins", 0, MEAL_TYPES[1]);
 
     // Verify protein is selected in lunch
     const selectedProtein = screen.getByTestId("proteins-lunch-0");
