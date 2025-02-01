@@ -1,259 +1,251 @@
-// src/components/features/meals/shared/MealHistory/MealHistoryEntry.tsx
-
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { MealHistoryRecord } from "@/types/food";
+import { MealHistoryRecord, MealType } from "@/types/food";
+import { MEAL_TYPES } from "@/constants";
+import { DAILY_GOALS } from "@/constants/meal-goals";
 
 interface MealHistoryEntryProps {
-  entry: MealHistoryRecord;
+  date: string;
+  entries: MealHistoryRecord[];
 }
 
-export function MealHistoryEntry({ entry }: MealHistoryEntryProps) {
-  // Group condiments, handling both array and object cases
-  const groupedCondiments = (() => {
-    const condiments = entry.selections.condiments;
+export function MealHistoryEntry({ date, entries }: MealHistoryEntryProps) {
+  // Sort entries by meal type according to MEAL_TYPES order
+  const sortedEntries = [...entries].sort((a, b) => {
+    return (
+      MEAL_TYPES.indexOf(a.meal as MealType) -
+      MEAL_TYPES.indexOf(b.meal as MealType)
+    );
+  });
 
-    // If it's an array, use existing logic
-    if (Array.isArray(condiments)) {
-      return condiments.reduce((acc, condiment) => {
-        const subcategory = condiment.subcategory || "Other";
-        if (!acc[subcategory]) {
-          acc[subcategory ?? "Other"] = [];
+  // Helper function to calculate calories for a meal
+  const calculateMealCalories = (entry: MealHistoryRecord) => {
+    let total = 0;
+
+    // Calculate calories from main foods
+    Object.entries(entry.selections)
+      .filter(
+        ([category]) =>
+          category !== "condiments" &&
+          category !== "milk" &&
+          category !== "ranch"
+      )
+      .forEach(([, food]) => {
+        if (food) {
+          total +=
+            parseInt(food.adjustedCalories) || parseInt(food.calories) || 0;
         }
-        acc[subcategory ?? "Other"].push(condiment);
-        return acc;
-      }, {} as Record<string, unknown[]>);
+      });
+
+    // Add milk calories if present
+    if (entry.selections.milk) {
+      total +=
+        entry.selections.milk.adjustedCalories ||
+        entry.selections.milk.calories ||
+        0;
     }
 
-    // If it's an object, create a single "Other" group
-    if (
-      condiments &&
-      typeof condiments === "object" &&
-      !Array.isArray(condiments)
-    ) {
-      const groupedObj: Record<string, unknown[]> = {
-        Other: [condiments],
-      };
-      return groupedObj;
+    // Add ranch calories if present
+    if (entry.selections.ranch) {
+      total +=
+        entry.selections.ranch.adjustedCalories ||
+        entry.selections.ranch.calories ||
+        0;
     }
 
-    // If no condiments, return empty object
-    return {};
-  })();
+    // Add condiment calories
+    if (Array.isArray(entry.selections.condiments)) {
+      entry.selections.condiments.forEach((condiment) => {
+        total += parseInt(condiment.adjustedCalories) || 0;
+      });
+    }
+
+    return Math.round(total);
+  };
+
+  // Calculate total daily calories
+  const dailyTotalCalories = sortedEntries.reduce((total, entry) => {
+    return total + calculateMealCalories(entry);
+  }, 0);
+
+  // Calculate percentage of daily goal
+  const percentOfDailyGoal =
+    (dailyTotalCalories / DAILY_GOALS.dailyTotals.calories) * 100;
+
+  // Helper function to get color based on percentage of goal
+  const getCalorieColor = (calories: number, targetCalories: number) => {
+    const percentage = (calories / targetCalories) * 100;
+    if (percentage > 110) return "text-red-600";
+    if (percentage < 90) return "text-yellow-600";
+    return "text-green-600";
+  };
 
   return (
     <Card>
-      <CardHeader>
+      {/* Daily Calories Summary */}
+      <CardHeader className="pb-0">
         <div className="flex justify-between items-center">
-          <span className="font-medium capitalize">
-            {typeof entry.meal === "function" ? entry.meal() : entry.meal}
-          </span>
-          <span className="text-sm text-gray-500">
-            {format(new Date(entry.date), "h:mm a")}
-          </span>
+          <div className="text-sm text-gray-500">Daily Total</div>
+          <div
+            className={`font-bold ${getCalorieColor(
+              dailyTotalCalories,
+              DAILY_GOALS.dailyTotals.calories
+            )}`}
+          >
+            {dailyTotalCalories} / {DAILY_GOALS.dailyTotals.calories} cal
+            <div className="text-xs text-gray-500 text-right">
+              {percentOfDailyGoal.toFixed(1)}% of daily goal
+            </div>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="space-y-4">
-          {/* Main Foods */}
-          {Object.entries(entry.selections)
-            .filter(
-              ([category, food]) =>
-                food !== null &&
-                category !== "condiments" &&
-                category !== "milk" &&
-                category !== "ranch"
-            )
-            .map(([category, food]) => (
-              <div key={category} className="flex justify-between items-center">
+      <CardContent className="p-6">
+        {sortedEntries.map((entry, index) => {
+          const mealCalories = calculateMealCalories(entry);
+          const mealTarget =
+            DAILY_GOALS.mealCalories[
+              entry.meal as keyof typeof DAILY_GOALS.mealCalories
+            ];
+
+          return (
+            <div
+              key={`${entry._id}-${index}`}
+              className={`${index > 0 ? "mt-6 pt-6 border-t" : ""}`}
+            >
+              <div className="flex justify-between items-start mb-4">
                 <div>
-                  <span className="font-medium">{food.name}</span>
-                  <div className="text-sm text-gray-600">
-                    {food.servings} serving(s)
+                  <h3 className="text-lg font-semibold capitalize">
+                    {entry.meal}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {format(new Date(entry.date), "h:mm a")}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div
+                    className={`font-medium ${getCalorieColor(
+                      mealCalories,
+                      mealTarget
+                    )}`}
+                  >
+                    {mealCalories} / {mealTarget} cal
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {((mealCalories / mealTarget) * 100).toFixed(1)}% of target
                   </div>
                 </div>
+              </div>
 
-                {entry.consumptionData?.foods?.find(
-                  (f) => f.name === food.name
-                ) && (
-                  <div className="text-sm font-medium">
-                    {
-                      entry.consumptionData.foods.find(
+              <div className="space-y-3">
+                {/* Main Foods */}
+                {Object.entries(entry.selections)
+                  .filter(
+                    ([category, food]) =>
+                      food !== null &&
+                      category !== "condiments" &&
+                      category !== "milk" &&
+                      category !== "ranch"
+                  )
+                  .map(([category, food]) => (
+                    <div
+                      key={category}
+                      className="flex justify-between items-center"
+                    >
+                      <div>
+                        <span className="font-medium">{food.name}</span>
+                        <div className="text-sm text-gray-600">
+                          {food.servings} serving(s) •{" "}
+                          {food.adjustedCalories || food.calories} cal
+                        </div>
+                      </div>
+                      {entry.consumptionData?.foods?.find(
                         (f) => f.name === food.name
-                      )?.percentageEaten
-                    }
-                    % eaten
+                      ) && (
+                        <div className="text-sm font-medium">
+                          {
+                            entry.consumptionData.foods.find(
+                              (f) => f.name === food.name
+                            )?.percentageEaten
+                          }
+                          % eaten
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                {/* Milk */}
+                {entry.selections.milk && (
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="font-medium">
+                        {entry.selections.milk.name}
+                      </span>
+                      <div className="text-sm text-gray-600">
+                        {entry.selections.milk.servings} serving(s) •{" "}
+                        {entry.selections.milk.adjustedCalories ||
+                          entry.selections.milk.calories}{" "}
+                        cal
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
-            ))}
 
-          {/* Milk and Ranch */}
-          {entry.selections.milk && (
-            <div className="flex justify-between items-center">
-              <div>
-                <span className="font-medium">
-                  {entry.selections.milk.name}
-                </span>
-                <div className="text-sm text-gray-600">
-                  {entry.selections.milk.servings} serving(s)
-                </div>
-              </div>
-            </div>
-          )}
-
-          {entry.selections.ranch && (
-            <div className="flex justify-between items-center">
-              <div>
-                <span className="font-medium">
-                  {entry.selections.ranch.name}
-                </span>
-                <div className="text-sm text-gray-600">
-                  {entry.selections.ranch.servings} serving(s)
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Condiments Section */}
-          {Object.keys(groupedCondiments).length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Added Toppings:
-              </h4>
-              {Object.entries(groupedCondiments).map(
-                ([subcategory, condiments]) => (
-                  <div key={subcategory} className="mb-2">
-                    <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      {subcategory}
+                {/* Ranch */}
+                {entry.selections.ranch && (
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="font-medium">
+                        {entry.selections.ranch.name}
+                      </span>
+                      <div className="text-sm text-gray-600">
+                        {entry.selections.ranch.servings} serving(s) •{" "}
+                        {entry.selections.ranch.adjustedCalories ||
+                          entry.selections.ranch.calories}{" "}
+                        cal
+                      </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Condiments Section */}
+                {entry.selections.condiments?.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                      Added Toppings:
+                    </h4>
                     <div className="space-y-2">
-                      {condiments.map((condiment, index) => (
+                      {entry.selections.condiments.map((condiment, idx) => (
                         <div
-                          key={index}
+                          key={idx}
                           className="flex justify-between items-center"
                         >
                           <div>
                             <span className="text-sm">{condiment.name}</span>
                             <div className="text-xs text-gray-600">
-                              {condiment.servings || 1}{" "}
-                              {condiment.servingSizeUnit}
+                              {condiment.servings || 1} serving(s) •{" "}
+                              {condiment.adjustedCalories || 0} cal
                             </div>
                           </div>
-
-                          {entry.consumptionData?.foods?.find(
-                            (f) => f.name === condiment.name
-                          ) && (
-                            <div className="text-xs font-medium">
-                              {
-                                entry.consumptionData.foods.find(
-                                  (f) => f.name === condiment.name
-                                )?.percentageEaten
-                              }
-                              % used
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
                   </div>
-                )
-              )}
-            </div>
-          )}
+                )}
 
-          {/* Nutrition Summary */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-gray-600">Total Calories</div>
-                <div className="font-medium">
-                  {calculateTotalCalories(entry.selections)}
-                </div>
-              </div>
-              <div>
-                <div className="text-gray-600">Time Since Meal</div>
-                <div className="font-medium">
-                  {format(new Date(entry.date), "PPp")}
-                </div>
+                {/* Consumption Summary */}
+                {entry.consumptionData?.summary && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      {entry.consumptionData.summary}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-
-          {/* Consumption Summary */}
-          {entry.consumptionData?.summary && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="text-sm text-gray-600">
-                {entry.consumptionData.summary}
-              </div>
-            </div>
-          )}
-        </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
-}
-
-// Helper function to calculate total calories
-function calculateTotalCalories(selections: unknown) {
-  try {
-    // Calculate calories from main foods
-    const mainCalories = Object.entries(selections)
-      .filter(
-        ([category, food]) =>
-          food !== null &&
-          category !== "condiments" &&
-          category !== "milk" &&
-          category !== "ranch"
-      )
-      .reduce((sum, [, food]) => {
-        const calories =
-          (food as unknown).adjustedCalories || (food as unknown).calories || 0;
-        return sum + Number(calories);
-      }, 0);
-
-    // Add calories from milk
-    const milkCalories = Number(
-      selections.milk?.adjustedCalories || selections.milk?.calories || 0
-    );
-
-    // Add calories from ranch
-    const ranchCalories = Number(
-      selections.ranch?.adjustedCalories || selections.ranch?.calories || 0
-    );
-
-    // Add calories from condiments
-    let condimentCalories = 0;
-    const condiments = selections.condiments;
-
-    // Handle both object and array cases
-    if (condiments) {
-      if (Array.isArray(condiments)) {
-        condimentCalories = condiments.reduce(
-          (sum: number, condiment: unknown) =>
-            sum + Number(condiment.adjustedCalories || condiment.calories || 0),
-          0
-        );
-      } else if (typeof condiments === "object") {
-        condimentCalories = Number(condiments.calories || 0);
-      }
-    }
-
-    const totalCalories =
-      mainCalories + milkCalories + ranchCalories + condimentCalories;
-
-    console.log("Calorie Breakdown:", {
-      mainCalories,
-      milkCalories,
-      ranchCalories,
-      condimentCalories,
-      totalCalories,
-    });
-
-    return Math.round(totalCalories);
-  } catch (error) {
-    console.error("Error calculating total calories:", error);
-    return 0;
-  }
 }

@@ -1,5 +1,7 @@
+// src/app/api/meal-history/route.ts
 import { NextResponse } from "next/server";
 import { DatabaseService } from "@/app/utils/DatabaseService";
+import { ensureNestedNumericFields } from "@/utils/validation/numericValidator"; // Fixed path
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,13 +15,23 @@ export async function GET(request: Request) {
     const service = DatabaseService.getInstance();
     const mealHistoryCollection = await service.getCollection("mealHistory");
 
-    // Fetch meal history for the specific kid, sorted by date (most recent first)
     const history = await mealHistoryCollection
       .find({ kidId })
       .sort({ date: -1 })
       .toArray();
 
-    return NextResponse.json(history);
+    // Ensure all numeric fields in the history and nested objects are numbers
+    const validatedHistory = history.map((entry) =>
+      ensureNestedNumericFields({
+        ...entry,
+        date:
+          entry.date instanceof Date
+            ? entry.date.toISOString()
+            : new Date(entry.date).toISOString(),
+      })
+    );
+
+    return NextResponse.json(validatedHistory);
   } catch (error) {
     console.error("Error fetching meal history:", error);
     return NextResponse.json(
@@ -39,7 +51,6 @@ export async function POST(request: Request) {
   try {
     const { kidId, mealData } = await request.json();
 
-    // Validate input
     if (!kidId) {
       return NextResponse.json(
         { error: "Kid ID is required" },
@@ -53,37 +64,49 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create date filter for exact day match
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+    // Create proper Date object for today
+    const now = new Date();
+    const date = now.toISOString();
+
+    // Validate and transform numeric fields before saving
+    const validatedMealData = ensureNestedNumericFields({
+      ...mealData,
+      date, // Set the date explicitly
+    });
 
     const service = DatabaseService.getInstance();
     const mealHistoryCollection = await service.getCollection("mealHistory");
 
-    // Create precise filter for existing entry
+    // Use start and end of day for filtering
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const endOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1
+    );
+
     const existingRecordFilter = {
       kidId,
-      date: { $gte: today, $lt: tomorrow }, // Exact day match
-      meal: mealData.meal,
+      date: { $gte: startOfDay, $lt: endOfDay },
+      meal: validatedMealData.meal,
     };
 
-    // Prepare update operation
     const updateOperation = {
       $set: {
-        selections: mealData.selections,
-        timestamp: new Date(),
+        selections: validatedMealData.selections,
+        date: date, // Ensure we set the date in the update
+        timestamp: now,
       },
       $setOnInsert: {
-        // Only set these fields on insert
-        date: today,
         kidId,
-        meal: mealData.meal,
+        meal: validatedMealData.meal,
       },
     };
 
-    // Update existing entry or create new one
     const result = await mealHistoryCollection.findOneAndUpdate(
       existingRecordFilter,
       updateOperation,
@@ -93,18 +116,23 @@ export async function POST(request: Request) {
       }
     );
 
-    // Create index to support the query
     await mealHistoryCollection.createIndex(
       { kidId: 1, date: 1, meal: 1 },
       { unique: true }
     );
 
-    // Return the saved/updated document
-    return NextResponse.json(result);
+    // Ensure numeric fields are properly converted in the response
+    const validatedResult = ensureNestedNumericFields({
+      ...result,
+      date:
+        result.date instanceof Date
+          ? result.date.toISOString()
+          : new Date(result.date).toISOString(),
+    });
+
+    return NextResponse.json(validatedResult);
   } catch (error) {
     console.error("Error saving meal history:", error);
-
-    // Detailed error logging
     return NextResponse.json(
       {
         error: "Failed to save meal history",

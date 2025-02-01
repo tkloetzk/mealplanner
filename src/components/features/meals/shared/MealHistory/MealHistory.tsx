@@ -16,19 +16,41 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
   // Sort and group entries whenever historyEntries changes
   useEffect(() => {
     const grouped = historyEntries.reduce((acc, entry) => {
-      const dateKey = format(new Date(entry.date), "yyyy-MM-dd");
-      if (!acc[dateKey]) {
-        acc[dateKey] = [];
+      // Ensure we have a valid date
+      if (!entry.date) {
+        console.error("Entry missing date:", entry);
+        return acc;
       }
-      acc[dateKey].push(entry);
-      return acc;
+
+      try {
+        const entryDate = new Date(entry.date);
+        if (isNaN(entryDate.getTime())) {
+          console.error("Invalid date:", entry.date);
+          return acc;
+        }
+
+        const dateKey = format(entryDate, "yyyy-MM-dd");
+        if (!acc[dateKey]) {
+          acc[dateKey] = [];
+        }
+        acc[dateKey].push({
+          ...entry,
+          date: entry.date, // Keep the ISO string
+        });
+        return acc;
+      } catch (error) {
+        console.error("Error processing date:", entry.date, error);
+        return acc;
+      }
     }, {} as Record<string, MealHistoryRecord[]>);
 
-    // Sort entries within each day by time
+    // Sort entries within each day
     Object.keys(grouped).forEach((date) => {
-      grouped[date].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
+      grouped[date].sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
     });
 
     setSortedEntries(grouped);
@@ -46,24 +68,12 @@ export function MealHistory({ historyEntries }: MealHistoryProps) {
 
           return (
             <div key={date} className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center justify-between">
-                <span>{getDateLabel(dateObj)}</span>
-                <span className="text-sm text-gray-500">
-                  {format(dateObj, "PPp")}
-                </span>
-              </h3>
-
-              {entries.map((entry) => (
-                <MealHistoryEntry
-                  key={entry._id?.toString() || `${entry.date}-${entry.meal}`}
-                  entry={entry}
-                />
-              ))}
+              <h3 className="text-lg font-semibold">{getDateLabel(dateObj)}</h3>
+              <MealHistoryEntry date={date} entries={entries} />
             </div>
           );
         })}
 
-      {/* Show empty state if no entries */}
       {Object.keys(sortedEntries).length === 0 && (
         <div className="text-center py-8 text-gray-500">
           No meal history available
@@ -92,5 +102,5 @@ function getDateLabel(date: Date): string {
     return "Yesterday";
   }
 
-  return format(date, "MMMM d, yyyy");
+  return format(date, "EEEE, MMMM d, yyyy");
 }
