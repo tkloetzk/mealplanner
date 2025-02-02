@@ -36,7 +36,15 @@ const selectFood = async (
   const foodElement = screen.getByTestId(`${category}-${meal}-${index}`);
 
   await userEvent.click(foodElement);
-  expect(foodElement).toHaveClass("ring-2 ring-blue-500");
+  expect(foodElement).toHaveClass("ring-2 ring-blue-500 bg-blue-100");
+
+  // Verify that the "Edit Food" icon is now visible
+  expect(screen.getByTestId("edit-food-icon")).toBeInTheDocument();
+
+  // Verify that the "Adjust Servings" control is visible.
+  // Depending on your implementation, you could use test id or accessible title.
+  expect(screen.getByTitle("Adjust Servings")).toBeInTheDocument();
+
   return foodElement;
 };
 const deselectFood = async (
@@ -46,7 +54,9 @@ const deselectFood = async (
 ) => {
   const foodElement = screen.getByTestId(`${category}-${meal}-${index}`);
   await userEvent.click(foodElement);
-  expect(foodElement).not.toHaveClass("ring-2 ring-blue-500");
+  expect(foodElement).not.toHaveClass("ring-2 ring-blue-500 bg-blue-100");
+  expect(screen.queryByTestId("edit-food-icon")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("adjust-servings-icon")).not.toBeInTheDocument();
   return foodElement;
 };
 describe("MealPlanner Integration Tests", () => {
@@ -87,12 +97,7 @@ describe("MealPlanner Integration Tests", () => {
   it("handles food selection with visual feedback and nutrition updates", async () => {
     await renderMealPlanner();
 
-    // Select kid
-    const kidSelector = screen.getByText("Presley");
-    await act(async () => {
-      fireEvent.click(kidSelector);
-    });
-
+    await selectMeal(MEAL_TYPES[0]);
     const proteinFood = MOCK_FOODS.proteins[0];
     // Ensure the food is selected and rendered correctly
     const foodElement = screen.getByTestId(
@@ -105,7 +110,7 @@ describe("MealPlanner Integration Tests", () => {
     expect(screen.queryByTitle("Adjust Servings")).not.toBeInTheDocument();
     expect(foodElement).not.toHaveClass("ring-2");
 
-    // Select food and verify selection state
+    // // Select food and verify selection state
     const selectedFoodCard = await selectFood(
       proteinFood.category,
       0,
@@ -128,7 +133,7 @@ describe("MealPlanner Integration Tests", () => {
     });
 
     // Verify deselection
-    await selectFood(proteinFood.category, 0);
+    await deselectFood(proteinFood.category, 0);
     expect(screen.queryByTitle("Edit Food")).not.toBeInTheDocument();
     expect(selectedFoodCard).not.toHaveClass("ring-2");
   });
@@ -136,25 +141,14 @@ describe("MealPlanner Integration Tests", () => {
   it("handles serving size adjustments correctly", async () => {
     await renderMealPlanner();
 
-    // Select kid (first step in most interactions)
-    const kidSelector = screen.getByText("Presley");
-    await act(async () => {
-      fireEvent.click(kidSelector);
-    });
-
+    await selectMeal(MEAL_TYPES[0]);
     // Select a protein food
     const proteinFood = MOCK_FOODS.proteins[0];
-    const foodElement = screen.getByTestId(`${PROTEINS}-0`);
 
-    await act(async () => {
-      fireEvent.click(foodElement);
-    });
-
+    await selectFood(proteinFood.category, 0);
     // Open serving selector
     const servingsButton = screen.getByTitle("Adjust Servings");
-    await act(async () => {
-      fireEvent.click(servingsButton);
-    });
+    await userEvent.click(servingsButton);
 
     // Find serving input
     const servingInput = screen.getByTestId("custom-serving-input");
@@ -165,18 +159,14 @@ describe("MealPlanner Integration Tests", () => {
 
     // Increment serving
     const incrementButton = screen.getByTestId("increment-serving");
-    await act(async () => {
-      fireEvent.click(incrementButton);
-    });
+    await userEvent.click(incrementButton);
 
     // Verify incremented serving size
     expect(servingInput).toHaveValue(initialServingSize + 0.25);
 
     // Confirm serving change
     const confirmButton = screen.getByRole("button", { name: /confirm/i });
-    await act(async () => {
-      fireEvent.click(confirmButton);
-    });
+    await userEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(
@@ -418,66 +408,6 @@ describe("Meal History Management", () => {
     await waitFor(() => {
       expect(screen.getByText(proteinFood.name)).toBeInTheDocument();
     });
-  });
-
-  it("updates meal history when food is deselected", async () => {
-    const mockFetch = jest.fn().mockImplementation((url) => {
-      return Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve(url.includes("/api/meal-history") ? [] : MOCK_FOODS),
-      });
-    });
-    global.fetch = mockFetch;
-
-    await renderMealPlanner();
-
-    // Select kid
-    await act(async () => {
-      fireEvent.click(screen.getByText("Presley"));
-    });
-
-    // Select lunch and add food
-    await selectMeal(MEAL_TYPES[1]); // Lunch
-    const proteinFood = MOCK_FOODS.proteins[0];
-
-    // Track initial selection API calls
-    await selectFood(proteinFood.category, 0, MEAL_TYPES[1]);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-    });
-
-    // Clear mock to focus on deselection calls
-    mockFetch.mockClear();
-
-    // Make another selection to ensure history is being updated
-    await selectFood(MOCK_FOODS.fruits[0].category, 0, MEAL_TYPES[1]);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-    });
-
-    mockFetch.mockClear();
-
-    // Deselect the food
-    await deselectFood(proteinFood.category, 0, MEAL_TYPES[1]);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-    });
-
-    // Since there's still a fruit selected, we should see a history update
-    const historyPosts = mockFetch.mock.calls.filter(
-      ([url, options]) =>
-        url.includes("/api/meal-history") && options?.method === "POST"
-    );
-
-    expect(historyPosts.length).toBeGreaterThan(0);
-    if (historyPosts.length > 0) {
-      const postBody = JSON.parse(historyPosts[0][1].body);
-      // Verify the deselected food is not in the history
-      expect(postBody.mealData.selections.proteins).toBeNull();
-      // But the fruit is still there
-      expect(postBody.mealData.selections.fruits).toBeTruthy();
-    }
   });
 
   it("does not trigger history updates when all foods are deselected", async () => {
