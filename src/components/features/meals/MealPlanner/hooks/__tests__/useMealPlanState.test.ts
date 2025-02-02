@@ -9,8 +9,8 @@ import {
   VEGETABLES,
   OTHER,
 } from "@/__mocks__/testConstants";
-import { defaultObj, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
-import { BREAKFAST, DAYS_OF_WEEK, LUNCH, MILK, RANCH } from "@/constants";
+import { defaultObj, MILK_OPTION } from "@/constants/meal-goals";
+import { BREAKFAST, DAYS_OF_WEEK, LUNCH, MILK } from "@/constants";
 
 beforeEach(() => {
   // Sunday (index 0) is the default in your current implementation
@@ -195,35 +195,6 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("handles ranch toggle correctly with nutrition update", async () => {
-    const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
-
-    await act(async () => {
-      result.current.handleRanchToggle(LUNCH, true, 2);
-    });
-
-    const ranchSelection =
-      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][LUNCH][RANCH];
-    const mealNutrition = result.current.calculateMealNutrition(LUNCH);
-
-    expect(ranchSelection).toEqual({
-      ...RANCH_OPTION,
-      category: VEGETABLES,
-      servings: 2,
-      adjustedCalories: RANCH_OPTION.calories * 2,
-      adjustedProtein: RANCH_OPTION.protein * 2,
-      adjustedCarbs: RANCH_OPTION.carbs * 2,
-      adjustedFat: RANCH_OPTION.fat * 2,
-    });
-
-    expect(mealNutrition).toEqual({
-      calories: RANCH_OPTION.calories * 2,
-      protein: RANCH_OPTION.protein * 2,
-      carbs: RANCH_OPTION.carbs * 2,
-      fat: RANCH_OPTION.fat * 2,
-    });
-  });
-
   it("handles daily nutrition calculation with multiple foods", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
@@ -231,7 +202,6 @@ describe("useMealPlanState Hook", () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
       result.current.handleFoodSelect(PROTEINS, MOCK_FOODS.proteins[0]);
       result.current.handleMilkToggle(BREAKFAST, true);
-      result.current.handleRanchToggle(BREAKFAST, true, 1);
     });
 
     const dailyNutrition = result.current.calculateDailyTotals();
@@ -240,23 +210,17 @@ describe("useMealPlanState Hook", () => {
       calories:
         MOCK_FOODS.fruits[0].calories +
         MOCK_FOODS.proteins[0].calories +
-        MILK_OPTION.calories +
-        RANCH_OPTION.calories,
+        MILK_OPTION.calories,
       protein:
         MOCK_FOODS.fruits[0].protein +
         MOCK_FOODS.proteins[0].protein +
-        MILK_OPTION.protein +
-        RANCH_OPTION.protein,
+        MILK_OPTION.protein,
       carbs:
         MOCK_FOODS.fruits[0].carbs +
         MOCK_FOODS.proteins[0].carbs +
-        MILK_OPTION.carbs +
-        RANCH_OPTION.carbs,
+        MILK_OPTION.carbs,
       fat:
-        MOCK_FOODS.fruits[0].fat +
-        MOCK_FOODS.proteins[0].fat +
-        MILK_OPTION.fat +
-        RANCH_OPTION.fat,
+        MOCK_FOODS.fruits[0].fat + MOCK_FOODS.proteins[0].fat + MILK_OPTION.fat,
     });
   });
 
@@ -272,22 +236,6 @@ describe("useMealPlanState Hook", () => {
       result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY][BREAKFAST][MILK];
 
     expect(milkSelection).toBeNull();
-  });
-
-  it("removes ranch when toggled off", async () => {
-    const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
-
-    await act(async () => {
-      result.current.handleRanchToggle("lunch", true, 2);
-      result.current.handleRanchToggle("lunch", false, 0);
-    });
-
-    const ranchSelection =
-      result.current.selections[MOCK_KIDS[0].id][SELECTED_DAY]["lunch"][
-        "ranch"
-      ];
-
-    expect(ranchSelection).toBeNull();
   });
 
   it("handles different kid selections", async () => {
@@ -473,9 +421,8 @@ describe("Advanced useMealPlanState Scenarios", () => {
       result.current.handleFoodSelect(FRUITS, MOCK_FOODS.fruits[0]);
       result.current.handleFoodSelect(VEGETABLES, MOCK_FOODS.vegetables[0]);
 
-      // Toggle milk and ranch
+      // Toggle milk
       result.current.handleMilkToggle(BREAKFAST, true);
-      result.current.handleRanchToggle(BREAKFAST, true, 2);
     });
 
     // Verify comprehensive state
@@ -486,7 +433,6 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(breakfastSelections.fruits).not.toBeNull();
     expect(breakfastSelections.vegetables).not.toBeNull();
     expect(breakfastSelections.milk).not.toBeNull();
-    expect(breakfastSelections.ranch).not.toBeNull();
   });
 
   it.skip("prevents duplicate food entries in meal history", async () => {

@@ -144,6 +144,9 @@ describe("FoodItem Component", () => {
           ...defaultProps.food,
           servings: 2,
           adjustedCalories: defaultProps.food.calories * 2,
+          adjustedProtein: defaultProps.food.protein * 2,
+          adjustedCarbs: defaultProps.food.carbs * 2,
+          adjustedFat: defaultProps.food.fat * 2,
         },
       };
 
