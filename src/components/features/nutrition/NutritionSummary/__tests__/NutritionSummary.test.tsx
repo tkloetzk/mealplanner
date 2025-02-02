@@ -131,9 +131,10 @@ describe("NutritionSummary", () => {
       />
     );
 
-    // Check that zero values are displayed
+    // Check that zero values (calories which shows as '0 /') are displayed
     expect(screen.getByText(/0 \//)).toBeInTheDocument();
-    expect(screen.getByText(/0\.0g/)).toBeInTheDocument();
+    // Now check that `0.0g` appears exactly three times (for protein, carbs, and fat)
+    expect(screen.getAllByText(/0\.0g/)).toHaveLength(3);
   });
 
   it("displays condiment nutrition when present", () => {
@@ -161,7 +162,7 @@ describe("NutritionSummary", () => {
 
     // Check total includes condiments
     expect(screen.getByText(/250/)).toBeInTheDocument(); // 200 + 50 calories
-    expect(screen.getByText(/5\.0g/)).toBeInTheDocument(); // Carbs from condiment
+    expect(screen.getByText("5.0g")).toBeInTheDocument(); // Carbs from condiment
   });
 
   it("maintains UI state when switching meals", () => {
