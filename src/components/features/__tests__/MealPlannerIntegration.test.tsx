@@ -1,13 +1,7 @@
 // src/components/__tests__/MealPlannerIntegration.test.tsx
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from "@testing-library/react";
-import { MOCK_FOODS, PROTEINS } from "@/__mocks__/testConstants";
-import { DAILY_GOALS, MILK_OPTION, RANCH_OPTION } from "@/constants/meal-goals";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MOCK_FOODS } from "@/__mocks__/testConstants";
+import { DAILY_GOALS, MILK_OPTION } from "@/constants/meal-goals";
 import { MealPlanner } from "../meals/MealPlanner";
 import { act } from "react";
 import { CategoryType } from "@/types/food";
@@ -103,7 +97,6 @@ describe("MealPlanner Integration Tests", () => {
     const foodElement = screen.getByTestId(
       `${proteinFood.category}-${MEAL_TYPES[0]}-0`
     );
-    // Ensure this matches the test ID format
 
     // Verify initial unselected state
     expect(screen.queryByTitle("Edit Food")).not.toBeInTheDocument();
@@ -232,7 +225,7 @@ describe("MealPlanner Integration Tests", () => {
       });
       expect(
         historyEntries.some((entry) =>
-          entry.textContent.includes("serving(s) •")
+          entry.textContent?.includes("serving(s) •")
         )
       ).toBe(true);
     });
