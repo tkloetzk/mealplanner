@@ -670,17 +670,16 @@ export const MealPlanner = () => {
                                       ]
                                     : null;
 
-                                // For condiments, pass the entire selections object so we have access to the condiments array
                                 const selectedFoodInCategory =
                                   category === "condiments"
-                                    ? currentMealSelections
+                                    ? currentMealSelections?.condiments?.find(
+                                        (c) => c.id === food.id
+                                      )
                                     : currentMealSelections?.[category];
 
                                 const isSelected =
                                   category === "condiments"
-                                    ? currentMealSelections?.condiments?.some(
-                                        (c) => c.foodId === food.id
-                                      )
+                                    ? !!selectedFoodInCategory
                                     : selectedFoodInCategory?.id === food.id;
 
                                 return (
@@ -693,6 +692,7 @@ export const MealPlanner = () => {
                                     selectedFoodInCategory={
                                       selectedFoodInCategory
                                     }
+                                    mealType={selectedMeal}
                                     onSelect={() =>
                                       handleFoodSelect(category, food)
                                     }

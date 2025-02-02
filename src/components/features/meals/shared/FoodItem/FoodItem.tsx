@@ -18,6 +18,7 @@ interface FoodItemProps {
   isHidden: boolean;
   onToggleVisibility: () => void;
   showVisibilityControls?: boolean;
+  mealType: string;
 }
 
 export const FoodItem = ({
@@ -31,13 +32,13 @@ export const FoodItem = ({
   onEditFood,
   isHidden,
   onToggleVisibility,
+  mealType,
   showVisibilityControls = false,
 }: FoodItemProps) => {
   const imageSource = useMemo(() => getFoodImageSource(food), [food]);
-
   return (
     <div
-      data-testid={`${category}-${index}`}
+      data-testid={`${category}-${mealType}-${index}`}
       className={`relative p-4 rounded-lg transition-all duration-200 cursor-pointer
       ${
         isSelected

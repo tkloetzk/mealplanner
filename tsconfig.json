@@ -24,6 +24,9 @@
     },
     "types": ["jest", "@testing-library/jest-dom"]
   },
+  "rules": {
+    "@typescript-eslint/await-thenable": "error"
+  },
   "include": [
     "next-env.d.ts",
     "**/*.ts",

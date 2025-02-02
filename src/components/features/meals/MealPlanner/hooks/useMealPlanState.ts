@@ -84,19 +84,20 @@ export const useMealPlanState = (initialKids: Kid[]) => {
           newSelections[selectedKid][selectedDay][selectedMeal];
 
         if (category === "condiments") {
+          // Use the food.id from the full food object (spread via ...food)
           const existingCondimentIndex = currentMeal.condiments.findIndex(
-            (c) => c.foodId === food.id
+            (c) => c.id === food.id
           );
 
           if (existingCondimentIndex >= 0) {
             // Remove condiment if it exists
             currentMeal.condiments = currentMeal.condiments.filter(
-              (c) => c.foodId !== food.id
+              (c) => c.id !== food.id
             );
           } else {
-            // Add new condiment
+            // Add new condiment by spreading food to include the required id
             currentMeal.condiments.push({
-              foodId: food.id,
+              ...food,
               servings: 1,
               adjustedCalories: food.calories,
               adjustedProtein: food.protein,
@@ -161,12 +162,12 @@ export const useMealPlanState = (initialKids: Kid[]) => {
 
       if (category === "condiments") {
         const condimentIndex = currentMeal.condiments?.findIndex(
-          (c) => c.foodId === adjustedFood.id
+          (c) => c.id === adjustedFood.id
         );
 
         if (condimentIndex >= 0 && currentMeal.condiments) {
           currentMeal.condiments[condimentIndex] = {
-            foodId: adjustedFood.id,
+            ...adjustedFood,
             servings: adjustedFood.servings,
             adjustedCalories: adjustedFood.calories * adjustedFood.servings,
             adjustedProtein: adjustedFood.protein * adjustedFood.servings,
@@ -175,7 +176,13 @@ export const useMealPlanState = (initialKids: Kid[]) => {
           };
         }
       } else {
-        currentMeal[category] = adjustedFood;
+        currentMeal[category] = {
+          ...adjustedFood,
+          adjustedCalories: adjustedFood.calories * adjustedFood.servings,
+          adjustedProtein: adjustedFood.protein * adjustedFood.servings,
+          adjustedCarbs: adjustedFood.carbs * adjustedFood.servings,
+          adjustedFat: adjustedFood.fat * adjustedFood.servings,
+        };
       }
 
       setSelections(newSelections);
@@ -190,6 +197,7 @@ export const useMealPlanState = (initialKids: Kid[]) => {
       const newSelections = structuredClone(selections);
       const milkFood: SelectedFood = {
         ...MILK_OPTION,
+        id: MILK_OPTION.id || "milk",
         category: "milk",
         servings: 1,
         adjustedCalories: MILK_OPTION.calories,
