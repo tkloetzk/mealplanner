@@ -36,7 +36,6 @@ const selectFood = async (
   expect(screen.getByTestId("edit-food-icon")).toBeInTheDocument();
 
   // Verify that the "Adjust Servings" control is visible.
-  // Depending on your implementation, you could use test id or accessible title.
   expect(screen.getByTitle("Adjust Servings")).toBeInTheDocument();
 
   return foodElement;
@@ -54,8 +53,6 @@ const deselectFood = async (
   return foodElement;
 };
 describe("MealPlanner Integration Tests", () => {
-  // Reusable render function with common setup
-
   // Helper functions to make tests more readable and maintainable
 
   const toggleSwitch = async (name: RegExp) => {
@@ -103,7 +100,7 @@ describe("MealPlanner Integration Tests", () => {
     expect(screen.queryByTitle("Adjust Servings")).not.toBeInTheDocument();
     expect(foodElement).not.toHaveClass("ring-2");
 
-    // // Select food and verify selection state
+    // Select food and verify selection state
     const selectedFoodCard = await selectFood(
       proteinFood.category,
       0,
@@ -180,94 +177,6 @@ describe("MealPlanner Integration Tests", () => {
     ).toBeInTheDocument();
   });
 
-  it.skip("completes meal selection workflow with history tracking", async () => {
-    await renderMealPlanner();
-
-    // Select kid
-    const kidSelector = screen.getByText("Presley");
-    fireEvent.click(kidSelector);
-
-    // Add protein and verify it's saved to history
-    await selectFood(MOCK_FOODS.proteins[0].category, 0);
-
-    // Verify the API call to save history was made
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/meal-history",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: expect.stringContaining(MOCK_FOODS.proteins[0].name),
-        })
-      );
-    });
-
-    // Switch to history tab
-    const historyTab = screen.getByRole("tab", { name: /history/i });
-    // Use userEvent instead of fireEvent to simulate more realistic interaction
-    await act(async () => {
-      await userEvent.click(historyTab);
-    });
-
-    // Wait for the tab to become active
-    await waitFor(() => {
-      expect(historyTab).toHaveAttribute("data-state", "active");
-    });
-
-    // Verify the meal history entry appears
-    await waitFor(() => {
-      // First verify the food name appears
-      expect(screen.getByText(MOCK_FOODS.proteins[0].name)).toBeInTheDocument();
-
-      // Then look for the serving information in a more flexible way
-      const historyEntries = screen.getAllByText((content) => {
-        return content.includes("1") && content.includes("serving");
-      });
-      expect(
-        historyEntries.some((entry) =>
-          entry.textContent?.includes("serving(s) •")
-        )
-      ).toBe(true);
-    });
-  });
-
-  it.skip("updates existing history entry when modifying meal", async () => {
-    await renderMealPlanner();
-    const kidSelector = screen.getByText("Presley");
-    await act(async () => {
-      fireEvent.click(kidSelector);
-    });
-
-    // Add first food
-    await selectFood(MOCK_FOODS.proteins[0].category, 0);
-
-    // Add second food and verify history update
-    await selectFood(MOCK_FOODS.fruits[0].category, 0);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/meal-history?kidId=1",
-        "/api/foods",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: expect.stringContaining(MOCK_FOODS.fruits[0].name),
-          // "body": "{\"kidId\":\"1\",\"mealData\":{\"meal\":\"breakfast\",\"date\":\"2025-01-31T03:03:19.058Z\",\"selections\":{\"grains\":null,\"fruits\":null,\"proteins\":null,\"vegetables\":null,\"milk\":null,\"condiments\":[],\"ranch\":null}}}"
-        })
-      );
-    });
-
-    // Verify both foods appear in history
-    const historyTab = screen.getByRole("tab", { name: /history/i });
-    await act(async () => {
-      fireEvent.click(historyTab);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(MOCK_FOODS.proteins[0].name)).toBeInTheDocument();
-      expect(screen.getByText(MOCK_FOODS.fruits[0].name)).toBeInTheDocument();
-    });
-  });
   it('filters out hidden "Other" category foods in child view', async () => {
     await renderMealPlanner();
 
