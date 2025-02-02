@@ -2,6 +2,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { NutritionSummary } from "../NutritionSummary";
 import { DAILY_GOALS } from "@/constants/meal-goals";
+import { ServingSizeUnit } from "@/types/food";
 
 describe("NutritionSummary", () => {
   // Test data
@@ -20,7 +21,7 @@ describe("NutritionSummary", () => {
       adjustedFat: 12,
       category: "proteins",
       servingSize: "1",
-      servingSizeUnit: "piece",
+      servingSizeUnit: "piece" as ServingSizeUnit,
       meal: ["breakfast", "lunch", "dinner"],
     },
     fruits: null,
