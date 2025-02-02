@@ -1,13 +1,20 @@
 // src/components/features/meals/ChildView/ChildView.tsx
 
-import { MealType, CategoryType, Food, MealPlan, DayType } from "@/types/food";
+import {
+  MealType,
+  CategoryType,
+  Food,
+  MealPlan,
+  DayType,
+  FoodOptions,
+} from "@/types/food";
 import { CategoryFoodGrid } from "./CategoryFoodGrid";
 import { MealSelector } from "../MealPlanner/components/MealSelector";
 import { useMemo } from "react";
 
 interface ChildViewProps {
   selectedMeal: MealType | null;
-  foodOptions: Record<CategoryType, Food[]>;
+  foodOptions: FoodOptions;
   selections: MealPlan;
   selectedDay: DayType;
   onFoodSelect: (category: CategoryType, food: Food) => void;
@@ -24,7 +31,6 @@ export function ChildView({
 }: ChildViewProps) {
   // Show relevant condiments based on selected foods
   const availableCondiments = useMemo(() => {
-    // @ts-expect-error idk
     if (!selectedMeal || !selections[selectedDay]?.[selectedMeal]) return [];
 
     const currentSelections = selections[selectedDay][selectedMeal];
@@ -35,15 +41,12 @@ export function ChildView({
     // Filter condiments based on recommendedUses of selected foods
     return (
       foodOptions.condiments?.filter((condiment) => {
-        // Don't show hidden condiments in child view
         if (condiment.hiddenFromChild) return false;
 
-        // If no foods are selected yet, only show universal condiments
         if (selectedFoods.length === 0) {
           return condiment.recommendedUses?.includes("any");
         }
 
-        // Check if condiment is recommended for any of the selected foods
         return selectedFoods.some((food) =>
           condiment.recommendedUses?.includes(food?.category)
         );

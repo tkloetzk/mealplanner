@@ -22,7 +22,7 @@ describe("MealPlanner Food Selection", () => {
     });
 
     // Find the food item button
-    const foodItemButton = screen.getByTestId(`${FRUITS}-0`);
+    const foodItemButton = screen.getByTestId(`${FRUITS}-breakfast-0`);
 
     if (!foodItemButton) {
       throw new Error("Food item button not found");

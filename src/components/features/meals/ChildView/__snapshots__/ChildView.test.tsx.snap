@@ -99,6 +99,7 @@ exports[`ChildView Component matches snapshot with meal selected 1`] = `
             >
               <div
                 class="rounded-xl border bg-card text-card-foreground shadow relative cursor-pointer transition-transform hover:scale-105 hover:shadow-md"
+                data-testid="proteins-breakfast-0"
               >
                 <div
                   class="aspect-square relative overflow-hidden rounded-t-lg"
@@ -159,6 +160,7 @@ exports[`ChildView Component matches snapshot with meal selected 1`] = `
             >
               <div
                 class="rounded-xl border bg-card text-card-foreground shadow relative cursor-pointer transition-transform hover:scale-105 hover:shadow-md"
+                data-testid="fruits-breakfast-0"
               >
                 <div
                   class="aspect-square relative overflow-hidden rounded-t-lg"
@@ -219,6 +221,7 @@ exports[`ChildView Component matches snapshot with meal selected 1`] = `
             >
               <div
                 class="rounded-xl border bg-card text-card-foreground shadow relative cursor-pointer transition-transform hover:scale-105 hover:shadow-md"
+                data-testid="other-breakfast-0"
               >
                 <div
                   class="aspect-square relative overflow-hidden rounded-t-lg"

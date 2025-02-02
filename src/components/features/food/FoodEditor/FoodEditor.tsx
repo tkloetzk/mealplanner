@@ -65,7 +65,6 @@ export function FoodEditor({
   onDelete,
   initialFood,
 }: FoodEditorProps) {
-  console.log(initialFood, "initialFood");
   const initialFoodState: Partial<Food> = {
     name: "",
     calories: 0,
