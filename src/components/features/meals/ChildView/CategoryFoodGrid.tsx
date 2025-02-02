@@ -76,7 +76,7 @@ export function CategoryFoodGrid({
 
         <div className="p-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {foods.map((food) => {
+            {foods.map((food, index) => {
               const isSelected = isFoodSelected(food);
               const imageSource = getFoodImageSource(food);
               const servingInfo = getServingInfo(food);
@@ -84,6 +84,7 @@ export function CategoryFoodGrid({
               return (
                 <Card
                   key={food.id}
+                  data-testid={`${category}-${selectedMeal}-${index}`}
                   className={`relative cursor-pointer transition-transform hover:scale-105 ${
                     isSelected ? "ring-2 ring-green-500" : "hover:shadow-md"
                   }`}
