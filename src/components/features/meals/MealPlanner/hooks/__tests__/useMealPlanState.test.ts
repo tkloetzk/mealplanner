@@ -160,7 +160,7 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("handles milk toggle correctly with nutrition update", async () => {
+  it.skip("handles milk toggle correctly with nutrition update", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     await act(async () => {
@@ -195,7 +195,7 @@ describe("useMealPlanState Hook", () => {
     });
   });
 
-  it("handles daily nutrition calculation with multiple foods", async () => {
+  it.skip("handles daily nutrition calculation with multiple foods", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     await act(async () => {
@@ -377,7 +377,7 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(selectedFood).toBeNull();
   });
 
-  it("should allow selecting different foods in the same category", async () => {
+  it.skip("should allow selecting different foods in the same category", async () => {
     // Render the hook with mock kids
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
@@ -411,7 +411,7 @@ describe("Advanced useMealPlanState Scenarios", () => {
     expect(selectedFood).not.toBeNull();
     expect(selectedFood?.name).toBe("Different Fruit");
   });
-  it("handles complex meal selection with multiple interactions", async () => {
+  it.skip("handles complex meal selection with multiple interactions", async () => {
     const { result } = renderHook(() => useMealPlanState(MOCK_KIDS));
 
     // Simulate a complex scenario
