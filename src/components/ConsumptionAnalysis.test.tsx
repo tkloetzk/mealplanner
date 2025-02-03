@@ -12,6 +12,7 @@ const mockData = {
 describe("ConsumptionAnalysis Component", () => {
   it("renders the component with given props", () => {
     render(<ConsumptionAnalysis data={mockData} />);
+
     expect(screen.getByText("Meal Consumption Analysis")).toBeInTheDocument();
     expect(screen.getByText("Apple")).toBeInTheDocument();
     expect(screen.getByText("Banana")).toBeInTheDocument();
@@ -20,12 +21,14 @@ describe("ConsumptionAnalysis Component", () => {
 
   it("displays the correct percentage eaten in the progress bar", () => {
     render(<ConsumptionAnalysis data={mockData} />);
+
     expect(screen.getByText("50% eaten")).toBeInTheDocument();
     expect(screen.getByText("75% eaten")).toBeInTheDocument();
   });
 
   it("conditionally renders notes when provided", () => {
     render(<ConsumptionAnalysis data={mockData} />);
+
     expect(screen.getByText("Fresh and juicy")).toBeInTheDocument();
     expect(screen.queryByText("No notes")).not.toBeInTheDocument();
   });

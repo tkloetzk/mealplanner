@@ -8,6 +8,8 @@ import {
   ensureNumericFields,
   ensureNestedNumericFields,
 } from "@/utils/validation/numericValidator"; // Fixed path
+import { handleError } from "@/app/utils/apiUtils";
+import { getCollection } from "@/app/utils/databaseUtils";
 
 type FoodDocument = Omit<Food, "id"> & { _id: ObjectId };
 type GroupedFoods = Record<CategoryType, Food[]>;
@@ -20,8 +22,7 @@ export async function GET() {
   }
 
   try {
-    const service = DatabaseService.getInstance();
-    const foodsCollection = await service.getCollection<FoodDocument>("foods");
+    const foodsCollection = await getCollection("foods");
     const foods = await foodsCollection.find({}).toArray();
 
     const transformedFoods = foods.reduce<GroupedFoods>((acc, food) => {
@@ -48,18 +49,7 @@ export async function GET() {
     foodCache.set(transformedFoods);
     return NextResponse.json(transformedFoods);
   } catch (error) {
-    console.error("Error fetching foods:", error);
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "An unexpected error occurred while fetching foods";
-    return NextResponse.json(
-      {
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return handleError(error, "Failed to fetch foods");
   }
 }
 
@@ -71,10 +61,9 @@ export async function POST(request: Request) {
 
     const service = DatabaseService.getInstance();
     const foodsCollection = await service.getCollection("foods");
-    const food = await foodsCollection.insertOne(validatedFoodData);
-    return NextResponse.json(food, { status: 201 });
+    const result = await foodsCollection.insertOne(validatedFoodData);
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    console.error("Error in POST /api/foods:", error);
-    return NextResponse.json({ error: "Failed to add food" }, { status: 500 });
+    return handleError(error, "Failed to add food");
   }
 }

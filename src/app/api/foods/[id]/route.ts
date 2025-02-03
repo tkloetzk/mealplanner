@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { DatabaseService } from "@/app/utils/DatabaseService";
+import { handleError } from "@/app/utils/apiUtils";
 
 type Props = {
   params: Promise<{
@@ -8,13 +9,15 @@ type Props = {
   }>;
 };
 
-export async function DELETE(request: NextRequest, props: Props) {
-  const { id: foodId } = await props.params;
+export async function DELETE(request: NextRequest) {
+  const foodId = request.nextUrl.searchParams.get("id");
+  if (!foodId) {
+    return handleError(null, "Invalid food ID", 400);
+  }
 
   try {
     const service = DatabaseService.getInstance();
     const foodsCollection = await service.getCollection("foods");
-
     const result = await foodsCollection.deleteOne({
       _id: new ObjectId(foodId),
     });
@@ -22,19 +25,13 @@ export async function DELETE(request: NextRequest, props: Props) {
     if (result.deletedCount === 1) {
       return NextResponse.json({ message: "Food deleted successfully" });
     } else {
-      return NextResponse.json(
-        { error: "Food not found or could not be deleted" },
-        { status: 404 }
-      );
+      return handleError(null, "Food not found or could not be deleted", 404);
     }
   } catch (error) {
-    console.error("Error deleting food:", error);
-    return NextResponse.json(
-      { error: "Failed to delete food" },
-      { status: 500 }
-    );
+    return handleError(error, "Failed to delete food");
   }
 }
+
 export const PUT = async (request: NextRequest, props: Props) => {
   const { id: foodId } = await props.params;
 
@@ -69,6 +66,7 @@ export const PUT = async (request: NextRequest, props: Props) => {
     );
   }
 };
+
 export async function PATCH(request: NextRequest, props: Props) {
   const { id: foodId } = await props.params;
 
