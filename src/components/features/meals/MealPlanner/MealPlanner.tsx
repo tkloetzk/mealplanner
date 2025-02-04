@@ -1,6 +1,6 @@
 "use client";
-// src/components/MealPlanner.tsx
-import React, { MouseEvent, useState, useEffect, useMemo } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,34 +11,43 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-// Import custom hook
-// Import components
 import { ServingSelector } from "@/components/features/meals/shared/ServingSelector";
 import { MilkToggle } from "@/components/features/meals/shared/MilkToggle";
 import { FoodEditor } from "@/components/features/food/FoodEditor";
 import { CompactNutritionProgress } from "@/components/features/nutrition/NutritionSummary/components/CompactNutritionProgress";
-import { NutritionSummary } from "@/components/features/nutrition/NutritionSummary";
 import { FoodItem } from "@/components/features/meals/shared/FoodItem";
 import { MealHistory } from "@/components/features/meals/shared/MealHistory/MealHistory";
-
-// Import types and constants
+import { useMealStore } from "@/store/useMealStore";
 import {
-  Food,
+  useCurrentMealSelection,
+  useMilkInclusion,
+  useDailyNutrition,
+  useMealNutrition,
+} from "@/store/mealSelectors";
+import {
+  CategoryType,
   MealType,
   DayType,
-  CategoryType,
   MealHistoryRecord,
-  // MealSelection,
-} from "@/types/food";
-import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
+} from "@/types/meals";
 import { Kid } from "@/types/user";
 import { ChildView } from "@/components/features/meals/ChildView/ChildView";
-import { DAYS_OF_WEEK, MEAL_TYPES } from "@/constants";
+import { MEAL_TYPES } from "@/constants";
 import { FoodImageAnalysis } from "../../food/FoodAnalysis/components/FoodImageAnalysis/FoodImageAnalysis";
 import { MealAnalysis } from "../MealAnalysis/MealAnalysis";
 import { FAB } from "../shared/FAB/FAB";
 import { MealPlannerHeader } from "../MealPlannerHeader";
-import { useMealPlanState } from "./hooks/useMealPlanState";
+import { produce } from "immer";
+import { getOrderedDays } from "@/utils/dateUtils";
+//import {  NutritionSummary as NutritionSummaryType } from "@/types/food";
+import { Food } from "@/types/food";
+import { NutritionSummary } from "@/components/features/nutrition/NutritionSummary/NutritionSummary";
+import {
+  createEmptyMealSelection,
+  nutritionToMealSelection,
+} from "@/utils/nutritionUtils";
+import { DAYS_OF_WEEK } from "@/constants/index";
+import { isCategoryKey } from "@/utils/meal-categories";
 
 interface AnalysisDialogProps {
   isOpen: boolean;
@@ -75,187 +84,208 @@ function AnalysisDialog({
 }
 
 export const MealPlanner = () => {
-  // Kids configuration
+  // Initialize Zustand store
+  const {
+    selectedKid,
+    selectedDay,
+    selectedMeal,
+    selections,
+    setSelectedKid,
+    setSelectedDay,
+    setSelectedMeal,
+    handleFoodSelect,
+    handleServingAdjustment,
+    handleMilkToggle,
+    initializeKids,
+    calculateMealNutrition,
+    mealHistory,
+  } = useMealStore();
+
+  const currentMealSelection = useCurrentMealSelection();
+  const milkInclusion = useMilkInclusion();
+  const dailyNutrition = useDailyNutrition();
+  const mealNutrition = useMealNutrition(selectedMeal);
+
+  // Local state
   const [kids] = useState<Kid[]>([
     { id: "1", name: "Presley" },
     { id: "2", name: "Evy" },
   ]);
-
-  // View state
   const [isChildView, setIsChildView] = useState(false);
-
-  // AI analysis state
   const [showAiAnalysis, setShowAiAnalysis] = useState(false);
   const [showImageAnalysis, setShowImageAnalysis] = useState(false);
-
-  // Food options and context state
+  const [showPlateAnalysis, setShowPlateAnalysis] = useState(false);
+  const [selectedHistoryEntry, setSelectedHistoryEntry] =
+    useState<MealHistoryRecord | null>(null);
   const [foodOptions, setFoodOptions] = useState<Record<CategoryType, Food[]>>({
     proteins: [],
     grains: [],
     fruits: [],
     vegetables: [],
     milk: [],
+    condiments: [],
+    ranch: [],
+    other: [],
   });
+
+  // Initialize kids in store
+  useEffect(() => {
+    initializeKids(kids);
+  }, [kids, initializeKids]);
+
+  // Food context handling
   const [selectedFoodContext, setSelectedFoodContext] = useState<{
     category: CategoryType;
     food: Food;
     mode: "serving" | "edit" | "add";
     currentServings?: number;
-  } | null>({
-    // @ts-expect-error Idk what to do
-    food: {
-      hiddenFromChild: false,
-      name: "",
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-      servingSize: "1",
-      servingSizeUnit: "g",
-      category: "proteins",
-      meal: [],
-    },
-  });
+  } | null>(null);
 
-  const [showPlateAnalysis, setShowPlateAnalysis] = useState(false);
-  const [selectedHistoryEntry, setSelectedHistoryEntry] =
-    useState<MealHistoryRecord | null>(null);
-
-  // Use custom hook for meal planning state management
-  const {
-    selectedKid,
-    selectedDay,
-    selectedMeal,
-    selections,
-    mealHistory,
-    setSelectedKid,
-    setSelectedDay,
-    setSelectedMeal,
-    handleFoodSelect,
-    calculateMealNutrition,
-    handleServingAdjustment,
-    calculateDailyTotals,
-    handleMilkToggle,
-  } = useMealPlanState(kids);
-  // Helper function to get ordered days starting from today
-  const getOrderedDays = (): DayType[] => {
-    const days: DayType[] = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    const today = new Date().getDay();
-    return [...days.slice(today), ...days.slice(0, today)];
-  };
-
-  // Serving adjustment handler
   const handleServingClick = (
-    e: MouseEvent<HTMLDivElement>,
+    e: React.MouseEvent<HTMLDivElement>,
     category: CategoryType,
     food: Food
   ) => {
     e.stopPropagation();
-    if (selectedDay && selectedMeal && selectedKid) {
-      const currentFood =
-        // @ts-expect-error Idk what to do
-        selections[selectedKid]?.[selectedDay]?.[selectedMeal]?.[category];
-      setSelectedFoodContext({
-        category,
-        food,
-        mode: "serving",
-        currentServings: currentFood?.servings || 1,
-      });
-    }
+    if (!selectedKid || !selectedDay || !selectedMeal) return;
+
+    const currentFood = currentMealSelection
+      ? category === "condiments"
+        ? currentMealSelection.condiments.find((c) => c.id === food.id)
+        : currentMealSelection[category]
+      : null;
+
+    setSelectedFoodContext({
+      category,
+      food,
+      mode: "serving",
+      currentServings: currentFood?.servings || 1,
+    });
   };
 
   const handleEditFood = (category: CategoryType, food: Food) => {
     setSelectedFoodContext({
       category,
       food,
-      mode: food ? "edit" : "add",
+      mode: "edit",
     });
   };
 
-  // Save food handler
-  // In MealPlanner.tsx, modify the handleSaveFood function:
-
-  const handleSaveMealPlan = async () => {
-    if (!selectedKid || !selectedDay || !selectedMeal) return;
+  // Food visibility handling
+  const handleToggleVisibility = async (food: Food) => {
+    const newHiddenState = !food.hiddenFromChild;
 
     try {
-      const currentSelections =
-        selections[selectedKid][selectedDay][selectedMeal];
-      const response = await fetch("/api/meal-history", {
-        method: "POST",
+      setFoodOptions(
+        produce((draft) => {
+          if (!isCategoryKey(food.category)) return;
+
+          draft[food.category] = draft[food.category].map((f) =>
+            f.id === food.id ? { ...f, hiddenFromChild: newHiddenState } : f
+          );
+        })
+      );
+
+      const response = await fetch(`/api/foods/${food.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kidId: selectedKid,
-          date: selectedDay,
-          mealType: selectedMeal,
-          selections: currentSelections,
-        }),
+        body: JSON.stringify({ hiddenFromChild: newHiddenState }),
       });
 
-      if (!response.ok) throw new Error("Failed to save meal plan");
-
-      // Refresh meal history after successful save
-      const historyResponse = await fetch(
-        `/api/meal-history?kidId=${selectedKid}`
-      );
-      if (historyResponse.ok) {
-        const newHistory = await historyResponse.json();
-        mealHistory[selectedKid] = [
-          ...(mealHistory[selectedKid] || []),
-          ...newHistory,
-        ];
+      if (!response.ok) {
+        throw new Error("Failed to update food visibility");
       }
     } catch (error) {
-      console.error("Error saving meal plan:", error);
+      console.error("Error updating food visibility:", error);
+      // Revert on error
+      setFoodOptions(
+        produce((draft) => {
+          if (!isCategoryKey(food.category)) return;
+
+          draft[food.category] = draft[food.category].map((f) =>
+            f.id === food.id ? { ...f, hiddenFromChild: !newHiddenState } : f
+          );
+        })
+      );
     }
   };
 
+  // Weekly view calculations
+  // const calculateWeeklyTotals = () => {
+  //   if (!selectedKid) return null;
+  //   return DAYS_OF_WEEK.reduce((acc, day) => {
+  //     const dayTotals = MEAL_TYPES.reduce(
+  //       (mealAcc, meal) => {
+  //         const nutrition = calculateMealNutrition(meal);
+  //         return {
+  //           calories: mealAcc.calories + nutrition.calories,
+  //           protein: mealAcc.protein + nutrition.protein,
+  //           carbs: mealAcc.carbs + nutrition.carbs,
+  //           fat: mealAcc.fat + nutrition.fat,
+  //         };
+  //       },
+  //       { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  //     );
+
+  //     acc[day] = dayTotals;
+  //     return acc;
+  //   }, {} as Record<string, NutritionSummaryType>);
+  // };
+
+  const handleToggleAllOtherFoodVisibility = () => {
+    setFoodOptions(
+      produce((draft) => {
+        if (draft.other) {
+          const allHidden = draft.other.every((f) => f.hiddenFromChild);
+          draft.other = draft.other.map((f) => ({
+            ...f,
+            hiddenFromChild: !allHidden,
+          }));
+        }
+      })
+    );
+  };
+
+  const fetchFoodOptions = async () => {
+    console.log("fetching food options");
+    try {
+      const response = await fetch("/api/foods");
+      if (!response.ok) throw new Error("Failed to fetch foods");
+      const data = await response.json();
+
+      console.log("data", data);
+      // Ensure foods is an array
+      const foods: Food[] = Array.isArray(data) ? data : [];
+
+      // Group foods by category
+      const groupedFoods = foods.reduce((acc, food) => {
+        if (isCategoryKey(food.category)) {
+          acc[food.category] = [...(acc[food.category] || []), food];
+        }
+        return acc;
+      }, {} as Record<CategoryType, Food[]>);
+
+      setFoodOptions(groupedFoods);
+    } catch (error) {
+      console.error("Error fetching food options:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchFoodOptions();
+  }, []);
+
   const handleSaveFood = async (food: Food) => {
     try {
-      if (selectedFoodContext?.mode === "add") {
-        const response = await fetch("/api/foods", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(food),
-        });
-
-        if (response.ok) {
-          setFoodOptions((prev) => ({
-            ...prev,
-            [food.category]: Array.isArray(prev[food.category])
-              ? [...prev[food.category], food]
-              : [food],
-          }));
-          setSelectedFoodContext(null);
-        }
-      } else if (selectedFoodContext?.mode === "edit") {
-        const response = await fetch(`/api/foods/${food.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(food),
-        });
-
-        if (response.ok) {
-          setFoodOptions((prev) => {
-            const updated = { ...prev };
-            if (Array.isArray(updated[food.category])) {
-              updated[food.category] = updated[food.category].map((item) =>
-                item.id === food.id ? food : item
-              );
-            }
-            return updated;
-          });
-          setSelectedFoodContext(null);
-        }
-      }
+      const response = await fetch("/api/foods", {
+        method: food.id ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(food),
+      });
+      if (!response.ok) throw new Error("Failed to save food");
+      setSelectedFoodContext(null);
+      // Refresh food options after save
+      await fetchFoodOptions();
     } catch (error) {
       console.error("Error saving food:", error);
     }
@@ -266,179 +296,23 @@ export const MealPlanner = () => {
       const response = await fetch(`/api/foods/${foodId}`, {
         method: "DELETE",
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete food");
-      }
-
-      setFoodOptions((prev) => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach((category) => {
-          updated[category] = updated[category].filter(
-            (food) => food.id !== foodId
-          );
-        });
-        return updated;
-      });
+      if (!response.ok) throw new Error("Failed to delete food");
+      setSelectedFoodContext(null);
+      await fetchFoodOptions();
     } catch (error) {
       console.error("Error deleting food:", error);
     }
   };
 
-  // Data loading effect
-  // useEffect(() => {
-  //   const loadData = async () => {
-  //     try {
-  //       const [foodsRes] = await Promise.all([fetch("/api/foods")]);
-  //       if (!foodsRes.ok) throw new Error("Failed to fetch foods");
-  //       const foods = await foodsRes.json();
-  //       setFoodOptions(foods);
-  //     } catch (error) {
-  //       console.error("Error loading data:", error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-
-  //   loadData();
-  // }, []);
-
-  // Use useEffect for initial data fetching
   useEffect(() => {
-    const fetchFoods = async () => {
-      try {
-        const response = await fetch("/api/foods");
-        if (response.ok) {
-          const data = await response.json();
-          setFoodOptions(data);
-        }
-      } catch (error) {
-        console.error("Error fetching foods:", error);
-      }
-    };
-
-    fetchFoods();
-  }, []); // Empty dependency array means this runs once on mount
-
-  const includesMilk = useMemo(() => {
-    if (!selectedKid || !selectedDay)
-      return {
-        breakfast: false,
-        lunch: false,
-        dinner: false,
-        snack: false,
-      };
-
-    // @ts-expect-error TypeScript doesn't understand the dynamic keys here
-    return MEAL_TYPES.reduce((acc: Record<MealType, boolean>, mealType) => {
-      acc[mealType] =
-        // @ts-expect-error Idk what to do
-        !!selections[selectedKid]?.[selectedDay]?.[mealType]?.milk;
-      return acc;
-      // @ts-expect-error TypeScript doesn't understand the dynamic keys here
-    }, {} as Record<MealType, boolean>);
-  }, [selections, selectedKid, selectedDay]);
-
-  // src/components/features/meals/MealPlanner/MealPlanner.tsx
-
-  // Add this to the existing component
-  // src/components/features/meals/MealPlanner/MealPlanner.tsx
-
-  const handleToggleVisibility = async (food: Food) => {
-    const newHiddenState = !food.hiddenFromChild;
-
-    try {
-      // Optimistically update UI
-      setFoodOptions((prev) => {
-        const updated = { ...prev };
-        const category = food.category;
-        if (!updated[category]) return prev;
-
-        updated[category] = updated[category].map((f) =>
-          f.id === food.id ? { ...f, hiddenFromChild: newHiddenState } : f
-        );
-        return updated;
-      });
-
-      // API call to update visibility
-      const response = await fetch(`/api/foods/${food.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          hiddenFromChild: newHiddenState,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update food visibility");
-      }
-    } catch (error) {
-      console.error("Error updating food visibility:", error);
-      // Revert optimistic update on error
-      setFoodOptions((prev) => {
-        const updated = { ...prev };
-        const category = food.category;
-        if (!updated[category]) return prev;
-
-        updated[category] = updated[category].map((f) =>
-          f.id === food.id ? { ...f, hiddenFromChild: !newHiddenState } : f
-        );
-        return updated;
-      });
-    }
-  };
-  // In MealPlanner.tsx
-  const handleToggleAllOtherFoodVisibility = async () => {
-    try {
-      // Get all "Other" category foods
-      const otherFoods = foodOptions.other;
-
-      // Prepare batch update promises
-      const updatePromises = otherFoods.map(async (food) => {
-        const newHiddenState = !food.hiddenFromChild;
-
-        try {
-          const response = await fetch(`/api/foods/${food.id}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              hiddenFromChild: newHiddenState,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to update food ${food.id}`);
-          }
-
-          return { ...food, hiddenFromChild: newHiddenState };
-        } catch (error) {
-          console.error(`Error updating food ${food.id}:`, error);
-          return food;
-        }
-      });
-
-      // Wait for all updates to complete
-      const updatedFoods = await Promise.all(updatePromises);
-
-      // Update local state
-      setFoodOptions((prev) => ({
-        ...prev,
-        other: updatedFoods,
-      }));
-    } catch (error) {
-      console.error("Error toggling all Other foods visibility:", error);
-    }
-  };
+    const currentDay = DAYS_OF_WEEK[new Date().getDay()] as DayType;
+    setSelectedDay(currentDay);
+  }, []);
 
   return (
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
       <MealPlannerHeader
         kids={kids}
-        // @ts-expect-error TypeScript doesn't understand the dynamic keys here
         selectedKid={selectedKid}
         onKidSelect={setSelectedKid}
         isChildView={isChildView}
@@ -453,9 +327,13 @@ export const MealPlanner = () => {
         <ChildView
           selectedMeal={selectedMeal}
           foodOptions={foodOptions}
-          selections={selections[selectedKid] ?? DEFAULT_MEAL_PLAN}
+          selections={selections[selectedKid]}
           selectedDay={selectedDay}
-          onFoodSelect={handleFoodSelect}
+          onFoodSelect={(category, food) => {
+            if (isCategoryKey(category)) {
+              handleFoodSelect(category, food);
+            }
+          }}
           onMealSelect={setSelectedMeal}
         />
       ) : (
@@ -486,7 +364,7 @@ export const MealPlanner = () => {
 
             {/* Meal Selection */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              {MEAL_TYPES.map((meal) => (
+              {(MEAL_TYPES as readonly MealType[]).map((meal) => (
                 <button
                   key={meal}
                   onClick={() => setSelectedMeal(meal)}
@@ -519,17 +397,11 @@ export const MealPlanner = () => {
                     variant="outline"
                     className="gap-2"
                     onClick={() => {
-                      const currentMealSelections =
-                        // @ts-expect-error Idk what to do
-                        selections[selectedKid]?.[selectedDay]?.[selectedMeal];
-                      if (currentMealSelections) {
+                      if (currentMealSelection) {
                         setShowAiAnalysis(true);
                       }
                     }}
-                    disabled={
-                      // @ts-expect-error Idk what to do
-                      !selections[selectedKid]?.[selectedDay]?.[selectedMeal]
-                    }
+                    // disabled={!currentMealSelection}
                   >
                     <MessageSquare className="w-4 h-4" />
                     Analyze Meal Plan
@@ -539,61 +411,11 @@ export const MealPlanner = () => {
                 {/* Nutrition Summary */}
                 <NutritionSummary
                   mealSelections={
-                    selectedKid && selectedDay && selectedMeal
-                      ? selections[selectedKid][selectedDay][selectedMeal]
-                      : {
-                          proteins: null,
-                          fruits: null,
-                          vegetables: null,
-                          grains: null,
-                          milk: null,
-                          ranch: null,
-                          condiments: [],
-                        }
+                    currentMealSelection || createEmptyMealSelection()
                   }
-                  dailySelections={
-                    selectedKid && selectedDay
-                      ? Object.values(
-                          selections[selectedKid][selectedDay]
-                        ).reduce(
-                          (acc, meal) => {
-                            // Combine all meals into one selection
-                            return {
-                              proteins: acc.proteins || meal.proteins,
-                              fruits: acc.fruits || meal.fruits,
-                              vegetables: acc.vegetables || meal.vegetables,
-                              grains: acc.grains || meal.grains,
-                              milk: acc.milk || meal.milk,
-                              ranch: acc.ranch || meal.ranch,
-                              condiments: [
-                                ...acc.condiments,
-                                ...(meal.condiments || []),
-                              ],
-                            };
-                          },
-                          {
-                            proteins: null,
-                            fruits: null,
-                            vegetables: null,
-                            grains: null,
-                            milk: null,
-                            ranch: null,
-                            condiments: [],
-                          }
-                        )
-                      : {
-                          proteins: null,
-                          fruits: null,
-                          vegetables: null,
-                          grains: null,
-                          milk: null,
-                          ranch: null,
-                          condiments: [],
-                        }
-                  }
+                  dailySelections={nutritionToMealSelection(dailyNutrition)}
                   selectedMeal={selectedMeal}
                 />
-
                 <div className="mb-6">
                   {!isChildView && selectedMeal && (
                     <>
@@ -602,10 +424,10 @@ export const MealPlanner = () => {
                         <div className="mb-6" data-testid="milk-toggle">
                           <MilkToggle
                             isSelected={
-                              selectedMeal ? includesMilk[selectedMeal] : false
+                              selectedMeal ? milkInclusion[selectedMeal] : false
                             }
                             onChange={(value) =>
-                              handleMilkToggle(selectedMeal, value)
+                              handleMilkToggle(selectedMeal!, value)
                             }
                           />
                         </div>
@@ -690,7 +512,7 @@ export const MealPlanner = () => {
                                     category={category}
                                     isSelected={isSelected}
                                     selectedFoodInCategory={
-                                      selectedFoodInCategory
+                                      selectedFoodInCategory ?? null
                                     }
                                     mealType={selectedMeal}
                                     onSelect={() =>
@@ -732,22 +554,19 @@ export const MealPlanner = () => {
 
           <TabsContent value="weekly">
             <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-              {DAYS_OF_WEEK.map((day) => (
+              {DAYS_OF_WEEK.map((day: DayType) => (
                 <Card key={day} className="p-4">
                   <h3 className="text-lg font-semibold capitalize mb-3">
                     {day}
                   </h3>
                   {Object.entries(selections[day] ?? {}).map(([meal]) => {
                     const nutrition = calculateMealNutrition(meal as MealType);
-                    // @ts-expect-error Idk what to do
                     if (nutrition.calories > 0) {
                       return (
                         <div key={meal} className="mb-4 p-2 bg-gray-50 rounded">
                           <div className="font-medium capitalize">{meal}</div>
                           <div className="text-sm text-gray-600">
-                            {/** @ts-expect-error Idk what to do*/}
                             {Math.round(nutrition.calories)} cal | P:{" "}
-                            {/** @ts-expect-error Idk what to do*/}
                             {Math.round(nutrition.protein)}g
                           </div>
                         </div>
@@ -834,7 +653,11 @@ export const MealPlanner = () => {
           food={selectedFoodContext.food}
           currentServings={selectedFoodContext.currentServings}
           onConfirm={(adjustedFood) => {
-            handleServingAdjustment(selectedFoodContext.category, adjustedFood);
+            handleServingAdjustment(
+              selectedFoodContext.category,
+              adjustedFood.id,
+              adjustedFood.servings
+            );
             setSelectedFoodContext(null);
           }}
           onCancel={() => setSelectedFoodContext(null)}
@@ -858,7 +681,7 @@ export const MealPlanner = () => {
         <MealAnalysis
           selectedMeal={selectedMeal}
           // @ts-expect-error Idk what to do
-          mealSelections={selections[selectedKid][selectedDay][selectedMeal]}
+          mealSelections={currentMealSelection}
           onAnalysisComplete={(analysis) => {
             console.log("Meal analysis completed:", analysis);
           }}
@@ -889,15 +712,9 @@ export const MealPlanner = () => {
       {/* Nutrition Progress Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
         <CompactNutritionProgress
-          currentCalories={
-            selectedMeal && selectedKid && selectedDay
-              ? calculateMealNutrition(
-                  selections[selectedKid][selectedDay][selectedMeal]
-                ).calories
-              : 0
-          }
-          currentProtein={calculateDailyTotals().protein}
-          currentFat={calculateDailyTotals().fat}
+          currentCalories={currentMealSelection ? mealNutrition.calories : 0}
+          currentProtein={dailyNutrition.protein}
+          currentFat={dailyNutrition.fat}
           selectedMeal={selectedMeal}
         />
       </div>

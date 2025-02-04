@@ -35,6 +35,7 @@ As you work on code, if you discover any lessons or principles about this projec
 - Prefer `const` over `function` declarations for handlers (e.g., `const toggle = () => {}`).
 - Add **accessibility features**: `tabindex="0"`, `aria-label`, `onClick`, `onKeyDown`, etc.
 - **Type definitions:** Use TypeScript interfaces over types. Avoid enums—use maps instead.
+- Try not to use type assertions unless absolutely necessary.
 
 ---
 

@@ -1,8 +1,11 @@
 // hooks/meal/useMealSelections.ts
 import { useState, useCallback } from "react";
-import { MealPlan, CategoryType, Food, MealType, DayType } from "@/types/food";
+import { CategoryType, Food, DayType } from "@/types/food";
 import { Kid } from "@/types/user";
 import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
+import { produce } from "immer";
+import { MealPlan, MealType } from "@/types/meals";
+import { isCategoryKey } from "@/utils/meal-categories";
 
 interface UseMealSelectionsConfig {
   initialKids: Kid[];
@@ -53,52 +56,57 @@ export function useMealSelections({
       category: CategoryType,
       food: Food | null
     ) => {
-      setSelections((prev) => {
-        const newSelections = structuredClone(prev);
-        // @ts-expect-error Idk what to do
-        const currentMeal = newSelections[kidId][day][meal];
+      setSelections(
+        produce((draft) => {
+          if (!draft[kidId]?.[day]?.[meal]) return;
 
-        if (food) {
-          currentMeal[category] = {
-            ...food,
-            servings: 1,
-            adjustedCalories: food.calories,
-            adjustedProtein: food.protein,
-            adjustedCarbs: food.carbs,
-            adjustedFat: food.fat,
-          };
-        } else {
-          currentMeal[category] = null;
-        }
+          const currentMeal = draft[kidId][day][meal];
 
-        // @ts-expect-error Idk what to do
-        onMealUpdate?.(newSelections);
-        return newSelections;
-      });
+          if (category === "condiments") {
+            if (food) {
+              currentMeal.condiments.push({
+                ...food,
+                servings: 1,
+                adjustedCalories: food.calories,
+                adjustedProtein: food.protein,
+                adjustedCarbs: food.carbs,
+                adjustedFat: food.fat,
+              });
+            }
+          } else if (isCategoryKey(category)) {
+            currentMeal[category] = food
+              ? {
+                  ...food,
+                  servings: 1,
+                  adjustedCalories: food.calories,
+                  adjustedProtein: food.protein,
+                  adjustedCarbs: food.carbs,
+                  adjustedFat: food.fat,
+                }
+              : null;
+          }
+
+          onMealUpdate?.(draft);
+        })
+      );
     },
     [onMealUpdate]
   );
 
   const calculateMealNutrition = useCallback(
     (kidId: string, day: DayType, meal: MealType): NutritionCalculation => {
-      // @ts-expect-error Idk what to do
       const mealSelections = selections[kidId]?.[day]?.[meal];
       if (!mealSelections) {
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
       }
 
-      // @ts-expect-error Idk what to do
       return Object.values(mealSelections).reduce(
         (sum, food) => {
           if (!food) return sum;
           return {
-            // @ts-expect-error Idk what to do
             calories: sum.calories + (food.adjustedCalories ?? food.calories),
-            // @ts-expect-error Idk what to do
             protein: sum.protein + (food.adjustedProtein ?? food.protein),
-            // @ts-expect-error Idk what to do
             carbs: sum.carbs + (food.adjustedCarbs ?? food.carbs),
-            // @ts-expect-error Idk what to do
             fat: sum.fat + (food.adjustedFat ?? food.fat),
           };
         },

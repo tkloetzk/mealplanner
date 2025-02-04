@@ -1,11 +1,7 @@
 // src/types/food.ts
-import {
-  CATEGORY_STYLES,
-  CondimentSelection,
-  DAYS_OF_WEEK,
-  MEAL_TYPES,
-} from "@/constants";
+import { CATEGORY_STYLES, CondimentSelection, DAYS_OF_WEEK } from "@/constants";
 import { ObjectId } from "mongodb";
+import { MealType } from "./meals";
 
 export interface FoodDocument extends Food {
   _id: ObjectId;
@@ -13,7 +9,6 @@ export interface FoodDocument extends Food {
 
 export type CategoryType =
   (typeof CATEGORY_STYLES)[keyof typeof CATEGORY_STYLES];
-export type MealType = (typeof MEAL_TYPES)[keyof typeof MEAL_TYPES];
 export type DayType = (typeof DAYS_OF_WEEK)[keyof typeof DAYS_OF_WEEK];
 
 export interface MealSelection {
@@ -33,9 +28,6 @@ export interface DayMeals {
   snack: MealSelection;
 }
 
-export interface MealPlan {
-  [key: string]: DayMeals;
-}
 export type ServingSizeUnit =
   | "g"
   | "ml"
@@ -51,20 +43,25 @@ export interface FoodScoreAnalysis {
   positives: string[];
   negatives: string[];
 }
-// src/types/food.ts
 
 export interface Food {
   id: string;
   name: string;
+  category: CategoryType;
+  meal: MealType[];
+  servings: number;
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
+  hiddenFromChild?: boolean;
+  adjustedCalories: number;
+  adjustedProtein: number;
+  adjustedCarbs: number;
+  adjustedFat: number;
   servingSize: string;
   servingSizeUnit: ServingSizeUnit;
   servingSizeImported?: string;
-  category: CategoryType;
-  meal: MealType[];
   cloudinaryUrl?: string;
   imagePath?: string;
   imageUrl?: string;
@@ -79,7 +76,6 @@ export interface Food {
   };
   score?: string;
   additives?: string[];
-  hiddenFromChild?: boolean;
   analysis?: FoodScoreAnalysis; // Updated to use FoodScoreAnalysis type
   subcategory?: string; // For organizing condiments (e.g., "spreads", "dressings", "sauces")
   recommendedUses?: string[]; // e.g., ["breads", "vegetables", "proteins"]
@@ -116,21 +112,6 @@ export interface ConsumptionData {
 // }
 
 // Define an interface that extends MongoDB Document
-export interface MealHistoryRecord extends Document {
-  _id?: ObjectId;
-  kidId: string;
-  date: Date;
-  meal: MealType;
-  selections: MealSelection;
-  consumptionData?: {
-    foods: Array<{
-      name: string;
-      percentageEaten: number;
-      notes?: string;
-    }>;
-    summary?: string;
-  };
-}
 
 export interface NutritionSummary {
   calories: number;

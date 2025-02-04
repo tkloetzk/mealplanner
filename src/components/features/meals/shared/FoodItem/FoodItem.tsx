@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Sliders, Edit } from "lucide-react";
-import { CategoryType, Food, SelectedFood } from "@/types/food";
+import { CategoryType, Food } from "@/types/food";
 import { getFoodImageSource } from "@/utils/imageUtils";
 import Image from "next/image";
 import { EyeOff, Eye } from "lucide-react";
@@ -11,7 +11,7 @@ interface FoodItemProps {
   category: CategoryType;
   isSelected: boolean;
   index: number;
-  selectedFoodInCategory: SelectedFood | null;
+  selectedFoodInCategory: Food | null;
   onSelect: () => void;
   onServingClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   onEditFood?: () => void;

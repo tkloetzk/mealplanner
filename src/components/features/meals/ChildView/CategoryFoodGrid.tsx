@@ -2,10 +2,11 @@
 
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
-import { CategoryType, Food, MealType, DayType, MealPlan } from "@/types/food";
+import { CategoryType, Food, DayType } from "@/types/food";
 import { getFoodImageSource } from "@/utils/imageUtils";
 import Image from "next/image";
-import { CATEGORY_EMOJIS, CATEGORY_STYLES } from "@/constants";
+import { CATEGORY_EMOJIS, CATEGORY_STYLES } from "@/constants/index";
+import { MealPlan, MealType } from "@/types/meals";
 
 interface CategoryFoodGridProps {
   category: keyof typeof CATEGORY_STYLES;
@@ -30,7 +31,6 @@ export function CategoryFoodGrid({
     if (isCondimentGrid) {
       // For condiments, check if it exists in the condiments array
       return (
-        // @ts-expect-error idk
         selections[selectedDay]?.[selectedMeal]?.condiments?.some(
           // @ts-expect-error idk
           (c: unknown) => c.foodId === food.id
@@ -46,7 +46,6 @@ export function CategoryFoodGrid({
   const getServingInfo = (food: Food) => {
     if (!isCondimentGrid) return null;
 
-    // @ts-expect-error idk
     const condiment = selections[selectedDay]?.[selectedMeal]?.condiments?.find(
       // @ts-expect-error idk
       (c) => c.foodId === food.id

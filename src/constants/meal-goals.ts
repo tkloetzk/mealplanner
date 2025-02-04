@@ -1,6 +1,6 @@
-import { MealPlan } from "@/types/food";
-import { DAYS_OF_WEEK } from ".";
-
+import { DAYS_OF_WEEK } from "@/constants/index";
+import { Food } from "@/types/food";
+import { MealPlan, MealType } from "@/types/meals";
 // constants/meal-goals.ts
 export const DAILY_GOALS = {
   mealCalories: {
@@ -42,15 +42,21 @@ export const DEFAULT_MEAL_PLAN: MealPlan = DAYS_OF_WEEK.reduce((plan, day) => {
   return plan;
 }, {} as MealPlan);
 
-export const MILK_OPTION = {
+export const MILK_OPTION: Food = {
+  id: "milk",
   name: "2% Milk",
+  servings: 1,
+  adjustedCalories: 140,
+  adjustedProtein: 10,
+  adjustedCarbs: 14,
+  adjustedFat: 5,
   calories: 140,
   protein: 10,
   carbs: 14,
   fat: 5,
   servingSize: "1",
   servingSizeUnit: "cup",
-  meal: ["breakfast", "lunch", "dinner"],
+  meal: ["breakfast", "lunch", "dinner", "snack"] as MealType[],
   upc: "085239284063",
   category: "milk",
   ingredients: "reduced fat milk, vitamin d3, vitamin a palmitate.",
