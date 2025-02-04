@@ -1,14 +1,16 @@
-import { Food } from "@/types/food";
-import { CategoryType, MealSelection } from "@/types/meals";
+import { CategoryType } from "@/types/meals";
 
-type SingleFoodCategory = keyof {
-  [K in keyof MealSelection as MealSelection[K] extends Food | null
-    ? K
-    : never]: MealSelection[K];
-};
+const VALID_CATEGORIES = [
+  "proteins",
+  "grains",
+  "fruits",
+  "vegetables",
+  "milk",
+  "condiments",
+  "ranch",
+  "other",
+] as const;
 
-export const isCategoryKey = (
-  category: CategoryType
-): category is SingleFoodCategory => {
-  return category !== "condiments";
+export const isCategoryKey = (category: string): category is CategoryType => {
+  return VALID_CATEGORIES.includes(category as CategoryType);
 };

@@ -252,20 +252,22 @@ export const MealPlanner = () => {
       const response = await fetch("/api/foods");
       if (!response.ok) throw new Error("Failed to fetch foods");
       const data = await response.json();
+      console.log("data", JSON.stringify(data));
 
-      console.log("data", data);
-      // Ensure foods is an array
-      const foods: Food[] = Array.isArray(data) ? data : [];
+      // Since data is always pre-grouped, directly set it as food options
+      // Just ensure the categories are valid
+      const validGroupedData = Object.entries(data).reduce(
+        (acc, [category, foods]) => {
+          if (isCategoryKey(category)) {
+            acc[category] = Array.isArray(foods) ? foods : [];
+          }
+          return acc;
+        },
+        {} as Record<CategoryType, Food[]>
+      );
 
-      // Group foods by category
-      const groupedFoods = foods.reduce((acc, food) => {
-        if (isCategoryKey(food.category)) {
-          acc[food.category] = [...(acc[food.category] || []), food];
-        }
-        return acc;
-      }, {} as Record<CategoryType, Food[]>);
-
-      setFoodOptions(groupedFoods);
+      console.log("Setting food options:", validGroupedData);
+      setFoodOptions(validGroupedData);
     } catch (error) {
       console.error("Error fetching food options:", error);
     }
@@ -453,12 +455,14 @@ export const MealPlanner = () => {
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
                   ).map(([category, foods]) => {
+                    console.log("foods", foodOptions);
                     const compatibleFoods = selectedMeal
                       ? foods.filter((food) =>
                           food.meal?.includes(selectedMeal)
                         )
                       : foods;
 
+                    console.log("compatibleFoods", compatibleFoods);
                     if (compatibleFoods.length === 0) return null;
                     return (
                       <Card key={category}>
