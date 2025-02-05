@@ -1,108 +1,136 @@
 // src/components/features/nutrition/NutritionSummary/__tests__/NutritionSummary.test.tsx
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { NutritionSummary } from "../NutritionSummary";
 import { DAILY_GOALS } from "@/constants/meal-goals";
-import { ServingSizeUnit } from "@/types/food";
+import { MealType, DayType } from "@/types/meals";
+import { useMealStore } from "@/store/useMealStore";
+
+const createMockStore = (overrides = {}) => ({
+  // State
+  selections: {},
+  selectedKid: "1",
+  selectedDay: "monday" as DayType,
+  selectedMeal: "breakfast" as MealType,
+  mealHistory: {},
+
+  // Selection actions
+  setSelectedKid: jest.fn(),
+  setSelectedDay: jest.fn(),
+  setSelectedMeal: jest.fn(),
+
+  // Meal management actions
+  initializeKids: jest.fn(),
+  handleFoodSelect: jest.fn(),
+  handleServingAdjustment: jest.fn(),
+  handleMilkToggle: jest.fn(),
+
+  // Utility functions
+  getCurrentMealSelection: jest.fn(),
+  resetMeal: jest.fn(),
+  calculateMealNutrition: jest.fn().mockReturnValue({
+    calories: 200,
+    protein: 25,
+    carbs: 0,
+    fat: 12,
+  }),
+  calculateDailyTotals: jest.fn().mockReturnValue({
+    calories: 600,
+    protein: 75,
+    carbs: 0,
+    fat: 36,
+  }),
+  ...overrides,
+});
+
+// Mock the useMealStore hook
+jest.mock("@/store/useMealStore", () => ({
+  useMealStore: jest.fn((selector) => selector(createMockStore())),
+}));
 
 describe("NutritionSummary", () => {
-  // Test data
-  const mealSelections = {
-    proteins: {
-      id: "1",
-      name: "Chicken",
-      calories: 200,
-      protein: 25,
-      carbs: 0,
-      fat: 12,
-      servings: 1,
-      adjustedCalories: 200,
-      adjustedProtein: 25,
-      adjustedCarbs: 0,
-      adjustedFat: 12,
-      category: "proteins",
-      servingSize: "1",
-      servingSizeUnit: "piece" as ServingSizeUnit,
-      meal: ["breakfast", "lunch", "dinner"],
-    },
-    fruits: null,
-    vegetables: null,
-    grains: null,
-    milk: null,
-    ranch: null,
-    condiments: [],
+  const defaultProps = {
+    selectedMeal: "breakfast" as MealType,
   };
 
-  const dailySelections = {
-    proteins: {
-      ...mealSelections.proteins,
-      calories: 600,
-      protein: 75,
-      carbs: 0,
-      fat: 36,
-      adjustedCalories: 600,
-      adjustedProtein: 75,
-      adjustedCarbs: 0,
-      adjustedFat: 36,
-    },
-    fruits: null,
-    vegetables: null,
-    grains: null,
-    milk: null,
-    ranch: null,
-    condiments: [],
-  };
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  it("displays basic nutrition information correctly", () => {
-    render(
-      <NutritionSummary
-        mealSelections={mealSelections}
-        dailySelections={dailySelections}
-        selectedMeal="breakfast"
-      />
+  it("displays basic nutrition information correctly", async () => {
+    const mockStore = createMockStore();
+    jest
+      .mocked(useMealStore)
+      .mockImplementation((selector) => selector(mockStore));
+
+    const { debug } = render(<NutritionSummary {...defaultProps} />);
+
+    // Debug output to see what's being rendered
+    debug();
+
+    // Get the nutrition values from the mock
+    const nutrition = mockStore.calculateMealNutrition();
+
+    // Find the nutrient cards by their test IDs
+    const proteinCard = screen.getByTestId("nutrient-protein");
+    const carbsCard = screen.getByTestId("nutrient-carbs");
+    const fatCard = screen.getByTestId("nutrient-fat");
+
+    // Check each nutrient value within its card
+    expect(
+      within(proteinCard).getByText(`${nutrition.protein.toFixed(1)}g`)
+    ).toBeInTheDocument();
+    expect(
+      within(carbsCard).getByText(`${nutrition.carbs.toFixed(1)}g`)
+    ).toBeInTheDocument();
+    expect(
+      within(fatCard).getByText(`${nutrition.fat.toFixed(1)}g`)
+    ).toBeInTheDocument();
+
+    // Check calories with target
+    const caloriesValue = screen.getByTestId("calories-value");
+    expect(caloriesValue).toHaveTextContent(
+      `${nutrition.calories} / ${DAILY_GOALS.mealCalories.breakfast}`
     );
 
-    // Check nutrient values are displayed
-    expect(screen.getByText(/200/)).toBeInTheDocument(); // Calories
-    expect(screen.getByText(/25\.0g/)).toBeInTheDocument(); // Protein
-    expect(screen.getByText(/0\.0g/)).toBeInTheDocument(); // Carbs
-    expect(screen.getByText(/12\.0g/)).toBeInTheDocument(); // Fat
-
     // Check meal title is displayed correctly
-    expect(screen.getByText("Breakfast Total")).toBeInTheDocument();
+    expect(screen.getByText(/breakfast total/i)).toBeInTheDocument();
   });
 
   it("toggles between meal and daily view correctly", () => {
-    render(
-      <NutritionSummary
-        mealSelections={mealSelections}
-        dailySelections={dailySelections}
-        selectedMeal="breakfast"
-      />
-    );
+    const mockStore = createMockStore();
+    jest
+      .mocked(useMealStore)
+      .mockImplementation((selector) => selector(mockStore));
+
+    render(<NutritionSummary {...defaultProps} />);
 
     // Check initial meal view
-    expect(screen.getByText(/200/)).toBeInTheDocument();
+    const expectedMealCalories = `${
+      mockStore.calculateMealNutrition().calories
+    } / ${DAILY_GOALS.mealCalories.breakfast}`;
+    expect(screen.getByTestId("calories-value")).toHaveTextContent(
+      expectedMealCalories
+    );
     expect(screen.getByText("Breakfast Total")).toBeInTheDocument();
 
     // Toggle to daily view
-    fireEvent.click(screen.getByText("Nutrition Summary"));
+    fireEvent.click(screen.getByTestId("nutrition-summary"));
 
     // Check daily view values
-    expect(screen.getByText(/600/)).toBeInTheDocument();
+    const expectedDailyCalories = `${
+      mockStore.calculateDailyTotals().calories
+    } / ${DAILY_GOALS.dailyTotals.calories}`;
+    expect(screen.getByTestId("calories-value")).toHaveTextContent(
+      expectedDailyCalories
+    );
     expect(screen.getByText("Daily Total")).toBeInTheDocument();
   });
 
   it("shows correct goal ranges in daily view", () => {
-    render(
-      <NutritionSummary
-        mealSelections={mealSelections}
-        dailySelections={dailySelections}
-        selectedMeal="breakfast"
-      />
-    );
+    render(<NutritionSummary {...defaultProps} />);
 
     // Switch to daily view
-    fireEvent.click(screen.getByText("Nutrition Summary"));
+    fireEvent.click(screen.getByTestId("nutrition-summary"));
 
     // Check target ranges are displayed
     const proteinRange = `${DAILY_GOALS.dailyTotals.protein.min}-${DAILY_GOALS.dailyTotals.protein.max}g`;
@@ -113,81 +141,75 @@ describe("NutritionSummary", () => {
   });
 
   it("handles empty selections gracefully", () => {
-    const emptySelections = {
-      proteins: null,
-      fruits: null,
-      vegetables: null,
-      grains: null,
-      milk: null,
-      ranch: null,
-      condiments: [],
-    };
-
-    render(
-      <NutritionSummary
-        mealSelections={emptySelections}
-        dailySelections={emptySelections}
-        selectedMeal="breakfast"
-      />
+    // Mock the store to return empty values
+    jest.mocked(useMealStore).mockImplementation((selector) =>
+      selector(
+        createMockStore({
+          calculateMealNutrition: jest.fn().mockReturnValue({
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+          }),
+          calculateDailyTotals: jest.fn().mockReturnValue({
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+          }),
+        })
+      )
     );
 
-    // Check that zero values (calories which shows as '0 /') are displayed
+    render(<NutritionSummary {...defaultProps} />);
+
+    // Check that zero values are displayed
     expect(screen.getByText(/0 \//)).toBeInTheDocument();
-    // Now check that `0.0g` appears exactly three times (for protein, carbs, and fat)
     expect(screen.getAllByText(/0\.0g/)).toHaveLength(3);
   });
 
-  it("displays condiment nutrition when present", () => {
-    const selectionsWithCondiments = {
-      ...mealSelections,
-      condiments: [
-        {
-          foodId: "1",
-          servings: 1,
-          adjustedCalories: 50,
-          adjustedProtein: 0,
-          adjustedCarbs: 5,
-          adjustedFat: 3,
-        },
-      ],
-    };
-
-    render(
-      <NutritionSummary
-        mealSelections={selectionsWithCondiments}
-        dailySelections={dailySelections}
-        selectedMeal="breakfast"
-      />
-    );
-
-    // Check total includes condiments
-    expect(screen.getByText(/250/)).toBeInTheDocument(); // 200 + 50 calories
-    expect(screen.getByText("5.0g")).toBeInTheDocument(); // Carbs from condiment
-  });
-
   it("maintains UI state when switching meals", () => {
-    const { rerender } = render(
-      <NutritionSummary
-        mealSelections={mealSelections}
-        dailySelections={dailySelections}
-        selectedMeal="breakfast"
-      />
-    );
+    const { rerender } = render(<NutritionSummary {...defaultProps} />);
 
     // Switch to daily view
-    fireEvent.click(screen.getByText("Nutrition Summary"));
+    fireEvent.click(screen.getByTestId("nutrition-summary"));
     expect(screen.getByText("Daily Total")).toBeInTheDocument();
 
     // Change meal
-    rerender(
-      <NutritionSummary
-        mealSelections={mealSelections}
-        dailySelections={dailySelections}
-        selectedMeal="lunch"
-      />
-    );
+    rerender(<NutritionSummary selectedMeal="lunch" />);
 
     // Daily view should still be active
     expect(screen.getByText("Daily Total")).toBeInTheDocument();
+  });
+
+  it("displays correct progress bar colors based on values", () => {
+    // Mock the store with values that will trigger different progress bar colors
+    jest.mocked(useMealStore).mockImplementation((selector) =>
+      selector(
+        createMockStore({
+          calculateMealNutrition: jest.fn().mockReturnValue({
+            // Set calories to 120% of breakfast target to trigger red color
+            calories: DAILY_GOALS.mealCalories.breakfast * 1.2,
+            protein: 25,
+            carbs: 0,
+            fat: 12,
+          }),
+        })
+      )
+    );
+
+    render(<NutritionSummary {...defaultProps} />);
+
+    const progressBar = screen.getByTestId("calories-progress");
+    expect(progressBar).toHaveClass("bg-red-500");
+  });
+
+  it("displays nutrition status indicators correctly", () => {
+    render(<NutritionSummary {...defaultProps} />);
+
+    // Check if status indicators are present
+    expect(screen.getByText(/meets calorie goal/i)).toBeInTheDocument();
+    expect(screen.getByText(/meets protein goal/i)).toBeInTheDocument();
+    expect(screen.getByText(/meets fat goal/i)).toBeInTheDocument();
   });
 });
