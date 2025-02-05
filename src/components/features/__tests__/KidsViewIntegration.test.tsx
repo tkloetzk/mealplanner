@@ -98,8 +98,8 @@ describe("Kids View Integration Tests", () => {
     await user.click(foodElement);
 
     await waitFor(() => {
-      expect(foodElement).toHaveClass("ring-2");
-      expect(foodElement).toHaveClass("ring-green-500");
+      expect(foodElement.className).toContain("ring-2");
+      expect(foodElement.className).toContain("ring-green-500");
     });
 
     return foodElement;
@@ -204,19 +204,22 @@ describe("Kids View Integration Tests", () => {
     }
   });
 
-  it.only("shows condiments only when relevant foods are selected", async () => {
+  it("shows condiments only when relevant foods are selected", async () => {
     await renderMealPlanner();
     await toggleView();
 
     // Initially, no condiments should be visible
     expect(screen.queryByText(/Add Toppings/i)).not.toBeInTheDocument();
 
-    // Select a food that can have condiments
+    // Select a protein (which ranch can be used with)
     await selectFood("proteins", 0, "breakfast");
 
-    // Now condiments section should be visible
+    // Now condiments section should be visible because proteins are in ranch's recommendedUses
     await waitFor(() => {
       expect(screen.getByText(/Add Toppings/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(MOCK_FOODS.condiments[0].name)
+      ).toBeInTheDocument();
     });
 
     // Verify condiment selection works
@@ -224,5 +227,28 @@ describe("Kids View Integration Tests", () => {
     await user.click(condimentElement);
     expect(condimentElement).toHaveClass("ring-2");
     expect(condimentElement).toHaveClass("ring-green-500");
+
+    // Deselect protein by clicking it again
+    const proteinElement = screen.getByTestId("proteins-breakfast-0");
+    await user.click(proteinElement);
+
+    // Condiments should disappear when no compatible foods are selected
+    await waitFor(() => {
+      expect(screen.queryByText(/Add Toppings/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(MOCK_FOODS.condiments[0].name)
+      ).not.toBeInTheDocument();
+    });
+
+    // Select a vegetable (which ranch can also be used with)
+    await selectFood("vegetables", 0, "breakfast");
+
+    // Condiments should reappear
+    await waitFor(() => {
+      expect(screen.getByText(/Add Toppings/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(MOCK_FOODS.condiments[0].name)
+      ).toBeInTheDocument();
+    });
   });
 });

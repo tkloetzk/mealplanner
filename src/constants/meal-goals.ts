@@ -72,6 +72,7 @@ export const MILK_OPTION: Food = {
 
 export const RANCH_OPTION = {
   name: "Ranch Dressing",
+  id: "ranch1",
   calories: 65,
   protein: 0,
   carbs: 0.5,
@@ -89,6 +90,7 @@ export const RANCH_OPTION = {
     "saturated-fat": "high",
     sugars: "low",
   },
+  recommendedUses: ["proteins", "vegetables"],
   ingredients:
     "vegetable oil (soybean and/or canola), water, sugar, salt, nonfat buttermilk, egg yolk, natural flavors, less than 1% of: spices, garlic*, onion*, vinegar, phosphoric acid, xanthan gum, modified food starch, monosodium glutamate, artificial flavors, disodium phosphate, sorbic acid and calcium disodium edta added to preserve freshness, disodium inosinate , guanylate,",
 } as const;
