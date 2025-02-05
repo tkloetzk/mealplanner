@@ -247,12 +247,10 @@ export const MealPlanner = () => {
   };
 
   const fetchFoodOptions = async () => {
-    console.log("fetching food options");
     try {
       const response = await fetch("/api/foods");
       if (!response.ok) throw new Error("Failed to fetch foods");
       const data = await response.json();
-      console.log("data", JSON.stringify(data));
 
       // Since data is always pre-grouped, directly set it as food options
       // Just ensure the categories are valid
@@ -266,7 +264,6 @@ export const MealPlanner = () => {
         {} as Record<CategoryType, Food[]>
       );
 
-      console.log("Setting food options:", validGroupedData);
       setFoodOptions(validGroupedData);
     } catch (error) {
       console.error("Error fetching food options:", error);
@@ -455,14 +452,12 @@ export const MealPlanner = () => {
                   {(
                     Object.entries(foodOptions) as [CategoryType, Food[]][]
                   ).map(([category, foods]) => {
-                    console.log("foods", foodOptions);
                     const compatibleFoods = selectedMeal
                       ? foods.filter((food) =>
                           food.meal?.includes(selectedMeal)
                         )
                       : foods;
 
-                    console.log("compatibleFoods", compatibleFoods);
                     if (compatibleFoods.length === 0) return null;
                     return (
                       <Card key={category}>

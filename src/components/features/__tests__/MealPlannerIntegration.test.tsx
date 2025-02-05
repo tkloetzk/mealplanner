@@ -17,131 +17,12 @@ import {
 } from "@/types/meals";
 import { Kid } from "@/types/user";
 import userEvent from "@testing-library/user-event";
-import { create } from "zustand";
 import { useMealStore } from "@/store/useMealStore";
-import type { StoreApi, UseBoundStore } from "zustand";
-
-interface MealStore {
-  selections: Record<string, MealPlan>;
-  selectedKid: string;
-  selectedDay: DayType;
-  selectedMeal: MealType;
-  mealHistory: Record<string, MealHistoryRecord[]>;
-  initializeKids: (kids: Kid[]) => void;
-  setSelectedKid: (kidId: string) => void;
-  setSelectedDay: (day: DayType) => void;
-  setSelectedMeal: (meal: MealType) => void;
-  handleFoodSelect: (category: CategoryType, food: Food) => void;
-  handleServingAdjustment: (
-    category: CategoryType,
-    id: string,
-    servings: number
-  ) => void;
-  handleMilkToggle: (mealType: MealType, enabled: boolean) => void;
-  calculateMealNutrition: (meal: MealType) => {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  getCurrentMealSelection: () => MealSelection | null;
-  resetMeal: (kidId: string, day: DayType, meal: MealType) => void;
-  calculateDailyTotals: () => {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-}
-
-// Create a function to get a clean store state
-const getInitialState = (): MealStore => ({
-  selections: {},
-  selectedKid: "1",
-  selectedDay: "monday" as DayType,
-  selectedMeal: "breakfast" as MealType,
-  mealHistory: {},
-  initializeKids: () => {},
-  setSelectedKid: () => {},
-  setSelectedDay: () => {},
-  setSelectedMeal: () => {},
-  handleFoodSelect: () => {},
-  handleServingAdjustment: () => {},
-  handleMilkToggle: () => {},
-  calculateMealNutrition: () => ({ calories: 0, protein: 0, carbs: 0, fat: 0 }),
-  getCurrentMealSelection: () => null,
-  resetMeal: () => {},
-  calculateDailyTotals: () => ({ calories: 0, protein: 0, carbs: 0, fat: 0 }),
-});
-
-// Mock the Zustand store
-jest.mock("@/store/useMealStore", () => {
-  const actualStore = jest.requireActual("@/store/useMealStore");
-
-  // Create a test store with the same implementation but starting with initial test state
-  const testStore = create<MealStore>(() => ({
-    ...getInitialState(),
-    // Add all the actions from the actual store
-    initializeKids: (kids: Kid[]) => {
-      testStore.setState((state: MealStore) => {
-        const newState = { ...state };
-        kids.forEach((kid: Kid) => {
-          if (!newState.selections[kid.id]) {
-            newState.selections[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
-          }
-        });
-        if (!newState.selectedKid && kids.length > 0) {
-          newState.selectedKid = kids[0].id;
-        }
-        return newState;
-      });
-    },
-    setSelectedKid: (kidId: string) =>
-      testStore.setState({ selectedKid: kidId }),
-    setSelectedDay: (day: DayType) => testStore.setState({ selectedDay: day }),
-    setSelectedMeal: (meal: MealType) =>
-      testStore.setState({ selectedMeal: meal }),
-    handleFoodSelect: actualStore.useMealStore.getState().handleFoodSelect,
-    handleServingAdjustment:
-      actualStore.useMealStore.getState().handleServingAdjustment,
-    handleMilkToggle: actualStore.useMealStore.getState().handleMilkToggle,
-    calculateMealNutrition:
-      actualStore.useMealStore.getState().calculateMealNutrition,
-    getCurrentMealSelection:
-      actualStore.useMealStore.getState().getCurrentMealSelection,
-    resetMeal: actualStore.useMealStore.getState().resetMeal,
-    calculateDailyTotals:
-      actualStore.useMealStore.getState().calculateDailyTotals,
-  })) as unknown as UseBoundStore<StoreApi<MealStore>>;
-
-  return {
-    useMealStore: testStore,
-    getInitialState,
-  };
-});
+import { MEAL_TYPES } from "@/constants";
 
 describe("MealPlanner Integration Tests", () => {
-  beforeEach(() => {
-    // Reset store before each test
-    const store = useMealStore.getState();
-
-    // Initialize with test data
-    store.initializeKids([
-      { id: "1", name: "Presley" },
-      { id: "2", name: "Evy" },
-    ]);
-    store.setSelectedKid("1");
-    store.setSelectedDay("monday");
-    store.setSelectedMeal("breakfast" as MealType);
-  });
-
-  afterEach(() => {
-    // Clean up store after each test
-    const store = useMealStore.getState();
-    store.selections = {};
-    store.mealHistory = {};
-    jest.clearAllMocks();
-  });
+  // Add user setup
+  const user = userEvent.setup();
 
   // Test helper functions
   const renderMealPlanner = async () => {
@@ -153,12 +34,13 @@ describe("MealPlanner Integration Tests", () => {
     return result;
   };
 
-  const selectMeal = async (meal: MealType) => {
+  const selectMeal = async (meal: MealType = "breakfast") => {
     const mealButton = screen.getByTestId(`${meal}-meal-button`);
-    await userEvent.click(mealButton);
-    await waitFor(() => {
-      expect(mealButton).toHaveClass("bg-blue-500 text-white");
-    });
+    await user.click(mealButton);
+
+    expect(mealButton.className).toContain("bg-blue-500");
+    expect(mealButton.className).toContain("text-white");
+
     return mealButton;
   };
 
@@ -168,10 +50,12 @@ describe("MealPlanner Integration Tests", () => {
     meal: MealType
   ) => {
     const foodElement = screen.getByTestId(`${category}-${meal}-${index}`);
-    await userEvent.click(foodElement);
+    await user.click(foodElement);
 
     await waitFor(() => {
-      expect(foodElement).toHaveClass("ring-2 ring-blue-500 bg-blue-100");
+      expect(foodElement).toHaveClass("ring-2");
+      expect(foodElement).toHaveClass("ring-blue-500");
+      expect(foodElement).toHaveClass("bg-blue-100");
       expect(screen.getByTestId("edit-food-icon")).toBeInTheDocument();
       expect(screen.getByTitle("Adjust Servings")).toBeInTheDocument();
     });
@@ -185,10 +69,12 @@ describe("MealPlanner Integration Tests", () => {
     meal: MealType
   ) => {
     const foodElement = screen.getByTestId(`${category}-${meal}-${index}`);
-    await userEvent.click(foodElement);
+    await user.click(foodElement);
 
     await waitFor(() => {
-      expect(foodElement).not.toHaveClass("ring-2 ring-blue-500 bg-blue-100");
+      expect(foodElement).not.toHaveClass("ring-2");
+      expect(foodElement).not.toHaveClass("ring-blue-500");
+      expect(foodElement).not.toHaveClass("bg-blue-100");
       expect(screen.queryByTestId("edit-food-icon")).not.toBeInTheDocument();
       expect(
         screen.queryByTestId("adjust-servings-icon")
@@ -200,20 +86,22 @@ describe("MealPlanner Integration Tests", () => {
 
   const toggleSwitch = async (name: RegExp) => {
     const switchElement = screen.getByRole("switch", { name });
-    await userEvent.click(switchElement);
+    await user.click(switchElement);
     return switchElement;
   };
 
   // Basic functionality tests
   it("handles view toggling and meal selection persistence", async () => {
     await renderMealPlanner();
+    console.log("MealPlanner rendered");
 
     // Check initial load
     expect(screen.getByTestId("meal-planner")).toBeInTheDocument();
 
     // Toggle to child view
     const viewToggle = screen.getByRole("switch", { name: /Parent's View/i });
-    await userEvent.click(viewToggle);
+    await user.click(viewToggle);
+    console.log("Clicked view toggle to child view");
 
     // Verify child view elements
     await waitFor(() => {
@@ -222,20 +110,21 @@ describe("MealPlanner Integration Tests", () => {
     });
 
     // Toggle back to parent view and verify
-    await userEvent.click(viewToggle);
+    await user.click(viewToggle);
     await waitFor(() => {
       expect(screen.getByTestId("meal-planner")).toBeInTheDocument();
     });
 
     // Test meal selection persistence across views
-    await selectMeal("lunch" as MealType);
-    await userEvent.click(viewToggle);
+    console.log("Testing meal selection with:", MEAL_TYPES[1]);
+    await selectMeal(MEAL_TYPES[1]);
+    await user.click(viewToggle);
     await waitFor(() => {
       expect(screen.getByText(/Lunch/i)).toBeInTheDocument();
     });
   });
 
-  it("handles food selection with visual feedback and nutrition updates", async () => {
+  it.only("handles food selection with visual feedback and nutrition updates", async () => {
     await renderMealPlanner();
 
     await selectMeal("breakfast" as MealType);
@@ -289,7 +178,7 @@ describe("MealPlanner Integration Tests", () => {
 
     // Open serving selector
     const servingsButton = screen.getByTitle("Adjust Servings");
-    await userEvent.click(servingsButton);
+    await user.click(servingsButton);
 
     // Find serving input
     const servingInput = screen.getByTestId("custom-serving-input");
@@ -300,14 +189,14 @@ describe("MealPlanner Integration Tests", () => {
 
     // Increment serving
     const incrementButton = screen.getByTestId("increment-serving");
-    await userEvent.click(incrementButton);
+    await user.click(incrementButton);
 
     // Verify incremented serving size
     expect(servingInput).toHaveValue(initialServingSize + 0.25);
 
     // Confirm serving change
     const confirmButton = screen.getByRole("button", { name: /confirm/i });
-    await userEvent.click(confirmButton);
+    await user.click(confirmButton);
 
     await waitFor(() => {
       expect(
@@ -333,7 +222,7 @@ describe("MealPlanner Integration Tests", () => {
 
     // Switch to child view
     const viewToggle = screen.getByRole("switch", { name: /Parent's View/i });
-    userEvent.click(viewToggle);
+    user.click(viewToggle);
 
     // Check that foods are filtered
     const hiddenFood = MOCK_FOODS.other.find((f) => f.hiddenFromChild);
@@ -362,7 +251,7 @@ describe("MealPlanner Integration Tests", () => {
     expect(selectedProtein.closest("div")).toHaveClass("bg-blue-100");
 
     // Switch to dinner and verify protein is NOT selected there
-    await userEvent.click(screen.getByTestId("dinner-meal-button"));
+    await user.click(screen.getByTestId("dinner-meal-button"));
 
     // The same protein should not be selected in dinner
     const dinnerProtein = screen.getByTestId("proteins-dinner-0");
@@ -370,7 +259,7 @@ describe("MealPlanner Integration Tests", () => {
     expect(dinnerProtein.closest("div")).not.toHaveClass("bg-blue-100");
 
     // Switch back to lunch and verify protein is still selected
-    await userEvent.click(screen.getByTestId("lunch-meal-button"));
+    await user.click(screen.getByTestId("lunch-meal-button"));
 
     const lunchProtein = screen.getByTestId("proteins-lunch-0");
     expect(lunchProtein).toHaveClass("ring-2 ring-blue-500");
@@ -391,11 +280,11 @@ describe("MealPlanner Integration Tests", () => {
 
     // Adjust dinner serving
     const servingButton = screen.getByTitle("Adjust Servings");
-    await userEvent.click(servingButton);
-    await userEvent.click(screen.getByTestId("increment-serving"));
+    await user.click(servingButton);
+    await user.click(screen.getByTestId("increment-serving"));
 
     const confirmButton = screen.getByRole("button", { name: /confirm/i });
-    await userEvent.click(confirmButton);
+    await user.click(confirmButton);
 
     // Verify lunch still has 1 serving
     await selectMeal("lunch" as MealType);

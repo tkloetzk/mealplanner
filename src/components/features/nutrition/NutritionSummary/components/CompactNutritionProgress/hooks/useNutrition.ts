@@ -1,6 +1,7 @@
 // src/hooks/useNutrition.ts
 import { useMemo } from "react";
-import { MealType, MealSelection } from "@/types/food";
+import { MealSelection } from "@/types/food";
+import { MealType } from "@/types/meals";
 import { DAILY_GOALS } from "@/constants/meal-goals";
 
 export interface NutritionSummary {
@@ -27,9 +28,9 @@ export function useNutrition(
   const mealNutrition = useMemo(() => {
     if (!selections) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-    // Calculate nutrition from regular food selections
+    // Calculate nutrition from all food selections including milk
     const baseNutrition = Object.entries(selections)
-      .filter(([category]) => category !== "condiments" && category !== "milk")
+      .filter(([category]) => category !== "condiments")
       .reduce(
         (sum, [, food]) => {
           if (!food) return sum;
@@ -47,26 +48,9 @@ export function useNutrition(
         },
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
       );
+    console.log("Base Nutrition:", baseNutrition);
 
-    // Add nutrition from milk if present
-    const milkNutrition = selections.milk
-      ? {
-          calories: ensureNumber(
-            selections.milk.adjustedCalories || selections.milk.calories || 0
-          ),
-          protein: ensureNumber(
-            selections.milk.adjustedProtein || selections.milk.protein || 0
-          ),
-          carbs: ensureNumber(
-            selections.milk.adjustedCarbs || selections.milk.carbs || 0
-          ),
-          fat: ensureNumber(
-            selections.milk.adjustedFat || selections.milk.fat || 0
-          ),
-        }
-      : { calories: 0, protein: 0, carbs: 0, fat: 0 };
-
-    // Add nutrition from all condiments
+    // Add nutrition from condiments
     const condimentNutrition = selections.condiments?.reduce(
       (sum, condiment) => ({
         calories: sum.calories + ensureNumber(condiment.adjustedCalories || 0),
@@ -77,27 +61,23 @@ export function useNutrition(
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     ) || { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-    // Combine all nutrition sources and ensure final values are numbers
-    return {
+    console.log("Condiment Nutrition:", condimentNutrition);
+
+    // Combine all nutrition sources
+    const totalNutrition = {
       calories: ensureNumber(
-        baseNutrition.calories +
-          milkNutrition.calories +
-          condimentNutrition.calories
+        baseNutrition.calories + condimentNutrition.calories
       ),
-      protein: ensureNumber(
-        baseNutrition.protein +
-          milkNutrition.protein +
-          condimentNutrition.protein
-      ),
-      carbs: ensureNumber(
-        baseNutrition.carbs + milkNutrition.carbs + condimentNutrition.carbs
-      ),
-      fat: ensureNumber(
-        baseNutrition.fat + milkNutrition.fat + condimentNutrition.fat
-      ),
+      protein: ensureNumber(baseNutrition.protein + condimentNutrition.protein),
+      carbs: ensureNumber(baseNutrition.carbs + condimentNutrition.carbs),
+      fat: ensureNumber(baseNutrition.fat + condimentNutrition.fat),
     };
+
+    console.log("Total Meal Nutrition:", totalNutrition);
+    return totalNutrition;
   }, [selections]);
 
+  console.log("mealNutrition", mealNutrition);
   const nutritionStatus = useMemo((): NutritionStatus => {
     if (!mealType) {
       return {
@@ -107,7 +87,6 @@ export function useNutrition(
       };
     }
 
-    //@ts-expect-error idk
     const targetCalories = DAILY_GOALS.mealCalories[mealType];
     const { protein: proteinGoals, fat: fatGoals } = DAILY_GOALS.dailyTotals;
 

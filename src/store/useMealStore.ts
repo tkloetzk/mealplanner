@@ -87,9 +87,13 @@ export const useMealStore = create<MealStore>()(
             const { selectedKid, selectedDay, selectedMeal } = state;
             if (!selectedKid || !selectedDay || !selectedMeal) return;
 
+            console.log("food", food);
+            console.log("category", category);
+            console.log("state", state.selections);
             const currentMeal =
               state.selections[selectedKid][selectedDay][selectedMeal];
 
+            console.log("currentMeal", currentMeal);
             if (category === "condiments") {
               const existingIndex = currentMeal.condiments.findIndex(
                 (c: Food) => c.id === food.id
@@ -108,10 +112,12 @@ export const useMealStore = create<MealStore>()(
               }
             } else {
               const isSelected = currentMeal[category]?.id === food.id;
+              console.log("isSelected", isSelected);
               if (isSelected) {
                 currentMeal[category] = null;
               } else if (food.meal.includes(selectedMeal)) {
-                currentMeal[category] = {
+                console.log("in else if, food", food);
+                const adjustedFood = {
                   ...food,
                   servings: 1,
                   adjustedCalories: food.calories,
@@ -119,6 +125,9 @@ export const useMealStore = create<MealStore>()(
                   adjustedCarbs: food.carbs,
                   adjustedFat: food.fat,
                 };
+                //   console.log("in else if, adjustedFood", adjustedFood);
+                currentMeal[category] = adjustedFood;
+                console.log("in else if, currentMeal", currentMeal);
               }
             }
           })
@@ -169,6 +178,7 @@ export const useMealStore = create<MealStore>()(
       // Utility functions
       getCurrentMealSelection: () => {
         const { selectedKid, selectedDay, selectedMeal, selections } = get();
+        console.log("getting current meal selections", selections);
         if (!selectedKid || !selectedDay || !selectedMeal) return null;
         return selections[selectedKid]?.[selectedDay]?.[selectedMeal] || null;
       },
