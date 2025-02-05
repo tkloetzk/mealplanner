@@ -87,14 +87,6 @@ export const useMealStore = create<MealStore>()(
             const { selectedKid, selectedDay, selectedMeal } = state;
             if (!selectedKid || !selectedDay || !selectedMeal) return;
 
-            console.log("Selecting food:", {
-              category,
-              foodId: food.id,
-              meal: selectedMeal,
-              day: selectedDay,
-              kid: selectedKid,
-            });
-
             // Get a reference to the current meal
             const currentMeal =
               state.selections[selectedKid][selectedDay][selectedMeal];
@@ -122,44 +114,20 @@ export const useMealStore = create<MealStore>()(
               }
             } else {
               const isSelected = currentMeal[category]?.id === food.id;
-              console.log("Selection state:", {
-                currentSelection: currentMeal[category],
-                isSelected,
-                newFood: food,
-              });
 
-              // Create a new adjusted food object
-              const adjustedFood = {
-                ...food,
-                servings: 1,
-                adjustedCalories: food.calories,
-                adjustedProtein: food.protein,
-                adjustedCarbs: food.carbs,
-                adjustedFat: food.fat,
-              };
-
-              // Update the selection
               if (isSelected) {
                 currentMeal[category] = null;
-              } else if (food.meal.includes(selectedMeal)) {
-                currentMeal[category] = adjustedFood;
+              } else {
+                currentMeal[category] = {
+                  ...food,
+                  servings: 1,
+                  adjustedCalories: food.calories,
+                  adjustedProtein: food.protein,
+                  adjustedCarbs: food.carbs,
+                  adjustedFat: food.fat,
+                };
               }
-
-              // Force a re-render by creating a new reference
-              state.selections = { ...state.selections };
             }
-
-            // Debug the final state after update
-            console.log("Final state after selection:", {
-              currentMeal:
-                state.selections[selectedKid][selectedDay][selectedMeal],
-              category,
-              foodId: food.id,
-              isSelected:
-                state.selections[selectedKid][selectedDay][selectedMeal][
-                  category
-                ]?.id === food.id,
-            });
           })
         ),
 

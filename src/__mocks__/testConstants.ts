@@ -73,7 +73,7 @@ export const MOCK_FOODS = {
       protein: 4,
       carbs: 11,
       fat: 0.6,
-      meal: [LUNCH, DINNER],
+      meal: [BREAKFAST, LUNCH, DINNER],
       servingSize: "1",
       servingSizeUnit: "cup" as ServingSizeUnit,
     },

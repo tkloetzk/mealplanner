@@ -16,7 +16,6 @@ export type CategoryType =
   | "vegetables"
   | "milk"
   | "condiments"
-  | "ranch"
   | "other";
 
 export interface MealSelection {
@@ -26,7 +25,6 @@ export interface MealSelection {
   vegetables: Food | null;
   milk: Food | null;
   condiments: Food[];
-  ranch: Food | null;
   other?: Food | null;
 }
 

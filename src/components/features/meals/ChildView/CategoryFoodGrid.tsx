@@ -2,16 +2,16 @@
 
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
-import { CategoryType, Food, DayType } from "@/types/food";
+import { Food } from "@/types/food";
 import { getFoodImageSource } from "@/utils/imageUtils";
 import Image from "next/image";
 import { CATEGORY_EMOJIS, CATEGORY_STYLES } from "@/constants/index";
-import { MealPlan, MealType } from "@/types/meals";
+import { MealPlan, MealType, CategoryType } from "@/types/meals";
 
 interface CategoryFoodGridProps {
-  category: keyof typeof CATEGORY_STYLES;
+  category: CategoryType;
   foods: Food[];
-  selectedDay: DayType;
+  selectedDay: string;
   selectedMeal: MealType;
   selections: MealPlan;
   onFoodSelect: (category: CategoryType, food: Food) => void;
@@ -28,27 +28,23 @@ export function CategoryFoodGrid({
   isCondimentGrid = false,
 }: CategoryFoodGridProps) {
   const isFoodSelected = (food: Food): boolean => {
+    if (!selections[selectedDay]?.[selectedMeal]) return false;
+
     if (isCondimentGrid) {
-      // For condiments, check if it exists in the condiments array
-      return (
-        selections[selectedDay]?.[selectedMeal]?.condiments?.some(
-          // @ts-expect-error idk
-          (c: unknown) => c.foodId === food.id
-        ) ?? false
+      return selections[selectedDay][selectedMeal].condiments.some(
+        (c) => c.id === food.id
       );
     }
 
-    // For other categories, check if it's the selected item
-    // @ts-expect-error idk
-    return selections[selectedDay]?.[selectedMeal]?.[category]?.id === food.id;
+    const selectedFood = selections[selectedDay][selectedMeal][category];
+    return selectedFood?.id === food.id;
   };
 
   const getServingInfo = (food: Food) => {
     if (!isCondimentGrid) return null;
 
     const condiment = selections[selectedDay]?.[selectedMeal]?.condiments?.find(
-      // @ts-expect-error idk
-      (c) => c.foodId === food.id
+      (c) => c.id === food.id
     );
 
     if (!condiment) return null;
@@ -65,7 +61,6 @@ export function CategoryFoodGrid({
           className={`px-6 py-3 border-b rounded-t-xl ${CATEGORY_STYLES[category]}`}
         >
           <div className="flex items-center gap-2">
-            {/** @ts-expect-error idk */}
             <span className="text-2xl">{CATEGORY_EMOJIS[category]}</span>
             <h3 className="text-xl font-semibold capitalize">
               {isCondimentGrid ? "Add Toppings" : `Choose your ${category}`}
@@ -101,13 +96,15 @@ export function CategoryFoodGrid({
                     ) : (
                       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                         <span className="text-4xl">
-                          {/** @ts-expect-error idk */}
                           {CATEGORY_EMOJIS[category]}
                         </span>
                       </div>
                     )}
                     {isSelected && (
-                      <div className="absolute top-2 right-2 bg-green-500 rounded-full p-2">
+                      <div
+                        className="absolute top-2 right-2 bg-green-500 rounded-full p-2"
+                        data-testid="check-icon"
+                      >
                         <Check className="w-5 h-5 text-white" />
                       </div>
                     )}
