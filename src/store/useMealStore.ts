@@ -169,15 +169,6 @@ export const useMealStore = create<MealStore>()(
             const { selectedKid, selectedDay, selectedMeal } = state;
             if (!selectedKid || !selectedDay || !selectedMeal) return;
 
-            console.log("Adjusting servings:", {
-              category,
-              id,
-              servings,
-              meal: selectedMeal,
-              day: selectedDay,
-              kid: selectedKid,
-            });
-
             const currentMeal =
               state.selections[selectedKid][selectedDay][selectedMeal];
 
@@ -202,22 +193,6 @@ export const useMealStore = create<MealStore>()(
                 currentMeal[category] = adjustFoodServings(food, servings);
               }
             }
-
-            // Force a re-render by creating a new reference
-            state.selections = { ...state.selections };
-
-            // Debug the final state
-            console.log("Final state after serving adjustment:", {
-              currentMeal:
-                state.selections[selectedKid][selectedDay][selectedMeal],
-              category,
-              id,
-              servings,
-              adjustedFood:
-                state.selections[selectedKid][selectedDay][selectedMeal][
-                  category
-                ],
-            });
           })
         ),
 

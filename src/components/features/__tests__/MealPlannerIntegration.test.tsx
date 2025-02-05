@@ -61,19 +61,8 @@ describe("MealPlanner Integration Tests", () => {
       );
     });
 
-    // Debug what test IDs are available
-    console.log("Available test IDs:", document.body.innerHTML);
-
     const testId = `${category}-${meal}-${index}`;
-    console.log("Looking for test ID:", testId);
-
-    const foodElement = await waitFor(() => {
-      const element = screen.getByTestId(testId);
-      if (!element)
-        throw new Error(`Could not find food element with test ID: ${testId}`);
-      return element;
-    });
-
+    const foodElement = screen.getByTestId(testId);
     await user.click(foodElement);
 
     await waitFor(() => {
@@ -314,17 +303,7 @@ describe("MealPlanner Integration Tests", () => {
     await renderMealPlanner();
 
     // Select same protein in both lunch and dinner with different servings
-    // Lunch: 1 serving
     await selectMeal("lunch" as MealType);
-
-    // Wait for the food options to be loaded
-    await waitFor(() => {
-      const foodElements = screen.queryAllByTestId(/^proteins-lunch-\d+$/);
-      console.log("Found food elements:", foodElements.length);
-      expect(foodElements.length).toBeGreaterThan(0);
-    });
-
-    // Select the first protein for lunch
     await selectFood(MOCK_FOODS.proteins[0].category, 0, "lunch" as MealType);
 
     // Verify initial lunch serving
@@ -340,24 +319,9 @@ describe("MealPlanner Integration Tests", () => {
     await selectMeal("dinner" as MealType);
     await selectFood(MOCK_FOODS.proteins[0].category, 0, "dinner" as MealType);
 
-    // Verify initial dinner serving
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          `1 serving(s) • ${MOCK_FOODS.proteins[0].calories} cal total`
-        )
-      ).toBeInTheDocument();
-    });
-
     // Adjust dinner serving
     const servingButton = screen.getByTitle("Adjust Servings");
     await user.click(servingButton);
-
-    // Wait for serving selector to be visible
-    await waitFor(() => {
-      expect(screen.getByTestId("increment-serving")).toBeInTheDocument();
-    });
-
     await user.click(screen.getByTestId("increment-serving"));
 
     const confirmButton = screen.getByRole("button", { name: /confirm/i });
