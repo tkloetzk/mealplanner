@@ -43,6 +43,7 @@ import { Food } from "@/types/food";
 import { NutritionSummary } from "@/components/features/nutrition/NutritionSummary/NutritionSummary";
 import { DAYS_OF_WEEK } from "@/constants/index";
 import { isCategoryKey } from "@/utils/meal-categories";
+import { mealService } from "@/services/meal/mealService";
 
 interface AnalysisDialogProps {
   isOpen: boolean;
@@ -121,6 +122,7 @@ export const MealPlanner = () => {
     condiments: [],
     other: [],
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   // Initialize kids in store
   useEffect(() => {
@@ -301,6 +303,39 @@ export const MealPlanner = () => {
     const currentDay = DAYS_OF_WEEK[new Date().getDay()] as DayType;
     setSelectedDay(currentDay);
   }, []);
+
+  // Fetch meal history when kid is selected
+  useEffect(() => {
+    const fetchMealHistory = async () => {
+      if (!selectedKid) return;
+
+      setIsLoading(true);
+      try {
+        const result = await mealService.getMealHistory({
+          kidId: selectedKid,
+        });
+
+        if (result.success && result.data) {
+          // Update the store with the fetched meal history
+          useMealStore.setState((state) => ({
+            ...state,
+            mealHistory: {
+              ...state.mealHistory,
+              [selectedKid]: result.data as MealHistoryRecord[],
+            },
+          }));
+        } else {
+          console.error("Failed to fetch meal history:", result.error);
+        }
+      } catch (error) {
+        console.error("Error fetching meal history:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMealHistory();
+  }, [selectedKid]);
 
   return (
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
@@ -571,7 +606,11 @@ export const MealPlanner = () => {
             {selectedKid ? (
               <div className="space-y-4">
                 {/* Optional loading state */}
-                {!mealHistory[selectedKid] ? (
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                  </div>
+                ) : !mealHistory[selectedKid] ? (
                   <div className="text-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
                     <p className="mt-2 text-gray-600">
