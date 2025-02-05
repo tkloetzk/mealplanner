@@ -3,7 +3,7 @@
 exports[`FoodItem Component matches snapshot of selected food 1`] = `
 <DocumentFragment>
   <div
-    class="relative p-4 rounded-lg transition-all duration-200 cursor-pointer bg-blue-100 ring-2 ring-blue-500"
+    class="relative p-4 rounded-lg transition-all duration-200 cursor-pointer bg-white ring-2 ring-blue-500 bg-blue-100"
     data-testid="proteins-breakfast-0"
   >
     <div

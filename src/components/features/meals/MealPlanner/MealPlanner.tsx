@@ -503,15 +503,6 @@ export const MealPlanner = () => {
                                     ? !!selectedFoodInCategory
                                     : selectedFoodInCategory?.id === food.id;
 
-                                // Debug selection state
-                                console.log("Selection state for food:", {
-                                  foodName: food.name,
-                                  category,
-                                  currentMealSelections,
-                                  selectedFoodInCategory,
-                                  isSelected,
-                                });
-
                                 return (
                                   <FoodItem
                                     key={index}
