@@ -33,7 +33,7 @@ export const MOCK_FOODS = {
       meal: [BREAKFAST, LUNCH, DINNER],
       servingSize: "1",
       servingSizeUnit: "piece" as ServingSizeUnit,
-      hiddenFromKids: false,
+      hiddenFromChild: false,
     },
     {
       id: "4",

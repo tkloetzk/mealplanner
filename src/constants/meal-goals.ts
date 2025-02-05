@@ -22,7 +22,7 @@ export const DAILY_GOALS = {
   },
 };
 
-export const defaultObj = {
+export const createDefaultMealSelection = () => ({
   grains: null,
   fruits: null,
   proteins: null,
@@ -30,14 +30,14 @@ export const defaultObj = {
   milk: null,
   condiments: [],
   ranch: null,
-};
+});
 
 export const DEFAULT_MEAL_PLAN: MealPlan = DAYS_OF_WEEK.reduce((plan, day) => {
   plan[day] = {
-    breakfast: defaultObj,
-    lunch: defaultObj,
-    dinner: defaultObj,
-    snack: defaultObj,
+    breakfast: createDefaultMealSelection(),
+    lunch: createDefaultMealSelection(),
+    dinner: createDefaultMealSelection(),
+    snack: createDefaultMealSelection(),
   };
   return plan;
 }, {} as MealPlan);

@@ -61,7 +61,7 @@ export function ChildView({
 
   // Food selection view
   return (
-    <div className="p-4">
+    <div className="p-4" data-testid="child-view">
       <h2 className="text-2xl font-bold text-center mb-8 capitalize">
         {selectedMeal}
       </h2>
@@ -71,9 +71,10 @@ export function ChildView({
         {(Object.entries(foodOptions) as [CategoryType, Food[]][])
           .filter(([category]) => category !== "condiments")
           .map(([category, foods]) => {
+            // Filter out hidden foods and those not compatible with the meal
             const compatibleFoods = foods.filter(
               (food) =>
-                food.meal?.includes(selectedMeal) && !food.hiddenFromChild
+                !food.hiddenFromChild && food.meal?.includes(selectedMeal)
             );
 
             if (compatibleFoods.length === 0) return null;

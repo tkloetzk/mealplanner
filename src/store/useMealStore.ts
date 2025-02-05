@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { produce } from "immer";
 import { persist } from "zustand/middleware";
-import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
+import { DEFAULT_MEAL_PLAN, MILK_OPTION } from "@/constants/meal-goals";
 import { MEAL_TYPES } from "@/constants";
 import type {
   MealState,
@@ -169,9 +169,21 @@ export const useMealStore = create<MealStore>()(
 
             const currentMeal =
               state.selections[selectedKid][selectedDay][mealType];
-            currentMeal.milk = enabled
-              ? DEFAULT_MEAL_PLAN.monday.breakfast.milk
-              : null;
+
+            if (!currentMeal) return;
+
+            if (enabled) {
+              currentMeal.milk = {
+                ...MILK_OPTION,
+                servings: 1,
+                adjustedCalories: MILK_OPTION.calories,
+                adjustedProtein: MILK_OPTION.protein,
+                adjustedCarbs: MILK_OPTION.carbs,
+                adjustedFat: MILK_OPTION.fat,
+              };
+            } else {
+              currentMeal.milk = null;
+            }
           })
         ),
 
