@@ -39,13 +39,8 @@ import { FAB } from "../shared/FAB/FAB";
 import { MealPlannerHeader } from "../MealPlannerHeader";
 import { produce } from "immer";
 import { getOrderedDays } from "@/utils/dateUtils";
-//import {  NutritionSummary as NutritionSummaryType } from "@/types/food";
 import { Food } from "@/types/food";
 import { NutritionSummary } from "@/components/features/nutrition/NutritionSummary/NutritionSummary";
-import {
-  createEmptyMealSelection,
-  nutritionToMealSelection,
-} from "@/utils/nutritionUtils";
 import { DAYS_OF_WEEK } from "@/constants/index";
 import { isCategoryKey } from "@/utils/meal-categories";
 
@@ -124,7 +119,6 @@ export const MealPlanner = () => {
     vegetables: [],
     milk: [],
     condiments: [],
-    ranch: [],
     other: [],
   });
 
@@ -408,13 +402,7 @@ export const MealPlanner = () => {
                 </div>
 
                 {/* Nutrition Summary */}
-                <NutritionSummary
-                  mealSelections={
-                    currentMealSelection || createEmptyMealSelection()
-                  }
-                  dailySelections={nutritionToMealSelection(dailyNutrition)}
-                  selectedMeal={selectedMeal}
-                />
+                <NutritionSummary selectedMeal={selectedMeal} />
                 <div className="mb-6">
                   {!isChildView && selectedMeal && (
                     <>

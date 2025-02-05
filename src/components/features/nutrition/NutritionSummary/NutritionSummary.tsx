@@ -19,6 +19,11 @@ export function NutritionSummary({ selectedMeal }: NutritionSummaryProps) {
     (state) => state.calculateDailyTotals
   );
 
+  console.log("selectedMeal", selectedMeal);
+  console.log(
+    "calculateMealNutrition(selectedMeal)",
+    calculateMealNutrition(selectedMeal)
+  );
   // Get current nutrition values
   const currentNutrition = showDailyTotal
     ? calculateDailyTotals()
