@@ -9,21 +9,27 @@ import {
   VEGETABLES,
 } from "@/__mocks__/testConstants";
 import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
-import { BREAKFAST, MEAL_TYPES } from "@/constants";
+import { MEAL_TYPES } from "@/constants";
 import { ChildView } from "./ChildView";
+import { MealType } from "@/types/meals";
 
 describe("ChildView Component", () => {
   const mockOnFoodSelect = jest.fn();
   const mockOnMealSelect = jest.fn();
 
   const defaultProps = {
-    selectedMeal: null,
+    selectedMeal: null as MealType | null,
     foodOptions: MOCK_FOODS,
     selections: DEFAULT_MEAL_PLAN,
     selectedDay: SELECTED_DAY,
     onFoodSelect: mockOnFoodSelect,
     onMealSelect: mockOnMealSelect,
   };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("renders meal selection view when no meal is selected", () => {
     render(<ChildView {...defaultProps} />);
 
@@ -36,8 +42,8 @@ describe("ChildView Component", () => {
     });
   });
 
-  it.skip("selects a meal and shows food categories", () => {
-    render(<ChildView {...defaultProps} selectedMeal={BREAKFAST} />);
+  it("selects a meal and shows food categories", () => {
+    render(<ChildView {...defaultProps} selectedMeal="breakfast" />);
 
     // Check for breakfast header
     expect(screen.getByText(/breakfast/i)).toBeInTheDocument();
@@ -51,13 +57,41 @@ describe("ChildView Component", () => {
   });
 
   it("allows food selection in a category", () => {
-    render(<ChildView {...defaultProps} selectedMeal={BREAKFAST} />);
+    render(<ChildView {...defaultProps} selectedMeal="breakfast" />);
 
     // Find and click a food item
     const foodItem = screen.getByText(MOCK_FOODS.fruits[0].name);
     fireEvent.click(foodItem);
 
-    expect(mockOnFoodSelect).toHaveBeenCalledWith(FRUITS, MOCK_FOODS.fruits[0]);
+    expect(mockOnFoodSelect).toHaveBeenCalledWith(
+      "fruits",
+      MOCK_FOODS.fruits[0]
+    );
+  });
+
+  it("shows available condiments based on selected foods", () => {
+    const selectionsWithFood = {
+      ...DEFAULT_MEAL_PLAN,
+      [SELECTED_DAY]: {
+        ...DEFAULT_MEAL_PLAN[SELECTED_DAY],
+        breakfast: {
+          ...DEFAULT_MEAL_PLAN[SELECTED_DAY].breakfast,
+          proteins: MOCK_FOODS.proteins[0],
+        },
+      },
+    };
+
+    render(
+      <ChildView
+        {...defaultProps}
+        selectedMeal="breakfast"
+        selections={selectionsWithFood}
+      />
+    );
+
+    // Check if condiments section is displayed when a food is selected
+    const condimentsSection = screen.getByText(/Add Toppings/i);
+    expect(condimentsSection).toBeInTheDocument();
   });
 
   it("matches snapshot when no meal is selected", () => {
@@ -67,7 +101,7 @@ describe("ChildView Component", () => {
 
   it("matches snapshot with meal selected", () => {
     const { asFragment } = render(
-      <ChildView {...defaultProps} selectedMeal={BREAKFAST} />
+      <ChildView {...defaultProps} selectedMeal="breakfast" />
     );
     expect(asFragment()).toMatchSnapshot();
   });
