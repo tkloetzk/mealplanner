@@ -213,4 +213,117 @@ describe("NutritionSummary Integration", () => {
     const proteinValue = proteinCard.querySelector(".text-lg.font-bold");
     expect(proteinValue).toHaveClass("text-yellow-600");
   });
+
+  it("shows complete meal planning workflow", () => {
+    const store = useMealStore.getState();
+    const { rerender } = render(<NutritionSummary {...defaultProps} />);
+
+    // 1. Start with empty meal
+    expect(screen.getByTestId("calories-value")).toHaveTextContent(
+      "0 / 400 cal"
+    );
+
+    // 2. Add protein
+    store.handleFoodSelect("proteins", testFood);
+    rerender(<NutritionSummary {...defaultProps} />);
+    expect(screen.getByTestId("calories-value")).toHaveTextContent(/200/);
+
+    // 3. Adjust servings
+    store.handleServingAdjustment("proteins", "1", 2);
+    rerender(<NutritionSummary {...defaultProps} />);
+    expect(screen.getByTestId("calories-value")).toHaveTextContent(/400/);
+
+    // 4. Add another food item
+    store.handleFoodSelect("grains", {
+      ...testFood,
+      id: "3",
+      category: "grains",
+      calories: 150,
+      protein: 5,
+      adjustedCalories: 150,
+      adjustedProtein: 5,
+    });
+    rerender(<NutritionSummary {...defaultProps} />);
+    expect(screen.getByTestId("calories-value")).toHaveTextContent(/550/);
+
+    // 5. Switch to daily view to check totals
+    fireEvent.click(screen.getByTestId("nutrition-summary"));
+    expect(screen.getByText(/Daily Total/)).toBeInTheDocument();
+  });
+
+  it("handles complete daily meal planning", () => {
+    const store = useMealStore.getState();
+    const { rerender } = render(<NutritionSummary {...defaultProps} />);
+
+    // Plan breakfast
+    store.handleFoodSelect("proteins", testFood); // 200 calories
+    store.handleFoodSelect("grains", {
+      ...testFood,
+      id: "3",
+      category: "grains",
+      calories: 150,
+      protein: 5,
+      adjustedCalories: 150,
+      adjustedProtein: 5,
+    }); // 150 calories
+
+    // Plan lunch
+    store.setSelectedMeal("lunch");
+    store.handleFoodSelect("proteins", testFish); // 150 calories
+    store.handleFoodSelect("vegetables", {
+      ...testFood,
+      id: "4",
+      category: "vegetables",
+      calories: 50,
+      protein: 2,
+      adjustedCalories: 50,
+      adjustedProtein: 2,
+    }); // 50 calories
+
+    // Plan dinner
+    store.setSelectedMeal("dinner");
+    store.handleFoodSelect("proteins", testFood); // 200 calories
+
+    rerender(<NutritionSummary {...defaultProps} />);
+
+    // Check daily totals
+    fireEvent.click(screen.getByTestId("nutrition-summary"));
+
+    // Should show combined calories from all meals (200 + 150 + 150 + 50 + 200 = 750)
+    expect(screen.getByTestId("calories-value")).toHaveTextContent(
+      "750 / 1400 cal"
+    );
+
+    // Should show nutritional goals status
+    const nutritionStatus = screen.getByTestId("nutrition-summary");
+    expect(nutritionStatus).toBeInTheDocument();
+  });
+
+  it("tracks nutrition goals across meal changes", () => {
+    const store = useMealStore.getState();
+    const { rerender } = render(<NutritionSummary {...defaultProps} />);
+
+    // Add foods that exceed daily protein goal
+    store.handleFoodSelect("proteins", {
+      ...testFood,
+      protein: 100,
+      adjustedProtein: 100,
+    });
+
+    store.setSelectedMeal("lunch");
+    store.handleFoodSelect("proteins", {
+      ...testFood,
+      id: "5",
+      protein: 100,
+      adjustedProtein: 100,
+    });
+
+    rerender(<NutritionSummary {...defaultProps} />);
+    fireEvent.click(screen.getByTestId("nutrition-summary"));
+
+    // Should show warning for exceeded protein
+    const proteinCard = screen.getByTestId("nutrient-protein");
+    const proteinValue = proteinCard.querySelector(".text-lg.font-bold");
+    expect(proteinValue).toHaveClass("text-red-600");
+  });
 });
