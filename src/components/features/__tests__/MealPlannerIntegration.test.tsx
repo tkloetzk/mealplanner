@@ -7,10 +7,27 @@ import { CategoryType } from "@/types/food";
 import { MealType } from "@/types/meals";
 import userEvent from "@testing-library/user-event";
 import { MEAL_TYPES } from "@/constants";
+import { useMealStore } from "@/store/useMealStore";
 
 describe("MealPlanner Integration Tests", () => {
   // Add user setup
   const user = userEvent.setup();
+
+  // Reset store state before each test
+  beforeEach(() => {
+    const { initializeKids } = useMealStore.getState();
+    useMealStore.setState({
+      selections: {},
+      selectedKid: "1",
+      selectedDay: "monday",
+      selectedMeal: "breakfast",
+      mealHistory: {},
+    });
+    initializeKids([
+      { id: "1", name: "Presley" },
+      { id: "2", name: "Evy" },
+    ]);
+  });
 
   // Test helper functions
   const renderMealPlanner = async () => {
@@ -37,7 +54,26 @@ describe("MealPlanner Integration Tests", () => {
     index: number,
     meal: MealType
   ) => {
-    const foodElement = screen.getByTestId(`${category}-${meal}-${index}`);
+    // Wait for the meal type to be selected and visible
+    await waitFor(() => {
+      expect(screen.getByTestId(`${meal}-meal-button`)).toHaveClass(
+        "bg-blue-500"
+      );
+    });
+
+    // Debug what test IDs are available
+    console.log("Available test IDs:", document.body.innerHTML);
+
+    const testId = `${category}-${meal}-${index}`;
+    console.log("Looking for test ID:", testId);
+
+    const foodElement = await waitFor(() => {
+      const element = screen.getByTestId(testId);
+      if (!element)
+        throw new Error(`Could not find food element with test ID: ${testId}`);
+      return element;
+    });
+
     await user.click(foodElement);
 
     await waitFor(() => {
@@ -274,27 +310,71 @@ describe("MealPlanner Integration Tests", () => {
     expect(lunchProtein.closest("div")).toHaveClass("bg-blue-100");
   });
 
-  it.skip("maintains meal-specific serving adjustments", async () => {
+  it("maintains meal-specific serving adjustments", async () => {
     await renderMealPlanner();
 
     // Select same protein in both lunch and dinner with different servings
     // Lunch: 1 serving
     await selectMeal("lunch" as MealType);
+
+    // Wait for the food options to be loaded
+    await waitFor(() => {
+      const foodElements = screen.queryAllByTestId(/^proteins-lunch-\d+$/);
+      console.log("Found food elements:", foodElements.length);
+      expect(foodElements.length).toBeGreaterThan(0);
+    });
+
+    // Select the first protein for lunch
     await selectFood(MOCK_FOODS.proteins[0].category, 0, "lunch" as MealType);
 
-    // Dinner: 2 servings
+    // Verify initial lunch serving
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          `1 serving(s) • ${MOCK_FOODS.proteins[0].calories} cal total`
+        )
+      ).toBeInTheDocument();
+    });
+
+    // Select and adjust dinner serving
     await selectMeal("dinner" as MealType);
     await selectFood(MOCK_FOODS.proteins[0].category, 0, "dinner" as MealType);
+
+    // Verify initial dinner serving
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          `1 serving(s) • ${MOCK_FOODS.proteins[0].calories} cal total`
+        )
+      ).toBeInTheDocument();
+    });
 
     // Adjust dinner serving
     const servingButton = screen.getByTitle("Adjust Servings");
     await user.click(servingButton);
+
+    // Wait for serving selector to be visible
+    await waitFor(() => {
+      expect(screen.getByTestId("increment-serving")).toBeInTheDocument();
+    });
+
     await user.click(screen.getByTestId("increment-serving"));
 
     const confirmButton = screen.getByRole("button", { name: /confirm/i });
     await user.click(confirmButton);
 
-    // Verify lunch still has 1 serving
+    // Verify dinner has 1.25 servings
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          `1.25 serving(s) • ${(MOCK_FOODS.proteins[0].calories * 1.25).toFixed(
+            0
+          )} cal total`
+        )
+      ).toBeInTheDocument();
+    });
+
+    // Switch back to lunch and verify it still has 1 serving
     await selectMeal("lunch" as MealType);
     await waitFor(() => {
       expect(
@@ -304,14 +384,16 @@ describe("MealPlanner Integration Tests", () => {
       ).toBeInTheDocument();
     });
 
-    // Verify dinner has 1.25 servings
+    // Switch back to dinner to verify it maintained 1.25 servings
     await selectMeal("dinner" as MealType);
-    expect(
-      screen.getByText(
-        `1.25 serving(s) • ${(MOCK_FOODS.proteins[0].calories * 1.25).toFixed(
-          0
-        )} cal total`
-      )
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          `1.25 serving(s) • ${(MOCK_FOODS.proteins[0].calories * 1.25).toFixed(
+            0
+          )} cal total`
+        )
+      ).toBeInTheDocument();
+    });
   });
 });

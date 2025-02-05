@@ -36,16 +36,35 @@ export const FoodItem = ({
   showVisibilityControls = false,
 }: FoodItemProps) => {
   const imageSource = useMemo(() => getFoodImageSource(food), [food]);
+
+  // Debug selection state
+  console.log("FoodItem render:", {
+    category,
+    mealType,
+    index,
+    isSelected,
+    food: food.name,
+  });
+
+  const classes = [
+    "relative",
+    "p-4",
+    "rounded-lg",
+    "transition-all",
+    "duration-200",
+    "cursor-pointer",
+    isSelected ? "bg-blue-100" : "hover:bg-gray-50 bg-white",
+    isSelected ? "ring-2" : "",
+    isSelected ? "ring-blue-500" : "",
+    isHidden ? "opacity-50" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div
       data-testid={`${category}-${mealType}-${index}`}
-      className={`relative p-4 rounded-lg transition-all duration-200 cursor-pointer
-      ${
-        isSelected
-          ? "bg-blue-100 ring-2 ring-blue-500"
-          : "hover:bg-gray-50 bg-white"
-      }
-      ${isHidden ? "opacity-50" : ""}`}
+      className={classes}
       onClick={onSelect}
     >
       <div className="flex justify-between items-start gap-4">

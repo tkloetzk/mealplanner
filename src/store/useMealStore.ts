@@ -87,13 +87,23 @@ export const useMealStore = create<MealStore>()(
             const { selectedKid, selectedDay, selectedMeal } = state;
             if (!selectedKid || !selectedDay || !selectedMeal) return;
 
-            console.log("food", food);
-            console.log("category", category);
-            console.log("state", state.selections);
+            console.log("Selecting food:", {
+              category,
+              foodId: food.id,
+              meal: selectedMeal,
+              day: selectedDay,
+              kid: selectedKid,
+            });
+
+            // Get a reference to the current meal
             const currentMeal =
               state.selections[selectedKid][selectedDay][selectedMeal];
 
-            console.log("currentMeal", currentMeal);
+            if (!currentMeal) {
+              console.error("No meal found for selection");
+              return;
+            }
+
             if (category === "condiments") {
               const existingIndex = currentMeal.condiments.findIndex(
                 (c: Food) => c.id === food.id
@@ -112,24 +122,44 @@ export const useMealStore = create<MealStore>()(
               }
             } else {
               const isSelected = currentMeal[category]?.id === food.id;
-              console.log("isSelected", isSelected);
+              console.log("Selection state:", {
+                currentSelection: currentMeal[category],
+                isSelected,
+                newFood: food,
+              });
+
+              // Create a new adjusted food object
+              const adjustedFood = {
+                ...food,
+                servings: 1,
+                adjustedCalories: food.calories,
+                adjustedProtein: food.protein,
+                adjustedCarbs: food.carbs,
+                adjustedFat: food.fat,
+              };
+
+              // Update the selection
               if (isSelected) {
                 currentMeal[category] = null;
               } else if (food.meal.includes(selectedMeal)) {
-                console.log("in else if, food", food);
-                const adjustedFood = {
-                  ...food,
-                  servings: 1,
-                  adjustedCalories: food.calories,
-                  adjustedProtein: food.protein,
-                  adjustedCarbs: food.carbs,
-                  adjustedFat: food.fat,
-                };
-                //   console.log("in else if, adjustedFood", adjustedFood);
                 currentMeal[category] = adjustedFood;
-                console.log("in else if, currentMeal", currentMeal);
               }
+
+              // Force a re-render by creating a new reference
+              state.selections = { ...state.selections };
             }
+
+            // Debug the final state after update
+            console.log("Final state after selection:", {
+              currentMeal:
+                state.selections[selectedKid][selectedDay][selectedMeal],
+              category,
+              foodId: food.id,
+              isSelected:
+                state.selections[selectedKid][selectedDay][selectedMeal][
+                  category
+                ]?.id === food.id,
+            });
           })
         ),
 
@@ -139,8 +169,22 @@ export const useMealStore = create<MealStore>()(
             const { selectedKid, selectedDay, selectedMeal } = state;
             if (!selectedKid || !selectedDay || !selectedMeal) return;
 
+            console.log("Adjusting servings:", {
+              category,
+              id,
+              servings,
+              meal: selectedMeal,
+              day: selectedDay,
+              kid: selectedKid,
+            });
+
             const currentMeal =
               state.selections[selectedKid][selectedDay][selectedMeal];
+
+            if (!currentMeal) {
+              console.error("No meal found for serving adjustment");
+              return;
+            }
 
             if (category === "condiments") {
               const index = currentMeal.condiments.findIndex(
@@ -158,6 +202,22 @@ export const useMealStore = create<MealStore>()(
                 currentMeal[category] = adjustFoodServings(food, servings);
               }
             }
+
+            // Force a re-render by creating a new reference
+            state.selections = { ...state.selections };
+
+            // Debug the final state
+            console.log("Final state after serving adjustment:", {
+              currentMeal:
+                state.selections[selectedKid][selectedDay][selectedMeal],
+              category,
+              id,
+              servings,
+              adjustedFood:
+                state.selections[selectedKid][selectedDay][selectedMeal][
+                  category
+                ],
+            });
           })
         ),
 
