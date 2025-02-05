@@ -85,15 +85,6 @@ describe("Kids View Integration Tests", () => {
     meal: MealType
   ) => {
     const testId = `${category}-${meal}-${index}`;
-    console.log("Looking for test ID:", testId);
-
-    // Log all available test IDs
-    const allTestIds = document.querySelectorAll("[data-testid]");
-    console.log(
-      "Available test IDs:",
-      Array.from(allTestIds).map((el) => el.getAttribute("data-testid"))
-    );
-
     const foodElement = screen.getByTestId(testId);
     await user.click(foodElement);
 

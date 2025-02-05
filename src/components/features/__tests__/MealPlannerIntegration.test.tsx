@@ -106,7 +106,6 @@ describe("MealPlanner Integration Tests", () => {
   // Basic functionality tests
   it("handles view toggling and meal selection persistence", async () => {
     await renderMealPlanner();
-    console.log("MealPlanner rendered");
 
     // Check initial load
     expect(screen.getByTestId("meal-planner")).toBeInTheDocument();
@@ -114,7 +113,6 @@ describe("MealPlanner Integration Tests", () => {
     // Toggle to child view
     const viewToggle = screen.getByRole("switch", { name: /Parent's View/i });
     await user.click(viewToggle);
-    console.log("Clicked view toggle to child view");
 
     // Verify child view elements
     await waitFor(() => {
@@ -129,7 +127,6 @@ describe("MealPlanner Integration Tests", () => {
     });
 
     // Test meal selection persistence across views
-    console.log("Testing meal selection with:", MEAL_TYPES[1]);
     await selectMeal(MEAL_TYPES[1]);
     await user.click(viewToggle);
     await waitFor(() => {

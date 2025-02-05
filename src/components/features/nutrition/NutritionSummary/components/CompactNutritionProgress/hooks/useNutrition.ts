@@ -48,7 +48,6 @@ export function useNutrition(
         },
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
       );
-    console.log("Base Nutrition:", baseNutrition);
 
     // Add nutrition from condiments
     const condimentNutrition = selections.condiments?.reduce(
@@ -61,8 +60,6 @@ export function useNutrition(
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     ) || { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-    console.log("Condiment Nutrition:", condimentNutrition);
-
     // Combine all nutrition sources
     const totalNutrition = {
       calories: ensureNumber(
@@ -73,11 +70,9 @@ export function useNutrition(
       fat: ensureNumber(baseNutrition.fat + condimentNutrition.fat),
     };
 
-    console.log("Total Meal Nutrition:", totalNutrition);
     return totalNutrition;
   }, [selections]);
 
-  console.log("mealNutrition", mealNutrition);
   const nutritionStatus = useMemo((): NutritionStatus => {
     if (!mealType) {
       return {

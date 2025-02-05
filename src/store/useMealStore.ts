@@ -193,7 +193,6 @@ export const useMealStore = create<MealStore>()(
       // Utility functions
       getCurrentMealSelection: () => {
         const { selectedKid, selectedDay, selectedMeal, selections } = get();
-        console.log("getting current meal selections", selections);
         if (!selectedKid || !selectedDay || !selectedMeal) return null;
         return selections[selectedKid]?.[selectedDay]?.[selectedMeal] || null;
       },

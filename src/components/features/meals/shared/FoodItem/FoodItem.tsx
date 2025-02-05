@@ -19,6 +19,7 @@ interface FoodItemProps {
   onToggleVisibility: () => void;
   showVisibilityControls?: boolean;
   mealType: string;
+  isChildView?: boolean;
 }
 
 export const FoodItem = ({
@@ -34,17 +35,9 @@ export const FoodItem = ({
   onToggleVisibility,
   mealType,
   showVisibilityControls = false,
+  isChildView = false,
 }: FoodItemProps) => {
   const imageSource = useMemo(() => getFoodImageSource(food), [food]);
-
-  // Debug selection state
-  console.log("FoodItem render:", {
-    category,
-    mealType,
-    index,
-    isSelected,
-    food: food.name,
-  });
 
   const classes = [
     "relative",
@@ -55,7 +48,8 @@ export const FoodItem = ({
     "cursor-pointer",
     isSelected ? "bg-white" : "hover:bg-gray-50 bg-white",
     isSelected ? "ring-2" : "",
-    isSelected ? "ring-green-500" : "",
+    isSelected ? (isChildView ? "ring-green-500" : "ring-blue-500") : "",
+    !isChildView && isSelected ? "bg-blue-100" : "",
     isHidden ? "opacity-50" : "",
   ]
     .filter(Boolean)

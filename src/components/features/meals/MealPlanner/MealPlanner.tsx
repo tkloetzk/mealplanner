@@ -537,6 +537,7 @@ export const MealPlanner = () => {
                                       handleToggleVisibility(food)
                                     }
                                     showVisibilityControls={!isChildView}
+                                    isChildView={isChildView}
                                   />
                                 );
                               })}
