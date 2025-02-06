@@ -1,4 +1,4 @@
-import type { MealType } from "@/types/food";
+import type { MealType } from "@/types/meals";
 
 // Service-specific types
 export interface MealPlanServiceConfig {
@@ -9,12 +9,12 @@ export interface MealPlanServiceConfig {
 export interface MealPlanOperationResult {
   success: boolean;
   error?: string;
+  details?: string;
   data?: unknown;
 }
 
 export interface MealHistoryFilters {
-  startDate?: Date;
-  endDate?: Date;
-  mealType?: MealType;
   kidId: string;
+  date?: Date;
+  mealType?: MealType;
 }

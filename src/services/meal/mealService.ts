@@ -26,19 +26,17 @@ export class MealService {
       }
       searchParams.append("kidId", filters.kidId.trim());
 
-      // Conditionally add optional filters with type checking
-      if (filters.startDate instanceof Date) {
-        searchParams.append("startDate", filters.startDate.toISOString());
-      }
-      if (filters.endDate instanceof Date) {
-        searchParams.append("endDate", filters.endDate.toISOString());
-      }
-      if (filters.mealType && typeof filters.mealType === "string") {
-        searchParams.append("mealType", filters.mealType);
-      }
+      // Always send a date parameter - if not provided, use current date
+      const date = filters.date || new Date();
+      searchParams.append("date", date.toISOString());
 
-      // Fetch meal history
-      const response = await fetch(`/api/meal-history?${searchParams}`);
+      // Fetch meal history with improved error handling
+      const response = await fetch(`/api/meal-history?${searchParams}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       // Defensive check for response before attempting to parse
       if (!response) {
@@ -55,7 +53,11 @@ export class MealService {
           const errorData = await response.json();
           return {
             success: false,
-            error: errorData.message || "Failed to fetch meal history",
+            error:
+              errorData.error ||
+              errorData.message ||
+              `HTTP error! status: ${response.status}`,
+            details: errorData.details || undefined,
           };
         } catch {
           // Fallback error if JSON parsing fails
@@ -68,9 +70,18 @@ export class MealService {
 
       // Parse and return successful response
       const data = await response.json();
+
+      // Validate the response structure
+      if (!data || !data.history) {
+        return {
+          success: false,
+          error: "Invalid response format from server",
+        };
+      }
+
       return {
         success: true,
-        data,
+        data: data.history,
       };
     } catch (error) {
       // Comprehensive error handling

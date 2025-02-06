@@ -503,12 +503,6 @@ export const useMealStore = create<MealStore>((set, get) => ({
 
   loadSelectionsFromHistory: async ({ kidId, date }: LoadHistoryOptions) => {
     try {
-      console.log("Loading selections for:", {
-        kidId,
-        date: date.toISOString(),
-        dayOfWeek: format(date, "EEEE"),
-      });
-
       // First, fetch the available food options
       const foodResponse = await fetch("/api/foods");
       if (!foodResponse.ok) {
@@ -516,11 +510,10 @@ export const useMealStore = create<MealStore>((set, get) => ({
       }
       const foodOptions: Record<CategoryType, Food[]> =
         await foodResponse.json();
-      console.log("Available food options:", foodOptions);
 
       // Then fetch the history
       const response = await fetch(
-        `/api/meals/history?kidId=${kidId}&date=${date.toISOString()}`
+        `/api/meal-history?kidId=${kidId}&date=${date.toISOString()}`
       );
 
       if (!response.ok) {
@@ -531,7 +524,6 @@ export const useMealStore = create<MealStore>((set, get) => ({
       }
 
       const { history } = await response.json();
-      console.log("Received history:", JSON.stringify(history, null, 2));
 
       if (history?.length) {
         const dayKey = format(date, "EEEE").toLowerCase() as DayType;
@@ -544,11 +536,6 @@ export const useMealStore = create<MealStore>((set, get) => ({
         ): Food | null => {
           if (!savedFood) return null;
 
-          console.log(`Finding match for ${savedFood.name} in ${category}:`, {
-            savedFood,
-            availableOptions: foodOptions[category]?.length || 0,
-          });
-
           const categoryFoods = foodOptions[category] || [];
 
           // Try to match by name first (most reliable)
@@ -556,7 +543,6 @@ export const useMealStore = create<MealStore>((set, get) => ({
             (f: Food) => f.name.toLowerCase() === savedFood.name.toLowerCase()
           );
           if (matchByName) {
-            console.log(`Found match by name for ${savedFood.name}`);
             return {
               ...matchByName,
               servings: savedFood.servings || 1,
@@ -581,7 +567,6 @@ export const useMealStore = create<MealStore>((set, get) => ({
               (f: Food) => f.upc === savedFood.upc
             );
             if (matchByUpc) {
-              console.log(`Found match by UPC for ${savedFood.name}`);
               return {
                 ...matchByUpc,
                 servings: savedFood.servings || 1,
@@ -601,7 +586,6 @@ export const useMealStore = create<MealStore>((set, get) => ({
             }
           }
 
-          console.log(`No match found for ${savedFood.name} in ${category}`);
           return null;
         };
 
@@ -615,11 +599,6 @@ export const useMealStore = create<MealStore>((set, get) => ({
             // Update selections for each meal found in history
             history.forEach((entry: MealHistoryRecord) => {
               if (entry.meal && entry.selections) {
-                console.log(
-                  `Processing history entry for ${entry.meal}:`,
-                  JSON.stringify(entry.selections, null, 2)
-                );
-
                 // Match each food item with available options
                 const selections: MealSelection = {
                   proteins: findMatchingFood(
@@ -660,11 +639,6 @@ export const useMealStore = create<MealStore>((set, get) => ({
                         .filter((c): c is Food => c !== null)
                     : [],
                 };
-
-                console.log(
-                  "Matched selections:",
-                  JSON.stringify(selections, null, 2)
-                );
 
                 // Update the selections in state using Immer
                 if (state.selections[kidId]?.[dayKey]) {

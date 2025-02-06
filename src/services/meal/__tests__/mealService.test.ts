@@ -24,8 +24,7 @@ describe("MealService", () => {
   describe("getMealHistory", () => {
     const validFilters: MealHistoryFilters = {
       kidId: MOCK_KIDS[0].id,
-      startDate: new Date("2023-01-01"),
-      endDate: new Date("2023-12-31"),
+      date: new Date("2023-01-01"),
       mealType: "breakfast",
     };
 
@@ -53,8 +52,7 @@ describe("MealService", () => {
       // Test empty string kidId
       const emptyKidIdResult = await mealService.getMealHistory({
         kidId: "",
-        startDate: validFilters.startDate,
-        endDate: validFilters.endDate,
+        date: validFilters.date,
       });
       expect(emptyKidIdResult).toEqual({
         success: false,
@@ -65,8 +63,7 @@ describe("MealService", () => {
       const invalidKidIdResult = await mealService.getMealHistory({
         // @ts-expect-error: the point of test is to pass invalid type
         kidId: null,
-        startDate: validFilters.startDate,
-        endDate: validFilters.endDate,
+        date: validFilters.date,
       });
       expect(invalidKidIdResult).toEqual({
         success: false,
@@ -119,15 +116,17 @@ describe("MealService", () => {
     });
 
     it("should fetch meal history successfully", async () => {
-      const mockMealHistory = [
-        {
-          _id: "1",
-          kidId: MOCK_KIDS[0].id,
-          date: new Date(),
-          meal: "breakfast",
-          selections: {},
-        },
-      ];
+      const mockMealHistory = {
+        history: [
+          {
+            _id: "1",
+            kidId: MOCK_KIDS[0].id,
+            date: new Date(),
+            meal: "breakfast",
+            selections: {},
+          },
+        ],
+      };
 
       // Mock a successful fetch response
       mockFetch.mockResolvedValueOnce({
@@ -140,7 +139,7 @@ describe("MealService", () => {
       // Assert the result structure
       expect(result).toEqual({
         success: true,
-        data: mockMealHistory,
+        data: mockMealHistory.history,
       });
     });
   });

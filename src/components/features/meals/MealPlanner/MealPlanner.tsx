@@ -96,7 +96,6 @@ export const MealPlanner = () => {
     calculateMealNutrition,
     mealHistory,
     loadSelectionsFromHistory,
-    getCurrentMealSelection,
   } = useMealStore();
 
   const currentMealSelection = useCurrentMealSelection();
@@ -139,11 +138,6 @@ export const MealPlanner = () => {
 
       setIsLoading(true);
       try {
-        console.log("Loading selections for kid and day:", {
-          selectedKid,
-          selectedDay,
-        });
-
         // Get current date
         const today = new Date();
         // Get the current day number (0-6, where 0 is Sunday)
@@ -172,22 +166,16 @@ export const MealPlanner = () => {
         if (diff < 0) {
           diff += 7;
         }
-        console.log("Day calculation:", { currentDay, targetDay, diff });
 
         // Create a new date for the target day
         const targetDate = new Date(today);
         targetDate.setDate(today.getDate() + diff);
-        console.log("Target date calculated:", targetDate.toISOString());
 
         // Load selections from history
         await loadSelectionsFromHistory({
           kidId: selectedKid,
           date: targetDate,
         });
-
-        // After loading, get the current meal selection to verify it worked
-        const currentSelection = getCurrentMealSelection();
-        console.log("Current meal selection after loading:", currentSelection);
       } catch (error) {
         console.error("Error loading selections:", error);
       } finally {
@@ -196,12 +184,7 @@ export const MealPlanner = () => {
     };
 
     loadSelections();
-  }, [
-    selectedKid,
-    selectedDay,
-    loadSelectionsFromHistory,
-    getCurrentMealSelection,
-  ]);
+  }, [selectedKid, selectedDay, loadSelectionsFromHistory]);
 
   // Food context handling
   const [selectedFoodContext, setSelectedFoodContext] = useState<{
@@ -380,36 +363,65 @@ export const MealPlanner = () => {
 
   // Fetch meal history when kid is selected
   useEffect(() => {
-    const fetchMealHistory = async () => {
-      if (!selectedKid) return;
-
-      setIsLoading(true);
-      try {
-        const result = await mealService.getMealHistory({
-          kidId: selectedKid,
-        });
-
-        if (result.success && result.data) {
-          // Update the store with the fetched meal history
-          useMealStore.setState((state) => ({
-            ...state,
-            mealHistory: {
-              ...state.mealHistory,
-              [selectedKid]: result.data as MealHistoryRecord[],
-            },
-          }));
-        } else {
-          console.error("Failed to fetch meal history:", result.error);
-        }
-      } catch (error) {
-        console.error("Error fetching meal history:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchMealHistory();
   }, [selectedKid]);
+
+  // Move fetchMealHistory before its usage
+  const fetchMealHistory = async () => {
+    if (!selectedKid) return;
+
+    setIsLoading(true);
+    try {
+      const result = await mealService.getMealHistory({
+        kidId: selectedKid,
+      });
+
+      if (result.success && result.data) {
+        // Update the store with the fetched meal history
+        useMealStore.setState((state) => ({
+          ...state,
+          mealHistory: {
+            ...state.mealHistory,
+            [selectedKid]: result.data as MealHistoryRecord[],
+          },
+        }));
+      } else {
+        console.error("Failed to fetch meal history:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching meal history:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFoodSelectWithRefresh = async (
+    category: CategoryType,
+    food: Food
+  ) => {
+    await handleFoodSelect(category, food);
+    // Wait a bit for the database to update
+    setTimeout(fetchMealHistory, 500);
+  };
+
+  const handleServingAdjustmentWithRefresh = async (
+    category: CategoryType,
+    id: string,
+    servings: number
+  ) => {
+    await handleServingAdjustment(category, id, servings);
+    // Wait a bit for the database to update
+    setTimeout(fetchMealHistory, 500);
+  };
+
+  const handleMilkToggleWithRefresh = async (
+    mealType: MealType,
+    enabled: boolean
+  ) => {
+    await handleMilkToggle(mealType, enabled);
+    // Wait a bit for the database to update
+    setTimeout(fetchMealHistory, 500);
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
@@ -433,7 +445,7 @@ export const MealPlanner = () => {
           selectedDay={selectedDay}
           onFoodSelect={(category, food) => {
             if (isCategoryKey(category)) {
-              handleFoodSelect(category, food);
+              handleFoodSelectWithRefresh(category, food);
             }
           }}
           onMealSelect={setSelectedMeal}
@@ -523,7 +535,7 @@ export const MealPlanner = () => {
                               selectedMeal ? milkInclusion[selectedMeal] : false
                             }
                             onChange={(value) =>
-                              handleMilkToggle(selectedMeal!, value)
+                              handleMilkToggleWithRefresh(selectedMeal!, value)
                             }
                           />
                         </div>
@@ -615,7 +627,10 @@ export const MealPlanner = () => {
                                     }
                                     mealType={selectedMeal}
                                     onSelect={() =>
-                                      handleFoodSelect(category, food)
+                                      handleFoodSelectWithRefresh(
+                                        category,
+                                        food
+                                      )
                                     }
                                     onServingClick={(e) =>
                                       handleServingClick(e, category, food)
@@ -757,7 +772,7 @@ export const MealPlanner = () => {
           food={selectedFoodContext.food}
           currentServings={selectedFoodContext.currentServings}
           onConfirm={(adjustedFood) => {
-            handleServingAdjustment(
+            handleServingAdjustmentWithRefresh(
               selectedFoodContext.category,
               adjustedFood.id,
               adjustedFood.servings

@@ -27,6 +27,7 @@ export interface MealSelection {
   milk: Food | null;
   ranch: Food | null;
   condiments: Food[];
+  other: Food | null;
 }
 
 export interface DayMeals {
