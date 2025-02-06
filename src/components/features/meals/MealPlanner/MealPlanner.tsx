@@ -95,6 +95,8 @@ export const MealPlanner = () => {
     initializeKids,
     calculateMealNutrition,
     mealHistory,
+    loadSelectionsFromHistory,
+    getCurrentMealSelection,
   } = useMealStore();
 
   const currentMealSelection = useCurrentMealSelection();
@@ -119,6 +121,7 @@ export const MealPlanner = () => {
     fruits: [],
     vegetables: [],
     milk: [],
+    ranch: [],
     condiments: [],
     other: [],
   });
@@ -128,6 +131,77 @@ export const MealPlanner = () => {
   useEffect(() => {
     initializeKids(kids);
   }, [kids, initializeKids]);
+
+  // Load selections from history when component mounts or when selected day/kid changes
+  useEffect(() => {
+    const loadSelections = async () => {
+      if (!selectedKid || !selectedDay) return;
+
+      setIsLoading(true);
+      try {
+        console.log("Loading selections for kid and day:", {
+          selectedKid,
+          selectedDay,
+        });
+
+        // Get current date
+        const today = new Date();
+        // Get the current day number (0-6, where 0 is Sunday)
+        const currentDay = today.getDay();
+        // Convert selectedDay to a day number (0-6)
+        const daysMap: Record<string, number> = {
+          sunday: 0,
+          monday: 1,
+          tuesday: 2,
+          wednesday: 3,
+          thursday: 4,
+          friday: 5,
+          saturday: 6,
+        };
+        const targetDay = daysMap[selectedDay.toLowerCase()];
+
+        if (targetDay === undefined) {
+          console.error("Invalid day selected:", selectedDay);
+          return;
+        }
+
+        // Calculate the difference in days
+        let diff = targetDay - currentDay;
+        // If the target day is earlier in the week than the current day,
+        // we want to load this week's day, not last week's
+        if (diff < 0) {
+          diff += 7;
+        }
+        console.log("Day calculation:", { currentDay, targetDay, diff });
+
+        // Create a new date for the target day
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + diff);
+        console.log("Target date calculated:", targetDate.toISOString());
+
+        // Load selections from history
+        await loadSelectionsFromHistory({
+          kidId: selectedKid,
+          date: targetDate,
+        });
+
+        // After loading, get the current meal selection to verify it worked
+        const currentSelection = getCurrentMealSelection();
+        console.log("Current meal selection after loading:", currentSelection);
+      } catch (error) {
+        console.error("Error loading selections:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSelections();
+  }, [
+    selectedKid,
+    selectedDay,
+    loadSelectionsFromHistory,
+    getCurrentMealSelection,
+  ]);
 
   // Food context handling
   const [selectedFoodContext, setSelectedFoodContext] = useState<{
@@ -517,14 +591,17 @@ export const MealPlanner = () => {
                                 const selectedFoodInCategory =
                                   category === "condiments"
                                     ? currentMealSelections?.condiments?.find(
-                                        (c) => c.id === food.id
+                                        (c) =>
+                                          c.name.toLowerCase() ===
+                                          food.name.toLowerCase()
                                       )
                                     : currentMealSelections?.[category];
 
                                 const isSelected =
                                   category === "condiments"
                                     ? !!selectedFoodInCategory
-                                    : selectedFoodInCategory?.id === food.id;
+                                    : selectedFoodInCategory?.name.toLowerCase() ===
+                                      food.name.toLowerCase();
 
                                 return (
                                   <FoodItem

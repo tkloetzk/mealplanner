@@ -1,14 +1,14 @@
 import { Food } from "./food";
 
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 export type DayType =
-  | "sunday"
   | "monday"
   | "tuesday"
   | "wednesday"
   | "thursday"
   | "friday"
-  | "saturday";
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+  | "saturday"
+  | "sunday";
 export type CategoryType =
   | "proteins"
   | "grains"
@@ -16,6 +16,7 @@ export type CategoryType =
   | "vegetables"
   | "milk"
   | "condiments"
+  | "ranch"
   | "other";
 
 export interface MealSelection {
@@ -26,7 +27,6 @@ export interface MealSelection {
   milk: Food | null;
   ranch: Food | null;
   condiments: Food[];
-  other?: Food | null;
 }
 
 export interface DayMeals {
@@ -48,24 +48,19 @@ export interface MealPlan {
 }
 
 export interface MealHistoryRecord {
-  _id: string;
+  _id?: string;
   kidId: string;
+  date: Date | string;
   meal: MealType;
-  date: Date;
   selections: MealSelection;
   consumptionData?: {
     percentEaten: number;
     notes?: string;
-    summary?: string;
-    foods?: Array<{
-      name: string;
-      percentageEaten: number;
-    }>;
   };
 }
 
 export interface MealState {
-  selections: Record<string, MealPlan>;
+  selections: Record<string, Record<DayType, Record<MealType, MealSelection>>>;
   selectedKid: string | null;
   selectedDay: DayType | null;
   selectedMeal: MealType | null;

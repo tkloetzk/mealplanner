@@ -11,12 +11,30 @@ import type {
 } from "@/types/meals";
 import type { Kid } from "@/types/user";
 import { Food, NutritionSummary } from "@/types/food";
+import { format } from "date-fns";
 
 interface MealSelectionResponse {
   kidId: string;
   day: DayType;
   meal: MealType;
   selections: MealSelection;
+}
+
+interface LoadHistoryOptions {
+  kidId: string;
+  date: Date;
+}
+
+interface MealHistoryRecord {
+  _id: string;
+  kidId: string;
+  date: string;
+  meal: MealType;
+  selections: MealSelection;
+  consumptionData?: {
+    percentEaten: number;
+    notes?: string;
+  };
 }
 
 interface MealStore
@@ -28,6 +46,7 @@ interface MealStore
   setSelectedKid: (kidId: string) => void;
   setSelectedDay: (day: DayType | undefined) => void;
   setSelectedMeal: (meal: MealType) => void;
+  loadSelectionsFromHistory: (options: LoadHistoryOptions) => Promise<void>;
 
   // Meal management actions
   initializeKids: (kids: Kid[]) => void;
@@ -132,6 +151,7 @@ export const useMealStore = create<MealStore>((set, get) => ({
     const { selectedKid, selectedDay, selectedMeal } = state;
     if (!selectedKid || !selectedDay || !selectedMeal) return;
 
+    // Update local state first
     set(
       produce((state) => {
         const currentMeal =
@@ -177,18 +197,57 @@ export const useMealStore = create<MealStore>((set, get) => ({
       })
     );
 
-    // Save to database
+    // Get the updated selections after state change
+    const updatedState = get();
+    const updatedSelections =
+      updatedState.selections[selectedKid][selectedDay][selectedMeal];
+
+    // Get the current date and adjust it to match the selected day
+    const today = new Date();
+    const currentDay = today.getDay();
+    const daysMap: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    const targetDay = daysMap[selectedDay.toLowerCase()];
+    const diff = targetDay - currentDay;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+
     try {
-      await fetch("/api/meal-selections", {
+      console.log("Saving meal history with selections:", {
+        meal: selectedMeal,
+        date: targetDate.toISOString(),
+        selections: updatedSelections,
+      });
+
+      const response = await fetch("/api/meal-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kidId: selectedKid,
-          day: selectedDay,
-          meal: selectedMeal,
-          selections: state.selections[selectedKid][selectedDay][selectedMeal],
+          mealData: {
+            meal: selectedMeal,
+            date: targetDate.toISOString(),
+            selections: updatedSelections,
+          },
         }),
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          `Failed to save meal history: ${JSON.stringify(error)}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Save result:", result);
     } catch (error) {
       console.error("Failed to save meal selection:", error);
     }
@@ -232,18 +291,57 @@ export const useMealStore = create<MealStore>((set, get) => ({
       })
     );
 
-    // Save to database
+    // Get the updated selections after state change
+    const updatedState = get();
+    const updatedSelections =
+      updatedState.selections[selectedKid][selectedDay][selectedMeal];
+
+    // Get the current date and adjust it to match the selected day
+    const today = new Date();
+    const currentDay = today.getDay();
+    const daysMap: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    const targetDay = daysMap[selectedDay.toLowerCase()];
+    const diff = targetDay - currentDay;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+
     try {
-      await fetch("/api/meal-selections", {
+      console.log("Saving meal history with adjusted servings:", {
+        meal: selectedMeal,
+        date: targetDate.toISOString(),
+        selections: updatedSelections,
+      });
+
+      const response = await fetch("/api/meal-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kidId: selectedKid,
-          day: selectedDay,
-          meal: selectedMeal,
-          selections: state.selections[selectedKid][selectedDay][selectedMeal],
+          mealData: {
+            meal: selectedMeal,
+            date: targetDate.toISOString(),
+            selections: updatedSelections,
+          },
         }),
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          `Failed to save meal history: ${JSON.stringify(error)}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Save result:", result);
     } catch (error) {
       console.error("Failed to save serving adjustment:", error);
     }
@@ -276,18 +374,57 @@ export const useMealStore = create<MealStore>((set, get) => ({
       })
     );
 
-    // Save to database
+    // Get the updated selections after state change
+    const updatedState = get();
+    const updatedSelections =
+      updatedState.selections[selectedKid][selectedDay][mealType];
+
+    // Get the current date and adjust it to match the selected day
+    const today = new Date();
+    const currentDay = today.getDay();
+    const daysMap: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    const targetDay = daysMap[selectedDay.toLowerCase()];
+    const diff = targetDay - currentDay;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+
     try {
-      await fetch("/api/meal-selections", {
+      console.log("Saving meal history with milk toggle:", {
+        meal: mealType,
+        date: targetDate.toISOString(),
+        selections: updatedSelections,
+      });
+
+      const response = await fetch("/api/meal-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kidId: selectedKid,
-          day: selectedDay,
-          meal: mealType,
-          selections: state.selections[selectedKid][selectedDay][mealType],
+          mealData: {
+            meal: mealType,
+            date: targetDate.toISOString(),
+            selections: updatedSelections,
+          },
         }),
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          `Failed to save meal history: ${JSON.stringify(error)}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Save result:", result);
     } catch (error) {
       console.error("Failed to save milk toggle:", error);
     }
@@ -363,4 +500,184 @@ export const useMealStore = create<MealStore>((set, get) => ({
         );
       })
     ),
+
+  loadSelectionsFromHistory: async ({ kidId, date }: LoadHistoryOptions) => {
+    try {
+      console.log("Loading selections for:", {
+        kidId,
+        date: date.toISOString(),
+        dayOfWeek: format(date, "EEEE"),
+      });
+
+      // First, fetch the available food options
+      const foodResponse = await fetch("/api/foods");
+      if (!foodResponse.ok) {
+        throw new Error("Failed to fetch food options");
+      }
+      const foodOptions: Record<CategoryType, Food[]> =
+        await foodResponse.json();
+      console.log("Available food options:", foodOptions);
+
+      // Then fetch the history
+      const response = await fetch(
+        `/api/meals/history?kidId=${kidId}&date=${date.toISOString()}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Failed to load meal history: ${JSON.stringify(errorData)}`
+        );
+      }
+
+      const { history } = await response.json();
+      console.log("Received history:", JSON.stringify(history, null, 2));
+
+      if (history?.length) {
+        const dayKey = format(date, "EEEE").toLowerCase() as DayType;
+
+        // Helper function to find matching food from options
+        const findMatchingFood = (
+          savedFood: Food | null,
+          category: CategoryType,
+          foodOptions: Record<CategoryType, Food[]>
+        ): Food | null => {
+          if (!savedFood) return null;
+
+          console.log(`Finding match for ${savedFood.name} in ${category}:`, {
+            savedFood,
+            availableOptions: foodOptions[category]?.length || 0,
+          });
+
+          const categoryFoods = foodOptions[category] || [];
+
+          // Try to match by name first (most reliable)
+          const matchByName = categoryFoods.find(
+            (f: Food) => f.name.toLowerCase() === savedFood.name.toLowerCase()
+          );
+          if (matchByName) {
+            console.log(`Found match by name for ${savedFood.name}`);
+            return {
+              ...matchByName,
+              servings: savedFood.servings || 1,
+              adjustedCalories:
+                savedFood.adjustedCalories ||
+                matchByName.calories * (savedFood.servings || 1),
+              adjustedProtein:
+                savedFood.adjustedProtein ||
+                matchByName.protein * (savedFood.servings || 1),
+              adjustedCarbs:
+                savedFood.adjustedCarbs ||
+                matchByName.carbs * (savedFood.servings || 1),
+              adjustedFat:
+                savedFood.adjustedFat ||
+                matchByName.fat * (savedFood.servings || 1),
+            };
+          }
+
+          // Then try UPC if available
+          if (savedFood.upc) {
+            const matchByUpc = categoryFoods.find(
+              (f: Food) => f.upc === savedFood.upc
+            );
+            if (matchByUpc) {
+              console.log(`Found match by UPC for ${savedFood.name}`);
+              return {
+                ...matchByUpc,
+                servings: savedFood.servings || 1,
+                adjustedCalories:
+                  savedFood.adjustedCalories ||
+                  matchByUpc.calories * (savedFood.servings || 1),
+                adjustedProtein:
+                  savedFood.adjustedProtein ||
+                  matchByUpc.protein * (savedFood.servings || 1),
+                adjustedCarbs:
+                  savedFood.adjustedCarbs ||
+                  matchByUpc.carbs * (savedFood.servings || 1),
+                adjustedFat:
+                  savedFood.adjustedFat ||
+                  matchByUpc.fat * (savedFood.servings || 1),
+              };
+            }
+          }
+
+          console.log(`No match found for ${savedFood.name} in ${category}`);
+          return null;
+        };
+
+        set(
+          produce((state) => {
+            // Initialize the kid's selections if they don't exist
+            if (!state.selections[kidId]) {
+              state.selections[kidId] = structuredClone(DEFAULT_MEAL_PLAN);
+            }
+
+            // Update selections for each meal found in history
+            history.forEach((entry: MealHistoryRecord) => {
+              if (entry.meal && entry.selections) {
+                console.log(
+                  `Processing history entry for ${entry.meal}:`,
+                  JSON.stringify(entry.selections, null, 2)
+                );
+
+                // Match each food item with available options
+                const selections: MealSelection = {
+                  proteins: findMatchingFood(
+                    entry.selections.proteins,
+                    "proteins",
+                    foodOptions
+                  ),
+                  grains: findMatchingFood(
+                    entry.selections.grains,
+                    "grains",
+                    foodOptions
+                  ),
+                  fruits: findMatchingFood(
+                    entry.selections.fruits,
+                    "fruits",
+                    foodOptions
+                  ),
+                  vegetables: findMatchingFood(
+                    entry.selections.vegetables,
+                    "vegetables",
+                    foodOptions
+                  ),
+                  milk: findMatchingFood(
+                    entry.selections.milk,
+                    "milk",
+                    foodOptions
+                  ),
+                  ranch: findMatchingFood(
+                    entry.selections.ranch,
+                    "ranch",
+                    foodOptions
+                  ),
+                  condiments: Array.isArray(entry.selections.condiments)
+                    ? entry.selections.condiments
+                        .map((c) =>
+                          findMatchingFood(c, "condiments", foodOptions)
+                        )
+                        .filter((c): c is Food => c !== null)
+                    : [],
+                };
+
+                console.log(
+                  "Matched selections:",
+                  JSON.stringify(selections, null, 2)
+                );
+
+                // Update the selections in state using Immer
+                if (state.selections[kidId]?.[dayKey]) {
+                  state.selections[kidId][dayKey][entry.meal] = selections;
+                }
+              }
+            });
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error loading selections:", error);
+      throw error;
+    }
+  },
 }));
