@@ -1,15 +1,13 @@
-import { format } from "date-fns";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { MealHistoryRecord, MealType } from "@/types/food";
+import { MealHistoryRecord, MealType } from "@/types/meals";
 import { MEAL_TYPES } from "@/constants";
 import { DAILY_GOALS } from "@/constants/meal-goals";
 
 interface MealHistoryEntryProps {
-  date: string;
   entries: MealHistoryRecord[];
 }
 
-export function MealHistoryEntry({ date, entries }: MealHistoryEntryProps) {
+export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
   // Sort entries by meal type according to MEAL_TYPES order
   const sortedEntries = [...entries].sort((a, b) => {
     return (
@@ -32,31 +30,30 @@ export function MealHistoryEntry({ date, entries }: MealHistoryEntryProps) {
       )
       .forEach(([, food]) => {
         if (food) {
-          total +=
-            parseInt(food.adjustedCalories) || parseInt(food.calories) || 0;
+          total += Number(food.adjustedCalories) || Number(food.calories) || 0;
         }
       });
 
     // Add milk calories if present
     if (entry.selections.milk) {
       total +=
-        entry.selections.milk.adjustedCalories ||
-        entry.selections.milk.calories ||
+        Number(entry.selections.milk.adjustedCalories) ||
+        Number(entry.selections.milk.calories) ||
         0;
     }
 
     // Add ranch calories if present
     if (entry.selections.ranch) {
       total +=
-        entry.selections.ranch.adjustedCalories ||
-        entry.selections.ranch.calories ||
+        Number(entry.selections.ranch.adjustedCalories) ||
+        Number(entry.selections.ranch.calories) ||
         0;
     }
 
     // Add condiment calories
     if (Array.isArray(entry.selections.condiments)) {
       entry.selections.condiments.forEach((condiment) => {
-        total += parseInt(condiment.adjustedCalories) || 0;
+        total += Number(condiment.adjustedCalories) || 0;
       });
     }
 
@@ -115,12 +112,9 @@ export function MealHistoryEntry({ date, entries }: MealHistoryEntryProps) {
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold capitalize">
-                    {entry.meal}
+                  <h3 className="text-lg font-semibold">
+                    {entry.meal.charAt(0).toUpperCase() + entry.meal.slice(1)}
                   </h3>
-                  <p className="text-sm text-gray-500">
-                    {format(new Date(entry.date), "h:mm a")}
-                  </p>
                 </div>
                 <div className="text-right">
                   <div
@@ -159,20 +153,22 @@ export function MealHistoryEntry({ date, entries }: MealHistoryEntryProps) {
                           {food.adjustedCalories || food.calories} cal
                         </div>
                       </div>
-                      {entry.consumptionData?.foods?.find(
-                        (f) => f.name === food.name
-                      ) && (
-                        <div className="text-sm font-medium">
-                          {
-                            entry.consumptionData.foods.find(
-                              (f) => f.name === food.name
-                            )?.percentageEaten
-                          }
-                          % eaten
-                        </div>
-                      )}
                     </div>
                   ))}
+
+                {/* Consumption Data */}
+                {entry.consumptionData && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-medium">
+                      {entry.consumptionData.percentEaten}% eaten
+                    </div>
+                    {entry.consumptionData.notes && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {entry.consumptionData.notes}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Milk */}
                 {entry.selections.milk && (

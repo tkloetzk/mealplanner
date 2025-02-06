@@ -24,6 +24,7 @@ export interface MealSelection {
   fruits: Food | null;
   vegetables: Food | null;
   milk: Food | null;
+  ranch: Food | null;
   condiments: Food[];
   other?: Food | null;
 }
@@ -55,6 +56,11 @@ export interface MealHistoryRecord {
   consumptionData?: {
     percentEaten: number;
     notes?: string;
+    summary?: string;
+    foods?: Array<{
+      name: string;
+      percentageEaten: number;
+    }>;
   };
 }
 
