@@ -46,10 +46,13 @@ export const FoodItem = ({
     "transition-all",
     "duration-200",
     "cursor-pointer",
-    isSelected ? "bg-white" : "hover:bg-gray-50 bg-white",
+    isSelected
+      ? !isChildView
+        ? "bg-blue-100"
+        : "bg-white"
+      : "hover:bg-gray-50 bg-white",
     isSelected ? "ring-2" : "",
     isSelected ? (isChildView ? "ring-green-500" : "ring-blue-500") : "",
-    !isChildView && isSelected ? "bg-blue-100" : "",
     isHidden ? "opacity-50" : "",
   ]
     .filter(Boolean)
