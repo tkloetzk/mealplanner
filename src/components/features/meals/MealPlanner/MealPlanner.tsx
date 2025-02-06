@@ -38,7 +38,7 @@ import { MealAnalysis } from "../MealAnalysis/MealAnalysis";
 import { FAB } from "../shared/FAB/FAB";
 import { MealPlannerHeader } from "../MealPlannerHeader";
 import { produce } from "immer";
-import { getOrderedDays } from "@/utils/dateUtils";
+import { getOrderedDays, getCurrentDay } from "@/utils/dateUtils";
 import { Food } from "@/types/food";
 import { NutritionSummary } from "@/components/features/nutrition/NutritionSummary/NutritionSummary";
 import { DAYS_OF_WEEK } from "@/constants/index";
@@ -300,9 +300,9 @@ export const MealPlanner = () => {
   };
 
   useEffect(() => {
-    const currentDay = DAYS_OF_WEEK[new Date().getDay()] as DayType;
+    const currentDay = getCurrentDay();
     setSelectedDay(currentDay);
-  }, []);
+  }, [setSelectedDay]);
 
   // Fetch meal history when kid is selected
   useEffect(() => {

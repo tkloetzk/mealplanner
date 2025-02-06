@@ -5,6 +5,7 @@ import { MealPlanner } from "../meals/MealPlanner";
 import userEvent from "@testing-library/user-event";
 import { useMealStore } from "@/store/useMealStore";
 import { MealType } from "@/types/meals";
+import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 
 describe("Kids View Integration Tests", () => {
   // Add user setup
@@ -15,37 +16,7 @@ describe("Kids View Integration Tests", () => {
     const { initializeKids } = useMealStore.getState();
     useMealStore.setState({
       selections: {
-        "1": {
-          monday: {
-            breakfast: {
-              proteins: null,
-              fruits: null,
-              vegetables: null,
-              grains: null,
-              milk: null,
-              condiments: [],
-              other: null,
-            },
-            lunch: {
-              proteins: null,
-              fruits: null,
-              vegetables: null,
-              grains: null,
-              milk: null,
-              condiments: [],
-              other: null,
-            },
-            dinner: {
-              proteins: null,
-              fruits: null,
-              vegetables: null,
-              grains: null,
-              milk: null,
-              condiments: [],
-              other: null,
-            },
-          },
-        },
+        "1": structuredClone(DEFAULT_MEAL_PLAN),
       },
       selectedKid: "1",
       selectedDay: "monday",
