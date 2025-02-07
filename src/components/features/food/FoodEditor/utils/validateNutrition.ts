@@ -1,12 +1,10 @@
 // utils/NutritionValidator.ts
 import { Food } from "@/types/food";
-
-// Nutrition validation constants
-const CALORIES_PER_PROTEIN = 4;
-const CALORIES_PER_CARB = 4;
-const CALORIES_PER_FAT = 9;
-const MAX_CALORIES_PER_SERVING = 1000;
-const MIN_CALORIES_PER_SERVING = 0;
+import {
+  calculateExpectedCalories,
+  MAX_CALORIES_PER_SERVING,
+  MIN_CALORIES_PER_SERVING,
+} from "@/utils/nutritionUtils";
 
 export function validateNutrition(foodData: Partial<Food>): string[] {
   const errors: string[] = [];
@@ -26,15 +24,15 @@ export function validateNutrition(foodData: Partial<Food>): string[] {
   if (foodData.fat! < 0) errors.push("Fat cannot be negative");
 
   // Calculate expected calories from macronutrients
-  const expectedCalories =
-    foodData.protein! * CALORIES_PER_PROTEIN +
-    foodData.carbs! * CALORIES_PER_CARB +
-    foodData.fat! * CALORIES_PER_FAT;
+  const expectedCalories = calculateExpectedCalories(
+    foodData.protein!,
+    foodData.carbs!,
+    foodData.fat!
+  );
 
   // Allow for some rounding differences (±10 calories)
   if (Math.abs(expectedCalories - foodData.calories!) > 10) {
     console.log("Calories don't match the macronutrient totals");
-
     //    errors.push("Calories don't match the macronutrient totals");
   }
 

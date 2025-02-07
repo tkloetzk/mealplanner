@@ -1,7 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import { MealPlanner } from "@/components/features/meals/MealPlanner";
 import { useMealStore } from "@/store/useMealStore";
-import { startOfDay, format } from "date-fns";
 import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 
 describe("Meal History Initialization", () => {

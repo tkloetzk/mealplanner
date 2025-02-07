@@ -1,15 +1,20 @@
 // src/types/food.ts
-import { CATEGORY_STYLES, CondimentSelection, DAYS_OF_WEEK } from "@/constants";
 import { ObjectId } from "mongodb";
 import { MealType } from "./meals";
 
-export interface FoodDocument extends Food {
-  _id: ObjectId;
-}
+// Constants that should be in constants/index.ts
+export const CATEGORY_STYLES = {
+  proteins: "proteins",
+  grains: "grains",
+  fruits: "fruits",
+  vegetables: "vegetables",
+  milk: "milk",
+  ranch: "ranch",
+  condiments: "condiments",
+  other: "other",
+} as const;
 
-export type CategoryType =
-  (typeof CATEGORY_STYLES)[keyof typeof CATEGORY_STYLES];
-export type DayType = (typeof DAYS_OF_WEEK)[keyof typeof DAYS_OF_WEEK];
+export type CategoryType = keyof typeof CATEGORY_STYLES;
 
 export interface MealSelection {
   grains: SelectedFood | null;
@@ -18,7 +23,8 @@ export interface MealSelection {
   vegetables: SelectedFood | null;
   milk: SelectedFood | null;
   ranch: SelectedFood | null;
-  condiments: CondimentSelection[]; // Now an array of selections
+  condiments: SelectedFood[]; // Array of condiment selections
+  other: SelectedFood | null;
 }
 
 export interface DayMeals {
@@ -76,11 +82,11 @@ export interface Food {
   };
   score?: string;
   additives?: string[];
-  analysis?: FoodScoreAnalysis; // Updated to use FoodScoreAnalysis type
-  subcategory?: string; // For organizing condiments (e.g., "spreads", "dressings", "sauces")
-  recommendedUses?: string[]; // e.g., ["breads", "vegetables", "proteins"]
-  maxServingsPerMeal?: number; // Optional limit on servings
-  isCondiment?: boolean; // Quick flag to identify condiments
+  analysis?: FoodScoreAnalysis;
+  subcategory?: string;
+  recommendedUses?: string[];
+  maxServingsPerMeal?: number;
+  isCondiment?: boolean;
 }
 
 export interface SelectedFood extends Food {
@@ -91,7 +97,7 @@ export interface SelectedFood extends Food {
   adjustedFat: number;
 }
 
-interface FoodConsumption {
+export interface FoodConsumption {
   name: string;
   percentageEaten: number;
   notes?: string;
@@ -102,17 +108,6 @@ export interface ConsumptionData {
   summary: string;
 }
 
-// export interface MealHistoryRecord {
-//   _id: string;
-//   kidId: string;
-//   date: Date;
-//   meal: MealType;
-//   selections: MealSelection;
-//   consumptionData?: ConsumptionData; // Add this optional field
-// }
-
-// Define an interface that extends MongoDB Document
-
 export interface NutritionSummary {
   calories: number;
   protein: number;
@@ -120,11 +115,6 @@ export interface NutritionSummary {
   fat: number;
 }
 
-// Add this interface to track consumption data
-// interface FoodConsumption {
-//   name: string;
-//   percentageEaten: number;
-//   notes?: string;
-// }
-
-// Update MealHistoryRecord to include consumption data
+export interface FoodDocument extends Food {
+  _id: ObjectId;
+}

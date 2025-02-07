@@ -5,6 +5,11 @@ import { MealType } from "@/types/meals";
 import { DAILY_GOALS } from "@/constants/meal-goals";
 import { ArrowUpDown } from "lucide-react";
 import { useMealStore } from "@/store/useMealStore";
+import {
+  getProgressBarWidth,
+  getProgressColor,
+  getNutrientColor,
+} from "@/utils/nutritionUtils";
 
 interface NutritionSummaryProps {
   selectedMeal: MealType | null;
@@ -24,28 +29,6 @@ export function NutritionSummary({ selectedMeal }: NutritionSummaryProps) {
     : selectedMeal
     ? calculateMealNutrition(selectedMeal)
     : { calories: 0, protein: 0, carbs: 0, fat: 0 };
-
-  const getProgressBarWidth = (current: number, target: number): string => {
-    const percentage = (current / target) * 100;
-    return `${Math.min(percentage, 100)}%`;
-  };
-
-  const getProgressColor = (current: number, target: number): string => {
-    const percentage = (current / target) * 100;
-    if (percentage > 110) return "bg-red-500";
-    if (percentage > 90 && percentage <= 95) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-
-  const getNutrientColor = (
-    current: number,
-    min: number,
-    max: number
-  ): string => {
-    if (current < min) return "text-yellow-600";
-    if (current > max) return "text-red-600";
-    return "text-green-600";
-  };
 
   const renderNutrientCard = (
     label: string,

@@ -263,28 +263,6 @@ export const MealPlanner = () => {
     }
   };
 
-  // Weekly view calculations
-  // const calculateWeeklyTotals = () => {
-  //   if (!selectedKid) return null;
-  //   return DAYS_OF_WEEK.reduce((acc, day) => {
-  //     const dayTotals = MEAL_TYPES.reduce(
-  //       (mealAcc, meal) => {
-  //         const nutrition = calculateMealNutrition(meal);
-  //         return {
-  //           calories: mealAcc.calories + nutrition.calories,
-  //           protein: mealAcc.protein + nutrition.protein,
-  //           carbs: mealAcc.carbs + nutrition.carbs,
-  //           fat: mealAcc.fat + nutrition.fat,
-  //         };
-  //       },
-  //       { calories: 0, protein: 0, carbs: 0, fat: 0 }
-  //     );
-
-  //     acc[day] = dayTotals;
-  //     return acc;
-  //   }, {} as Record<string, NutritionSummaryType>);
-  // };
-
   const handleToggleAllOtherFoodVisibility = () => {
     setFoodOptions(
       produce((draft) => {

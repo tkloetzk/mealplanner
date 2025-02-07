@@ -30,6 +30,7 @@ export const createDefaultMealSelection = () => ({
   milk: null,
   condiments: [],
   ranch: null,
+  other: null,
 });
 
 export const DEFAULT_MEAL_PLAN: MealPlan = DAYS_OF_WEEK.reduce((plan, day) => {

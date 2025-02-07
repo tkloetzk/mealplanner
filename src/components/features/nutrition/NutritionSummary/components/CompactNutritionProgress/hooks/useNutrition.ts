@@ -3,6 +3,12 @@ import { useMemo } from "react";
 import { MealSelection } from "@/types/food";
 import { MealType } from "@/types/meals";
 import { DAILY_GOALS } from "@/constants/meal-goals";
+import {
+  getProgressBarWidth,
+  getProgressColor,
+  getNutrientColor,
+  ensureNumber,
+} from "@/utils/nutritionUtils";
 
 export interface NutritionSummary {
   calories: number;
@@ -16,15 +22,11 @@ interface NutritionStatus {
   meetsProteinGoal: boolean;
   meetsFatGoal: boolean;
 }
+
 export function useNutrition(
   selections: MealSelection | null,
   mealType: MealType | null
 ) {
-  const ensureNumber = (value: unknown): number => {
-    const num = Number(value);
-    return isNaN(num) ? 0 : num;
-  };
-
   const mealNutrition = useMemo(() => {
     if (!selections) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
@@ -61,7 +63,7 @@ export function useNutrition(
     ) || { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
     // Combine all nutrition sources
-    const totalNutrition = {
+    return {
       calories: ensureNumber(
         baseNutrition.calories + condimentNutrition.calories
       ),
@@ -69,8 +71,6 @@ export function useNutrition(
       carbs: ensureNumber(baseNutrition.carbs + condimentNutrition.carbs),
       fat: ensureNumber(baseNutrition.fat + condimentNutrition.fat),
     };
-
-    return totalNutrition;
   }, [selections]);
 
   const nutritionStatus = useMemo((): NutritionStatus => {
@@ -96,28 +96,6 @@ export function useNutrition(
         mealNutrition.fat >= fatGoals.min && mealNutrition.fat <= fatGoals.max,
     };
   }, [mealNutrition, mealType]);
-
-  const getProgressBarWidth = (current: number, target: number): string => {
-    const percentage = (current / target) * 100;
-    return `${Math.min(percentage, 100)}%`;
-  };
-
-  const getProgressColor = (current: number, target: number): string => {
-    const percentage = (current / target) * 100;
-    if (percentage > 110) return "bg-red-500";
-    if (percentage > 90 && percentage <= 95) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-
-  const getNutrientColor = (
-    current: number,
-    min: number,
-    max: number
-  ): string => {
-    if (current < min) return "text-yellow-600";
-    if (current > max) return "text-red-600";
-    return "text-green-600";
-  };
 
   return {
     mealNutrition,
