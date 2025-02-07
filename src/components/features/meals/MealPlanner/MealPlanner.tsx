@@ -423,6 +423,22 @@ export const MealPlanner = () => {
     setTimeout(fetchMealHistory, 500);
   };
 
+  useEffect(() => {
+    console.log("MealPlanner state:", {
+      selectedKid,
+      selectedDay,
+      selectedMeal,
+      currentMealSelection,
+      showAiAnalysis,
+    });
+  }, [
+    selectedKid,
+    selectedDay,
+    selectedMeal,
+    currentMealSelection,
+    showAiAnalysis,
+  ]);
+
   return (
     <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
       <MealPlannerHeader
@@ -511,13 +527,25 @@ export const MealPlanner = () => {
                     variant="outline"
                     className="gap-2"
                     onClick={() => {
-                      if (currentMealSelection) {
-                        setShowAiAnalysis(true);
-                      }
+                      console.log("Analyze button clicked", {
+                        selectedKid,
+                        selectedDay,
+                        selectedMeal,
+                        currentMealSelection,
+                        showAiAnalysis,
+                      });
+                      setShowAiAnalysis(true);
                     }}
-                    // disabled={!currentMealSelection}
+                    disabled={
+                      !selectedMeal ||
+                      !currentMealSelection ||
+                      Object.values(currentMealSelection).every(
+                        (food) =>
+                          !food || (Array.isArray(food) && food.length === 0)
+                      )
+                    }
                   >
-                    <MessageSquare className="w-4 h-4" />
+                    <MessageSquare className="w-4 w-4" />
                     Analyze Meal Plan
                   </Button>
                 </div>
@@ -795,11 +823,9 @@ export const MealPlanner = () => {
       )}
 
       {/* AI Analysis Dialogs */}
-      {/* <AnalysisDialog isOpen={showAiAnalysis} onOpenChange={setShowAiAnalysis}> */}
-      {selectedKid && selectedDay && selectedMeal && (
+      {selectedKid && selectedDay && selectedMeal && currentMealSelection && (
         <MealAnalysis
           selectedMeal={selectedMeal}
-          // @ts-expect-error Idk what to do
           mealSelections={currentMealSelection}
           onAnalysisComplete={(analysis) => {
             console.log("Meal analysis completed:", analysis);
@@ -808,7 +834,6 @@ export const MealPlanner = () => {
           onClose={() => setShowAiAnalysis(false)}
         />
       )}
-      {/* </AnalysisDialog> */}
 
       {/* Food Image Analysis Dialog */}
       <AnalysisDialog
