@@ -33,7 +33,9 @@ export function validateNutrition(foodData: Partial<Food>): string[] {
 
   // Allow for some rounding differences (±10 calories)
   if (Math.abs(expectedCalories - foodData.calories!) > 10) {
-    errors.push("Calories don't match the macronutrient totals");
+    console.log("Calories don't match the macronutrient totals");
+
+    //    errors.push("Calories don't match the macronutrient totals");
   }
 
   // Validate serving size
