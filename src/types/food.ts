@@ -1,38 +1,11 @@
 // src/types/food.ts
 import { ObjectId } from "mongodb";
-import { MealType } from "./meals";
-
-// Constants that should be in constants/index.ts
-export const CATEGORY_STYLES = {
-  proteins: "proteins",
-  grains: "grains",
-  fruits: "fruits",
-  vegetables: "vegetables",
-  milk: "milk",
-  ranch: "ranch",
-  condiments: "condiments",
-  other: "other",
-} as const;
-
-export type CategoryType = keyof typeof CATEGORY_STYLES;
-
-export interface MealSelection {
-  grains: SelectedFood | null;
-  fruits: SelectedFood | null;
-  proteins: SelectedFood | null;
-  vegetables: SelectedFood | null;
-  milk: SelectedFood | null;
-  ranch: SelectedFood | null;
-  condiments: SelectedFood[]; // Array of condiment selections
-  other: SelectedFood | null;
-}
-
-export interface DayMeals {
-  breakfast: MealSelection;
-  lunch: MealSelection;
-  dinner: MealSelection;
-  snack: MealSelection;
-}
+import {
+  CategoryType,
+  MealType,
+  NutritionInfo,
+  AdjustedNutritionInfo,
+} from "./shared";
 
 export type ServingSizeUnit =
   | "g"
@@ -50,21 +23,13 @@ export interface FoodScoreAnalysis {
   negatives: string[];
 }
 
-export interface Food {
+export interface Food extends NutritionInfo {
   id: string;
   name: string;
   category: CategoryType;
   meal: MealType[];
   servings: number;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
   hiddenFromChild?: boolean;
-  adjustedCalories: number;
-  adjustedProtein: number;
-  adjustedCarbs: number;
-  adjustedFat: number;
   servingSize: string;
   servingSizeUnit: ServingSizeUnit;
   servingSizeImported?: string;
@@ -89,12 +54,8 @@ export interface Food {
   isCondiment?: boolean;
 }
 
-export interface SelectedFood extends Food {
+export interface SelectedFood extends Food, AdjustedNutritionInfo {
   servings: number;
-  adjustedCalories: number;
-  adjustedProtein: number;
-  adjustedCarbs: number;
-  adjustedFat: number;
 }
 
 export interface FoodConsumption {

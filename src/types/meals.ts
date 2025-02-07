@@ -1,23 +1,5 @@
 import { Food } from "./food";
-
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
-export type DayType =
-  | "monday"
-  | "tuesday"
-  | "wednesday"
-  | "thursday"
-  | "friday"
-  | "saturday"
-  | "sunday";
-export type CategoryType =
-  | "proteins"
-  | "grains"
-  | "fruits"
-  | "vegetables"
-  | "milk"
-  | "condiments"
-  | "ranch"
-  | "other";
+import { MealType, DayType, ConsumptionInfo } from "./shared";
 
 export interface MealSelection {
   proteins: Food | null;
@@ -54,10 +36,7 @@ export interface MealHistoryRecord {
   date: Date | string;
   meal: MealType;
   selections: MealSelection;
-  consumptionData?: {
-    percentEaten: number;
-    notes?: string;
-  };
+  consumptionData?: ConsumptionInfo;
 }
 
 export interface MealState {
