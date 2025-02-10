@@ -40,7 +40,6 @@ import { NutritionSummary } from "@/components/features/nutrition/NutritionSumma
 import { DAYS_OF_WEEK } from "@/constants/index";
 import { isCategoryKey } from "@/utils/meal-categories";
 import { mealService } from "@/services/meal/mealService";
-import { AddFoodMenu } from "@/components/features/food/AddFoodMenu/AddFoodMenu";
 import { MealEditor } from "../MealEditor/MealEditor";
 
 interface AnalysisDialogProps {
@@ -416,26 +415,6 @@ export const MealPlanner = () => {
     showAiAnalysis,
   ]);
 
-  const handleFoodAdded = async (food: Food) => {
-    try {
-      const response = await fetch("/api/foods", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(food),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add food");
-      }
-
-      // Refresh foods data or update local state as needed
-    } catch (error) {
-      console.error("Error adding food:", error);
-    }
-  };
-
   const handleAddMeal = () => {
     setShowMealEditor(true);
   };
@@ -469,10 +448,6 @@ export const MealPlanner = () => {
 
   return (
     <div className="container mx-auto p-4" data-testid="meal-planner">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Meal Planner</h1>
-        <AddFoodMenu onFoodAdded={handleFoodAdded} />
-      </div>
       <MealPlannerHeader
         kids={kids}
         selectedKid={selectedKid}
@@ -896,12 +871,23 @@ export const MealPlanner = () => {
       </div>
 
       {/* Add MealEditor */}
-      <MealEditor
-        isOpen={showMealEditor}
-        onClose={() => setShowMealEditor(false)}
-        onSave={handleSaveMeal}
-        mealType={selectedMeal || undefined}
-      />
+      {showMealEditor && (
+        <MealEditor
+          isOpen={showMealEditor}
+          onClose={() => {
+            setShowMealEditor(false);
+          }}
+          onSave={async (name, selections) => {
+            try {
+              await handleSaveMeal(name, selections);
+              setShowMealEditor(false);
+            } catch (error) {
+              console.error('Failed to save meal:', error);
+            }
+          }}
+          mealType={selectedMeal || undefined}
+        />
+      )}
     </div>
   );
 };

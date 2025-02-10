@@ -35,6 +35,7 @@ interface Ingredient {
   amount: number;
   unit: ServingSizeUnit;
   foodId?: string;
+  upc?: string;
 }
 
 export const MealEditor = ({
@@ -100,6 +101,29 @@ export const MealEditor = ({
     }
   }, [isOpen]);
 
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setName("");
+      setError(null);
+      setCreationMethod("select");
+      setDescription("");
+      setRecipe("");
+      setIngredients([]);
+      setCurrentIngredient({});
+      setSelections(initialSelections || {
+        proteins: null,
+        grains: null,
+        fruits: null,
+        vegetables: null,
+        milk: null,
+        ranch: null,
+        condiments: [],
+        other: null,
+      });
+    }
+  }, [isOpen, initialSelections]);
+
   const handleFoodSelect = (category: CategoryType, food: Food) => {
     setSelections((prev) => {
       if (category === "condiments") {
@@ -133,15 +157,26 @@ export const MealEditor = ({
     setCurrentIngredient({});
   };
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setName(newName);
+    // Clear name-related error when valid input is entered
+    if (newName.trim() && error === "Please enter a meal name") {
+      setError(null);
+    }
+  };
+
   const handleSave = async () => {
+    // Clear any previous errors
+    setError(null);
+
+    // Validate name first
     if (!name.trim()) {
       setError("Please enter a meal name");
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
+    // Validate based on creation method before setting loading state
     try {
       switch (creationMethod) {
         case "select": {
@@ -151,33 +186,57 @@ export const MealEditor = ({
               (!Array.isArray(selection) || selection.length > 0)
           );
           if (!hasSelections) {
-            throw new Error("Please select at least one food item");
+            setError("Please select at least one food item");
+            return;
           }
-          await onSave(name, selections);
           break;
         }
         case "describe": {
           if (!description.trim()) {
-            throw new Error("Please enter a meal description");
+            setError("Please enter a meal description");
+            return;
           }
-          // TODO: Call AI endpoint to convert description to meal
           break;
         }
         case "recipe": {
           if (!recipe.trim()) {
-            throw new Error("Please enter a recipe");
+            setError("Please enter a recipe");
+            return;
           }
-          // TODO: Call AI endpoint to convert recipe to meal
           break;
         }
         case "scan": {
           if (ingredients.length === 0) {
-            throw new Error("Please add at least one ingredient");
+            setError("Please add at least one ingredient");
+            return;
           }
-          // TODO: Convert scanned ingredients to meal
           break;
         }
       }
+
+      // Only set loading after validation passes
+      setLoading(true);
+
+      // Handle the actual save operation
+      switch (creationMethod) {
+        case "select": {
+          await onSave(name, selections);
+          break;
+        }
+        case "describe": {
+          // TODO: Call AI endpoint to convert description to meal
+          throw new Error("Description mode not implemented yet");
+        }
+        case "recipe": {
+          // TODO: Call AI endpoint to convert recipe to meal
+          throw new Error("Recipe mode not implemented yet");
+        }
+        case "scan": {
+          // TODO: Convert scanned ingredients to meal
+          throw new Error("Scan mode not implemented yet");
+        }
+      }
+      
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save meal");
@@ -187,8 +246,16 @@ export const MealEditor = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        // Only handle actual close requests
+        if (!open && !loading) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>
             {initialSelections ? "Edit Meal" : "Create New Meal"}
@@ -202,7 +269,7 @@ export const MealEditor = ({
               <Input
                 id="meal-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={handleNameChange}
                 placeholder="Enter meal name"
               />
             </div>
@@ -243,14 +310,15 @@ export const MealEditor = ({
                               const isSelected =
                                 category === "condiments"
                                   ? selections.condiments?.some(
-                                      (f) => f.id === food.id
+                                      (f: Food) => f.id === food.id
                                     )
-                                  : selections[category as CategoryType]?.id ===
-                                    food.id;
+                                  : selections[category as CategoryType] !== null &&
+                                    'id' in (selections[category as CategoryType] || {}) &&
+                                    (selections[category as CategoryType] as Food).id === food.id;
 
                               return (
                                 <FoodItem
-                                  key={food.id}
+                                  key={food.id || index}
                                   food={food}
                                   category={category as CategoryType}
                                   index={index}
@@ -269,7 +337,7 @@ export const MealEditor = ({
                                   onServingClick={() => {}}
                                   isHidden={false}
                                   onToggleVisibility={() => {}}
-                                  mealType={mealType}
+                                  mealType={mealType || "breakfast"}
                                 />
                               );
                             })}
@@ -314,11 +382,20 @@ export const MealEditor = ({
                   <div className="flex-1">
                     <FoodSearch
                       onFoodFound={(food) => {
-                        setCurrentIngredient((prev) => ({
-                          ...prev,
-                          name: food.name,
-                          foodId: food.id,
-                        }));
+                        setIngredients([
+                          ...ingredients,
+                          {
+                            name: food.name,
+                            amount: 1,
+                            unit: food.servingSizeUnit,
+                            foodId: food.id,
+                            upc: food.upc,
+                          },
+                        ]);
+                      }}
+                      onError={(error: string | Error) => {
+                        console.error("Food search error:", error);
+                        setError(typeof error === 'string' ? error : error.message);
                       }}
                       onScanRequest={() => setIsScanning(true)}
                     />

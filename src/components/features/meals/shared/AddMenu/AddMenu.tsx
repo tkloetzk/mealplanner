@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +19,20 @@ export const AddMenu = ({
   onAddMeal,
   className = "",
 }: AddMenuProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleAddFood = () => {
+    setIsOpen(false);
+    onAddFood();
+  };
+
+  const handleAddMeal = () => {
+    setIsOpen(false);
+    onAddMeal();
+  };
+
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           size="icon"
@@ -33,7 +45,7 @@ export const AddMenu = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem
-          onClick={onAddFood}
+          onClick={handleAddFood}
           className="cursor-pointer"
           data-testid="add-food-option"
         >
@@ -41,7 +53,7 @@ export const AddMenu = ({
           <span>Add Food</span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={onAddMeal}
+          onClick={handleAddMeal}
           className="cursor-pointer"
           data-testid="add-meal-option"
         >

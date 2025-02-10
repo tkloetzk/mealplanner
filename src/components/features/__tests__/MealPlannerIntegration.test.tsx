@@ -40,13 +40,20 @@ describe("MealPlanner Integration Tests", () => {
   };
 
   const selectMeal = async (meal: MealType = "breakfast") => {
-    const mealButton = screen.getByTestId(`${meal}-meal-button`);
-    await user.click(mealButton);
+    // In parent view, click the meal button
+    const mealButton = screen.queryByTestId(`${meal}-meal-button`);
+    if (mealButton) {
+      await user.click(mealButton);
+      expect(mealButton.className).toContain("bg-blue-500");
+      expect(mealButton.className).toContain("text-white");
+      return mealButton;
+    }
 
-    expect(mealButton.className).toContain("bg-blue-500");
-    expect(mealButton.className).toContain("text-white");
-
-    return mealButton;
+    // In child view, verify the meal text is displayed
+    await waitFor(() => {
+      expect(screen.getByText(new RegExp(meal, "i"))).toBeInTheDocument();
+    });
+    return null;
   };
 
   const selectFood = async (
@@ -355,6 +362,49 @@ describe("MealPlanner Integration Tests", () => {
           )} cal total`
         )
       ).toBeInTheDocument();
+    });
+  });
+
+  it("maintains correct view toggle state and UI elements across interactions", async () => {
+    await renderMealPlanner();
+
+    // Initial state should be parent view
+    const viewToggle = screen.getByRole("switch", { name: /Parent's View/i });
+    expect(viewToggle).not.toBeChecked();
+    expect(screen.getByText("Parent's View")).toBeInTheDocument();
+    expect(screen.getByTestId("meal-planner")).toBeInTheDocument();
+
+    // Switch to child view
+    await user.click(viewToggle);
+    await waitFor(() => {
+      expect(viewToggle).toBeChecked();
+      expect(screen.getByText("Kid's View")).toBeInTheDocument();
+      expect(screen.getByTestId("child-view")).toBeInTheDocument();
+    });
+
+    // Verify lunch text in child view
+    expect(screen.getByText(/breakfast/i)).toBeInTheDocument();
+
+    // Switch back to parent view
+    await user.click(viewToggle);
+    await waitFor(() => {
+      expect(viewToggle).not.toBeChecked();
+      expect(screen.getByText("Parent's View")).toBeInTheDocument();
+      expect(screen.queryByTestId("child-view")).not.toBeInTheDocument();
+    });
+
+    // Now in parent view, we can select meals using buttons
+    await selectMeal("lunch");
+    expect(screen.getByTestId("lunch-meal-button")).toHaveClass("bg-blue-500");
+
+    // Test view persistence after meal changes
+    await selectMeal("dinner");
+    await user.click(viewToggle);
+    await waitFor(() => {
+      expect(viewToggle).toBeChecked();
+      expect(screen.getByText("Kid's View")).toBeInTheDocument();
+      expect(screen.getByTestId("child-view")).toBeInTheDocument();
+      expect(screen.getByText(/dinner/i)).toBeInTheDocument();
     });
   });
 });
