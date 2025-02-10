@@ -12,7 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { MealType, CategoryType } from "@/types/shared";
 import { MealSelection } from "@/types/meals";
-import { Food, ServingSizeUnit } from "@/types/food";
+import { Food, ServingSizeUnit, Recipe, RecipeIngredient } from "@/types/food";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FoodItem } from "../../meals/shared/FoodItem";
@@ -224,12 +224,12 @@ export const MealEditor = ({
           break;
         }
         case "describe": {
-          // TODO: Call AI endpoint to convert description to meal
-          throw new Error("Description mode not implemented yet");
+          await handleDescriptionAnalysis();
+          break;
         }
         case "recipe": {
-          // TODO: Call AI endpoint to convert recipe to meal
-          throw new Error("Recipe mode not implemented yet");
+          await handleRecipeAnalysis();
+          break;
         }
         case "scan": {
           // TODO: Convert scanned ingredients to meal
@@ -240,6 +240,52 @@ export const MealEditor = ({
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save meal");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDescriptionAnalysis = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/analyze-meal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `Analyze this meal description and provide nutritional information: ${description}`,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Analysis failed");
+      const data = await response.json();
+      // TODO: Handle the analyzed data - we'll need to convert this to MealSelection format
+      console.log("Description analysis:", data);
+    } catch (error) {
+      console.error("Error analyzing description:", error);
+      setError("Failed to analyze meal description");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecipeAnalysis = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/analyze-meal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `Parse this recipe and calculate nutritional information per serving: ${recipe}`,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Analysis failed");
+      const data = await response.json();
+      // TODO: Handle the analyzed recipe data - we'll need to convert this to MealSelection format
+      console.log("Recipe analysis:", data);
+    } catch (error) {
+      console.error("Error analyzing recipe:", error);
+      setError("Failed to analyze recipe");
     } finally {
       setLoading(false);
     }
@@ -360,6 +406,12 @@ export const MealEditor = ({
                   onChange={(e) => setDescription(e.target.value)}
                   className="h-[200px]"
                 />
+                <Button 
+                  onClick={handleDescriptionAnalysis}
+                  disabled={!description.trim() || loading}
+                >
+                  {loading ? "Analyzing..." : "Analyze Description"}
+                </Button>
               </div>
             </TabsContent>
 
@@ -373,6 +425,12 @@ export const MealEditor = ({
                   onChange={(e) => setRecipe(e.target.value)}
                   className="h-[200px]"
                 />
+                <Button 
+                  onClick={handleRecipeAnalysis}
+                  disabled={!recipe.trim() || loading}
+                >
+                  {loading ? "Analyzing..." : "Analyze Recipe"}
+                </Button>
               </div>
             </TabsContent>
 

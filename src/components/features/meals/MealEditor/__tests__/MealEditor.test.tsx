@@ -141,7 +141,21 @@ describe('MealEditor', () => {
     expect(mockOnSave).not.toHaveBeenCalled();
   });
 
-  it('handles description mode input', async () => {
+  it('handles description mode analysis', async () => {
+    // Mock the analysis API call
+    global.fetch = jest.fn().mockImplementation((url) => {
+      if (url === '/api/analyze-meal') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ /* mock analysis response */ })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockFoods)
+      });
+    });
+
     render(<MealEditor {...defaultProps} />);
 
     // Switch to description tab
@@ -152,18 +166,34 @@ describe('MealEditor', () => {
     const nameInput = screen.getByLabelText('Meal Name');
     await user.type(nameInput, 'Test Meal');
 
-    const descriptionTextarea = screen.getByRole('textbox', { name: /describe/i });
+    const descriptionTextarea = screen.getByLabelText(/describe the meal/i);
     await user.type(descriptionTextarea, 'A healthy breakfast bowl');
 
-    // Try to save
-    const saveButton = screen.getByRole('button', { name: /save/i });
-    await user.click(saveButton);
+    // Click analyze button
+    const analyzeButton = screen.getByRole('button', { name: /analyze description/i });
+    await user.click(analyzeButton);
 
-    // Should show error about unimplemented mode
-    expect(screen.getByText('Description mode not implemented yet')).toBeInTheDocument();
+    // Verify API call
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/analyze-meal', expect.any(Object));
+    });
   });
 
-  it('handles recipe mode input', async () => {
+  it('handles recipe mode analysis', async () => {
+    // Mock the analysis API call
+    global.fetch = jest.fn().mockImplementation((url) => {
+      if (url === '/api/analyze-meal') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ /* mock analysis response */ })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockFoods)
+      });
+    });
+
     render(<MealEditor {...defaultProps} />);
 
     // Switch to recipe tab
@@ -174,15 +204,35 @@ describe('MealEditor', () => {
     const nameInput = screen.getByLabelText('Meal Name');
     await user.type(nameInput, 'Test Meal');
 
-    const recipeTextarea = screen.getByRole('textbox', { name: /recipe/i });
+    const recipeTextarea = screen.getByLabelText(/enter recipe/i);
     await user.type(recipeTextarea, 'Recipe instructions here');
 
-    // Try to save
+    // Click analyze button
+    const analyzeButton = screen.getByRole('button', { name: /analyze recipe/i });
+    await user.click(analyzeButton);
+
+    // Verify API call
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/analyze-meal', expect.any(Object));
+    });
+  });
+
+  it('handles scan mode validation', async () => {
+    render(<MealEditor {...defaultProps} />);
+
+    // Switch to scan tab
+    const scanTab = screen.getByRole('tab', { name: /scan/i });
+    await user.click(scanTab);
+
+    // Enter meal name
+    const nameInput = screen.getByLabelText('Meal Name');
+    await user.type(nameInput, 'Test Meal');
+
+    // Try to save without ingredients
     const saveButton = screen.getByRole('button', { name: /save/i });
     await user.click(saveButton);
 
-    // Should show error about unimplemented mode
-    expect(screen.getByText('Recipe mode not implemented yet')).toBeInTheDocument();
+    expect(screen.getByText('Please add at least one ingredient')).toBeInTheDocument();
   });
 
   it('closes when cancel is clicked', async () => {
@@ -235,13 +285,9 @@ describe('MealEditor', () => {
     await user.click(describeTab);
     
     // Verify we can interact with the description textarea
-    const descriptionTextarea = screen.getByRole('textbox', { name: /describe the meal/i });
+    const descriptionTextarea = screen.getByLabelText(/describe the meal/i);
     await user.type(descriptionTextarea, 'A test meal');
     expect(descriptionTextarea).toHaveValue('A test meal');
-
-    // Try to save in describe mode
-    await user.click(saveButton);
-    expect(screen.getByText('Description mode not implemented yet')).toBeInTheDocument();
 
     // Finally verify cancel closes the dialog
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
