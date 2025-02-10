@@ -41,6 +41,7 @@ import { DAYS_OF_WEEK } from "@/constants/index";
 import { isCategoryKey } from "@/utils/meal-categories";
 import { mealService } from "@/services/meal/mealService";
 import { AddFoodMenu } from "@/components/features/food/AddFoodMenu/AddFoodMenu";
+import { MealEditor } from "../MealEditor/MealEditor";
 
 interface AnalysisDialogProps {
   isOpen: boolean;
@@ -122,6 +123,7 @@ export const MealPlanner = () => {
     other: [],
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showMealEditor, setShowMealEditor] = useState(false);
 
   // Initialize kids in store
   useEffect(() => {
@@ -435,8 +437,34 @@ export const MealPlanner = () => {
   };
 
   const handleAddMeal = () => {
-    // TODO: Implement meal creation logic
-    console.log("Add meal clicked");
+    setShowMealEditor(true);
+  };
+
+  const handleSaveMeal = async (name: string, selections: MealSelection) => {
+    try {
+      const response = await fetch("/api/meals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          selections,
+          mealType: selectedMeal,
+          kidId: selectedKid,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save meal");
+      }
+
+      // Refresh meal data
+      await fetchMealHistory();
+    } catch (error) {
+      console.error("Error saving meal:", error);
+      throw error;
+    }
   };
 
   return (
@@ -866,6 +894,14 @@ export const MealPlanner = () => {
           selectedMeal={selectedMeal}
         />
       </div>
+
+      {/* Add MealEditor */}
+      <MealEditor
+        isOpen={showMealEditor}
+        onClose={() => setShowMealEditor(false)}
+        onSave={handleSaveMeal}
+        mealType={selectedMeal || undefined}
+      />
     </div>
   );
 };
