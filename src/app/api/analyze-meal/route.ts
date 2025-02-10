@@ -1,78 +1,56 @@
 // app/api/analyze-meal/route.ts
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(request: Request) {
   try {
     const { prompt } = await request.json();
-    console.log("Received prompt:", prompt);
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    // Check if API key is present
-    if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not defined");
     }
 
-    console.log("Making request to OpenRouter API...");
-    const requestBody = {
-      model: "anthropic/claude-3-haiku",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-    };
-
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer":
-            process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-          "X-Title": "Kid's Meal Planner",
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    console.log("OpenRouter API Response Status:", response.status);
-    console.log("OpenRouter API Response Status Text:", response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenRouter API error details:", {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        error: errorText,
-      });
-      throw new Error(`API request failed: ${response.status} ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log("OpenRouter API Response Data:", data);
-
-    const output = data.choices?.[0]?.message?.content;
-    if (!output) {
-      console.error("No content in API response:", data);
-      throw new Error("No analysis content in API response");
-    }
-
-    return NextResponse.json({ output });
-  } catch (error) {
-    console.error("Error in meal analysis:", error);
-    const errorDetails =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error("Error details:", errorDetails);
-    return NextResponse.json(
-      {
-        error: "Failed to analyze meal",
-        details: errorDetails,
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 1024,
       },
+    });
+
+    const result = await model.generateContent([
+      `${prompt} Please analyze this and return a JSON object with the following structure:
+      {
+        "name": string,
+        "servingSize": string,
+        "servingSizeUnit": string,
+        "nutrition": {
+          "calories": number,
+          "protein": number,
+          "carbs": number,
+          "fat": number
+        },
+        "ingredients": Array<{
+          "name": string,
+          "amount": number,
+          "unit": string
+        }>,
+        "category": string
+      }`,
+    ]);
+
+    const response = await result.response;
+    const output = await response.text();
+
+    return NextResponse.json(JSON.parse(output));
+  } catch (error) {
+    console.error("Error analyzing meal:", error);
+    return NextResponse.json(
+      { error: "Failed to analyze meal" },
       { status: 500 }
     );
   }

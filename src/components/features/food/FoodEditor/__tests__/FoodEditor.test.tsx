@@ -22,6 +22,10 @@ describe("FoodEditor Component", () => {
       const fabButton = screen.getByTestId("fab-btn");
       await userEvent.click(fabButton);
 
+      // Click the Add Food option in the dropdown
+      const addFoodOption = screen.getByTestId("add-food-option");
+      await userEvent.click(addFoodOption);
+
       // Verify the editor modal is open
       expect(screen.getByText(/Add New Food/i)).toBeInTheDocument();
 
@@ -45,7 +49,6 @@ describe("FoodEditor Component", () => {
       expect(servingSizeInput).toHaveValue("1");
 
       // Verify default category selection is present
-
       const categorySelect = screen.getByTestId("category-select");
       expect(categorySelect).toHaveTextContent(/proteins/i);
 

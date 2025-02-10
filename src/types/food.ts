@@ -79,3 +79,29 @@ export interface NutritionSummary {
 export interface FoodDocument extends Food {
   _id: ObjectId;
 }
+
+export interface RecipeIngredient {
+  name: string;
+  amount: number;
+  unit: ServingSizeUnit;
+  foodId?: string; // Reference to existing food if available
+  upc?: string; // UPC code if scanned
+}
+
+export interface Recipe {
+  id: string;
+  name: string;
+  description?: string;
+  ingredients: RecipeIngredient[];
+  servingSize: string;
+  servingSizeUnit: ServingSizeUnit;
+  totalNutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  instructions?: string[];
+  category: CategoryType;
+  meal: MealType[];
+}

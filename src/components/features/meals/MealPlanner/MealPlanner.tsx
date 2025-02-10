@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, MessageSquare, X, Plus, Layers } from "lucide-react";
+import { Camera, MessageSquare, X, Layers } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -24,18 +24,14 @@ import {
   useDailyNutrition,
   useMealNutrition,
 } from "@/store/mealSelectors";
-import {
-  CategoryType,
-  MealType,
-  DayType,
-  MealHistoryRecord,
-} from "@/types/meals";
+import { MealHistoryRecord, MealSelection } from "@/types/meals";
+import { CategoryType, MealType, DayType } from "@/types/shared";
 import { Kid } from "@/types/user";
 import { ChildView } from "@/components/features/meals/ChildView/ChildView";
 import { MEAL_TYPES } from "@/constants";
 import { FoodImageAnalysis } from "../../food/FoodAnalysis/components/FoodImageAnalysis/FoodImageAnalysis";
 import { MealAnalysis } from "../MealAnalysis/MealAnalysis";
-import { FAB } from "../shared/FAB/FAB";
+import { AddMenu } from "../shared/AddMenu/AddMenu";
 import { MealPlannerHeader } from "../MealPlannerHeader";
 import { produce } from "immer";
 import { getOrderedDays, getCurrentDay } from "@/utils/dateUtils";
@@ -44,6 +40,7 @@ import { NutritionSummary } from "@/components/features/nutrition/NutritionSumma
 import { DAYS_OF_WEEK } from "@/constants/index";
 import { isCategoryKey } from "@/utils/meal-categories";
 import { mealService } from "@/services/meal/mealService";
+import { AddFoodMenu } from "@/components/features/food/AddFoodMenu/AddFoodMenu";
 
 interface AnalysisDialogProps {
   isOpen: boolean;
@@ -417,8 +414,37 @@ export const MealPlanner = () => {
     showAiAnalysis,
   ]);
 
+  const handleFoodAdded = async (food: Food) => {
+    try {
+      const response = await fetch("/api/foods", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(food),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add food");
+      }
+
+      // Refresh foods data or update local state as needed
+    } catch (error) {
+      console.error("Error adding food:", error);
+    }
+  };
+
+  const handleAddMeal = () => {
+    // TODO: Implement meal creation logic
+    console.log("Add meal clicked");
+  };
+
   return (
-    <div className="p-6 max-w-6xl mx-auto" data-testid="meal-planner">
+    <div className="container mx-auto p-4" data-testid="meal-planner">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Meal Planner</h1>
+        <AddFoodMenu onFoodAdded={handleFoodAdded} />
+      </div>
       <MealPlannerHeader
         kids={kids}
         selectedKid={selectedKid}
@@ -552,16 +578,16 @@ export const MealPlanner = () => {
 
                 {/* Food Selection Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-14">
-                  <FAB
-                    icon={Plus}
-                    onClick={() =>
+                  <AddMenu
+                    onAddFood={() =>
                       setSelectedFoodContext({
                         mode: "add",
                         category: "proteins",
                         food: {} as Food,
                       })
                     }
-                    className="z-40 mb-16" // Add margin to avoid overlap with nutrition bar
+                    onAddMeal={handleAddMeal}
+                    className="z-40 fixed bottom-4 right-4"
                   />
 
                   {(
