@@ -2,15 +2,10 @@ import { create } from "zustand";
 import { produce } from "immer";
 import { DEFAULT_MEAL_PLAN, MILK_OPTION } from "@/constants/meal-goals";
 import { MEAL_TYPES } from "@/constants";
-import type {
-  MealState,
-  CategoryType,
-  MealType,
-  DayType,
-  MealSelection,
-} from "@/types/meals";
+import type { MealState, MealSelection } from "@/types/meals";
+import type { CategoryType, MealType, DayType } from "@/types/shared";
 import type { Kid } from "@/types/user";
-import { Food, NutritionSummary } from "@/types/food";
+import type { Food, SelectedFood, NutritionSummary } from "@/types/food";
 import { format } from "date-fns";
 
 interface MealSelectionResponse {
@@ -67,14 +62,16 @@ interface MealStore
 
 const DEFAULT_DAY: DayType = "monday";
 
-const adjustFoodServings = (food: Food, newServings: number) => ({
-  ...food,
-  servings: newServings,
-  adjustedCalories: food.calories * newServings,
-  adjustedProtein: food.protein * newServings,
-  adjustedCarbs: food.carbs * newServings,
-  adjustedFat: food.fat * newServings,
-});
+const adjustFoodServings = (food: Food, newServings: number): SelectedFood => {
+  return {
+    ...food,
+    servings: newServings,
+    adjustedCalories: food.calories * newServings,
+    adjustedProtein: food.protein * newServings,
+    adjustedCarbs: food.carbs * newServings,
+    adjustedFat: food.fat * newServings,
+  };
+};
 
 export const useMealStore = create<MealStore>((set, get) => ({
   // Initial state
@@ -638,6 +635,11 @@ export const useMealStore = create<MealStore>((set, get) => ({
                         )
                         .filter((c): c is Food => c !== null)
                     : [],
+                  other: findMatchingFood(
+                    entry.selections.other,
+                    "other",
+                    foodOptions
+                  ),
                 };
 
                 // Update the selections in state using Immer

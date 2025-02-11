@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Sliders, Edit } from "lucide-react";
-import { CategoryType, Food } from "@/types/food";
+import { CategoryType } from "@/types/shared";
+import { Food } from "@/types/food";
 import { getFoodImageSource } from "@/utils/imageUtils";
 import Image from "next/image";
 import { EyeOff, Eye } from "lucide-react";
@@ -121,8 +122,8 @@ export const FoodItem = ({
       {isSelected && selectedFoodInCategory && (
         <div className="flex items-center justify-between mt-3 pt-3 border-t">
           <div className="text-sm font-medium text-blue-600">
-            {`${selectedFoodInCategory.servings} serving(s) • ${Math.round(
-              selectedFoodInCategory.adjustedCalories
+            {`${selectedFoodInCategory.servings || 1} serving(s) • ${Math.round(
+              selectedFoodInCategory.adjustedCalories || selectedFoodInCategory.calories * (selectedFoodInCategory.servings || 1)
             )} cal total`}
           </div>
           <div className="flex items-center gap-2">

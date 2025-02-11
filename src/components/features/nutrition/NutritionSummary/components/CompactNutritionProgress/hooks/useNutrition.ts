@@ -1,7 +1,7 @@
 // src/hooks/useNutrition.ts
 import { useMemo } from "react";
-import { MealSelection } from "@/types/food";
-import { MealType } from "@/types/meals";
+import { MealSelection } from "@/types/meals";
+import { MealType } from "@/types/shared";
 import { DAILY_GOALS } from "@/constants/meal-goals";
 import {
   getProgressBarWidth,
@@ -9,6 +9,7 @@ import {
   getNutrientColor,
   ensureNumber,
 } from "@/utils/nutritionUtils";
+import { Food } from "@/types/food";
 
 export interface NutritionSummary {
   calories: number;
@@ -35,17 +36,14 @@ export function useNutrition(
       .filter(([category]) => category !== "condiments")
       .reduce(
         (sum, [, food]) => {
-          if (!food) return sum;
+          if (!food || !(food as Food).calories) return sum;
+          const foodItem = food as Food;
+          const servings = foodItem.servings || 1;
           return {
-            calories:
-              sum.calories +
-              ensureNumber(food.adjustedCalories || food.calories || 0),
-            protein:
-              sum.protein +
-              ensureNumber(food.adjustedProtein || food.protein || 0),
-            carbs:
-              sum.carbs + ensureNumber(food.adjustedCarbs || food.carbs || 0),
-            fat: sum.fat + ensureNumber(food.adjustedFat || food.fat || 0),
+            calories: sum.calories + (foodItem.calories * servings),
+            protein: sum.protein + (foodItem.protein * servings),
+            carbs: sum.carbs + (foodItem.carbs * servings),
+            fat: sum.fat + (foodItem.fat * servings),
           };
         },
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -53,23 +51,24 @@ export function useNutrition(
 
     // Add nutrition from condiments
     const condimentNutrition = selections.condiments?.reduce(
-      (sum, condiment) => ({
-        calories: sum.calories + ensureNumber(condiment.adjustedCalories || 0),
-        protein: sum.protein + ensureNumber(condiment.adjustedProtein || 0),
-        carbs: sum.carbs + ensureNumber(condiment.adjustedCarbs || 0),
-        fat: sum.fat + ensureNumber(condiment.adjustedFat || 0),
-      }),
+      (sum: NutritionSummary, condiment: Food) => {
+        const servings = condiment.servings || 1;
+        return {
+          calories: sum.calories + (condiment.calories * servings),
+          protein: sum.protein + (condiment.protein * servings),
+          carbs: sum.carbs + (condiment.carbs * servings),
+          fat: sum.fat + (condiment.fat * servings),
+        };
+      },
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     ) || { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
     // Combine all nutrition sources
     return {
-      calories: ensureNumber(
-        baseNutrition.calories + condimentNutrition.calories
-      ),
-      protein: ensureNumber(baseNutrition.protein + condimentNutrition.protein),
-      carbs: ensureNumber(baseNutrition.carbs + condimentNutrition.carbs),
-      fat: ensureNumber(baseNutrition.fat + condimentNutrition.fat),
+      calories: baseNutrition.calories + condimentNutrition.calories,
+      protein: baseNutrition.protein + condimentNutrition.protein,
+      carbs: baseNutrition.carbs + condimentNutrition.carbs,
+      fat: baseNutrition.fat + condimentNutrition.fat,
     };
   }, [selections]);
 

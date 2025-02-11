@@ -41,6 +41,7 @@ import { DAYS_OF_WEEK } from "@/constants/index";
 import { isCategoryKey } from "@/utils/meal-categories";
 import { mealService } from "@/services/meal/mealService";
 import { MealEditor } from "../MealEditor/MealEditor";
+import { getValidCategory } from "@/utils/meal-categories";
 
 interface AnalysisDialogProps {
   isOpen: boolean;
@@ -290,7 +291,16 @@ export const MealPlanner = () => {
           }
           return acc;
         },
-        {} as Record<CategoryType, Food[]>
+        {
+          proteins: [],
+          grains: [],
+          fruits: [],
+          vegetables: [],
+          milk: [],
+          ranch: [],
+          condiments: [],
+          other: [],
+        } as Record<CategoryType, Food[]>
       );
 
       setFoodOptions(validGroupedData);
@@ -635,43 +645,50 @@ export const MealPlanner = () => {
                                       ]
                                     : null;
 
+                                const validCategory = getValidCategory(category);
+                                if (!validCategory) return null;
+
                                 const selectedFoodInCategory =
-                                  category === "condiments"
+                                  validCategory === "condiments"
                                     ? currentMealSelections?.condiments?.find(
                                         (c) =>
                                           c.name.toLowerCase() ===
                                           food.name.toLowerCase()
-                                      )
-                                    : currentMealSelections?.[category];
+                                      ) || null
+                                    : currentMealSelections?.[validCategory] || null;
 
                                 const isSelected =
-                                  category === "condiments"
-                                    ? !!selectedFoodInCategory
+                                  validCategory === "condiments"
+                                    ? currentMealSelections?.condiments?.some(
+                                        (c) =>
+                                          c.name.toLowerCase() ===
+                                          food.name.toLowerCase()
+                                      )
                                     : selectedFoodInCategory?.name.toLowerCase() ===
                                       food.name.toLowerCase();
 
+                                // Only render if we have valid food data
+                                if (!food) return null;
+
                                 return (
                                   <FoodItem
-                                    key={index}
-                                    index={index}
+                                    key={food.id || index}
                                     food={food}
-                                    category={category}
-                                    isSelected={isSelected}
-                                    selectedFoodInCategory={
-                                      selectedFoodInCategory ?? null
-                                    }
-                                    mealType={selectedMeal}
+                                    category={validCategory}
+                                    index={index}
+                                    isSelected={!!isSelected}
+                                    selectedFoodInCategory={selectedFoodInCategory}
                                     onSelect={() =>
                                       handleFoodSelectWithRefresh(
-                                        category,
+                                        validCategory,
                                         food
                                       )
                                     }
                                     onServingClick={(e) =>
-                                      handleServingClick(e, category, food)
+                                      handleServingClick(e, validCategory, food)
                                     }
                                     onEditFood={() =>
-                                      handleEditFood(category, food)
+                                      handleEditFood(validCategory, food)
                                     }
                                     isHidden={food.hiddenFromChild || false}
                                     onToggleVisibility={() =>
@@ -679,6 +696,7 @@ export const MealPlanner = () => {
                                     }
                                     showVisibilityControls={!isChildView}
                                     isChildView={isChildView}
+                                    mealType={selectedMeal || "breakfast"}
                                   />
                                 );
                               })}

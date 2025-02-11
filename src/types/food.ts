@@ -52,10 +52,18 @@ export interface Food extends NutritionInfo {
   recommendedUses?: string[];
   maxServingsPerMeal?: number;
   isCondiment?: boolean;
+  adjustedCalories?: number;
+  adjustedProtein?: number;
+  adjustedCarbs?: number;
+  adjustedFat?: number;
 }
 
-export interface SelectedFood extends Food, AdjustedNutritionInfo {
+export interface SelectedFood extends Food {
   servings: number;
+  adjustedCalories: number;
+  adjustedProtein: number;
+  adjustedCarbs: number;
+  adjustedFat: number;
 }
 
 export interface FoodConsumption {

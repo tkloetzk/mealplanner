@@ -133,12 +133,13 @@ export const MealEditor = ({
           ...prev,
           condiments: isSelected
             ? currentCondiments.filter((f) => f.id !== food.id)
-            : [...currentCondiments, food],
+            : [...currentCondiments, { ...food, servings: food.servings || 1 }],
         };
       } else {
+        const selectedFood = prev[category]?.id === food.id ? null : { ...food, servings: food.servings || 1 };
         return {
           ...prev,
-          [category]: prev[category]?.id === food.id ? null : food,
+          [category]: selectedFood,
         };
       }
     });
@@ -356,11 +357,16 @@ export const MealEditor = ({
                               const isSelected =
                                 category === "condiments"
                                   ? selections.condiments?.some(
-                                      (f: Food) => f.id === food.id
+                                      (f) => f.id === food.id
                                     )
-                                  : selections[category as CategoryType] !== null &&
-                                    'id' in (selections[category as CategoryType] || {}) &&
-                                    (selections[category as CategoryType] as Food).id === food.id;
+                                  : (selections[category as CategoryType] as Food | null)?.id === food.id;
+
+                              const selectedFood = 
+                                category === "condiments"
+                                  ? selections.condiments?.find(
+                                      (f) => f.id === food.id
+                                    )
+                                  : selections[category as CategoryType] as Food | null;
 
                               return (
                                 <FoodItem
@@ -369,9 +375,7 @@ export const MealEditor = ({
                                   category={category as CategoryType}
                                   index={index}
                                   isSelected={!!isSelected}
-                                  selectedFoodInCategory={
-                                    isSelected ? food : null
-                                  }
+                                  selectedFoodInCategory={selectedFood || null}
                                   onSelect={() =>
                                     handleFoodSelect(
                                       category as CategoryType,

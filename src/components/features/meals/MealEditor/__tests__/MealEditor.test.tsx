@@ -294,4 +294,60 @@ describe('MealEditor', () => {
     await user.click(cancelButton);
     expect(mockOnClose).toHaveBeenCalled();
   });
+
+  it('displays correct serving size and calories when food is selected', async () => {
+    const user = userEvent.setup();
+    
+    // Mock food with specific calories and serving size
+    const mockFoods: Record<CategoryType, Food[]> = {
+      proteins: [{
+        id: '1',
+        name: 'Chicken',
+        calories: 165,
+        protein: 31,
+        carbs: 0,
+        fat: 3.6,
+        servings: 1,
+        servingSize: '4',
+        servingSizeUnit: 'oz',
+        category: 'proteins',
+        meal: ['breakfast', 'lunch', 'dinner'],
+        hiddenFromChild: false
+      }],
+      grains: [],
+      fruits: [],
+      vegetables: [],
+      milk: [],
+      ranch: [],
+      condiments: [],
+      other: []
+    };
+
+    // Mock the fetch call
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockFoods)
+    });
+
+    render(<MealEditor {...defaultProps} />);
+
+    // Wait for foods to load
+    await waitFor(() => {
+      expect(screen.getByText('Chicken')).toBeInTheDocument();
+    });
+
+    // Click the food item to select it
+    const foodItem = screen.getByText('Chicken');
+    await user.click(foodItem);
+
+    // Verify the food item shows as selected
+    const selectedFoodItem = foodItem.closest('div[data-testid]');
+    expect(selectedFoodItem).toHaveClass('bg-blue-100');
+
+    // Verify serving size and calorie total are displayed correctly
+    expect(screen.getByText('1 serving(s) • 165 cal total')).toBeInTheDocument();
+    
+    // Verify serving size unit is displayed
+    expect(screen.getByText('4 oz')).toBeInTheDocument();
+  });
 }); 
