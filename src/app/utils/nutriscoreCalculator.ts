@@ -70,7 +70,7 @@ export function calculateNutriScore(nutriscore: Nutriscore): NutriScore {
 
   // Convert score to letter grade
 
-  console.log("finalScore", finalScore, convertScoreToGrade(finalScore));
+  // Debug: console.log("finalScore", finalScore, convertScoreToGrade(finalScore));
   return convertScoreToGrade(finalScore);
 }
 

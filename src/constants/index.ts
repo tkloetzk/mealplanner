@@ -27,13 +27,14 @@ export interface CondimentSelection {
   adjustedFat: number;
 }
 
-export const BREAKFAST = "breakfast";
-export const LUNCH = "lunch";
-export const DINNER = "dinner";
-export const SNACK = "snack";
-export const MILK = "milk";
-export const RANCH = "ranch";
-export const MEAL_TYPES = [BREAKFAST, LUNCH, DINNER, SNACK];
+// Meal type constants
+export const BREAKFAST = "breakfast" as const;
+export const LUNCH = "lunch" as const;
+export const DINNER = "dinner" as const;
+export const SNACK = "snack" as const;
+export const MILK = "milk" as const;
+export const RANCH = "ranch" as const;
+export const MEAL_TYPES = [BREAKFAST, LUNCH, DINNER, SNACK] as const;
 export const DAYS_OF_WEEK = [
   "monday",
   "tuesday",

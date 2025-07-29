@@ -93,7 +93,7 @@ describe("Meal History Initialization", () => {
 
     // Mock API responses
     const mockFetch = jest.fn().mockImplementation((url) => {
-      console.log("Mock fetch called with URL:", url);
+      // console.log("Mock fetch called with URL:", url);
       if (url.includes("/api/foods")) {
         return Promise.resolve({
           ok: true,
@@ -136,7 +136,7 @@ describe("Meal History Initialization", () => {
     await waitFor(
       () => {
         const store = useMealStore.getState();
-        console.log("Current store state:", JSON.stringify(store, null, 2));
+        // console.log("Current store state:", JSON.stringify(store, null, 2));
         const currentSelections = store.selections["1"]?.monday?.breakfast;
         console.log(
           "Current selections:",

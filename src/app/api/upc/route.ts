@@ -5,7 +5,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const upc = searchParams.get("upc"); // Avoid JSON.stringify here
 
-  console.log("Received UPC:", upc);
+  // Development logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Received UPC:", upc);
+  }
 
   if (!upc) {
     return NextResponse.json({ error: "UPC is required" }, { status: 400 });
@@ -16,7 +19,7 @@ export async function GET(request: Request) {
       `https://world.openfoodfacts.org/api/v0/product/${upc}.json`
     );
 
-    console.log(response);
+    // Debug: console.log(response);
     if (!response.ok) {
       console.error(
         "Open Food Facts API error:",
@@ -48,7 +51,7 @@ export async function GET(request: Request) {
         score = calculateNutriScore(product?.nutriscore);
       }
 
-      console.log(product);
+      // Debug: console.log(product);
 
       interface Ingredient {
         percent_estimate: number;
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
           : product?.ingredients?.map((ingredient: Ingredient) => {
               return ingredient.percent_estimate + "% of " + ingredient.text;
             });
-      console.log(ingredientText);
+      // Debug: console.log(ingredientText);
       const { nutriments } = product;
 
       return NextResponse.json({

@@ -12,13 +12,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { MealType, CategoryType } from "@/types/shared";
 import { MealSelection } from "@/types/meals";
-import { Food, ServingSizeUnit, Recipe, RecipeIngredient } from "@/types/food";
+import { Food, ServingSizeUnit } from "@/types/food";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FoodItem } from "../../meals/shared/FoodItem";
+import { FoodItem } from "../shared/FoodItem";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarcodeScanner } from "../../food/FoodEditor/components/BarcodeScanner";
 import { FoodSearch } from "../../food/FoodSearch/FoodSearch";
+import { ServingSelector } from "../shared/ServingSelector";
 
 interface MealEditorProps {
   isOpen: boolean;
@@ -36,6 +37,12 @@ interface Ingredient {
   unit: ServingSizeUnit;
   foodId?: string;
   upc?: string;
+}
+
+interface ServingSelectorContext {
+  category: CategoryType;
+  food: Food;
+  currentServings: number;
 }
 
 export const MealEditor = ({
@@ -82,6 +89,10 @@ export const MealEditor = ({
     }
   );
 
+  // Serving selector context
+  const [servingSelectorContext, setServingSelectorContext] =
+    useState<ServingSelectorContext | null>(null);
+
   // Fetch available foods when the editor opens
   useEffect(() => {
     const fetchFoods = async () => {
@@ -111,16 +122,18 @@ export const MealEditor = ({
       setRecipe("");
       setIngredients([]);
       setCurrentIngredient({});
-      setSelections(initialSelections || {
-        proteins: null,
-        grains: null,
-        fruits: null,
-        vegetables: null,
-        milk: null,
-        ranch: null,
-        condiments: [],
-        other: null,
-      });
+      setSelections(
+        initialSelections || {
+          proteins: null,
+          grains: null,
+          fruits: null,
+          vegetables: null,
+          milk: null,
+          ranch: null,
+          condiments: [],
+          other: null,
+        }
+      );
     }
   }, [isOpen, initialSelections]);
 
@@ -136,12 +149,42 @@ export const MealEditor = ({
             : [...currentCondiments, { ...food, servings: food.servings || 1 }],
         };
       } else {
-        const selectedFood = prev[category]?.id === food.id ? null : { ...food, servings: food.servings || 1 };
+        const selectedFood =
+          prev[category]?.id === food.id
+            ? null
+            : { ...food, servings: food.servings || 1 };
         return {
           ...prev,
           [category]: selectedFood,
         };
       }
+    });
+  };
+
+  const handleServingClick = (category: CategoryType, food: Food) => {
+    setServingSelectorContext((prev) => {
+      // If the serving selector is already open for this food, close it
+      if (prev?.food.id === food.id) {
+        return null;
+      }
+
+      // Get the current food with its updated servings from the selections
+      const currentFood =
+        category === "condiments"
+          ? selections.condiments?.find((f) => f.id === food.id)
+          : selections[category];
+
+      // If we found the food in selections, use its servings, otherwise use the default food's servings
+      const currentServings = currentFood?.servings || food.servings || 1;
+
+      return {
+        category,
+        food: {
+          ...food,
+          servings: currentServings, // Make sure the food object has the current servings
+        },
+        currentServings,
+      };
     });
   };
 
@@ -165,6 +208,47 @@ export const MealEditor = ({
     if (newName.trim() && error === "Please enter a meal name") {
       setError(null);
     }
+  };
+
+  const handleServingsChange = (
+    category: CategoryType,
+    adjustedFood: Food,
+    newServings: number
+  ) => {
+    setSelections((prev) => {
+      if (category === "condiments") {
+        const currentCondiments = prev.condiments || [];
+        return {
+          ...prev,
+          condiments: currentCondiments.map((f) =>
+            f.id === adjustedFood.id
+              ? {
+                  ...adjustedFood,
+                  servings: newServings,
+                  adjustedCalories: Math.round(
+                    adjustedFood.calories * newServings
+                  ),
+                  adjustedProtein: adjustedFood.protein * newServings,
+                  adjustedCarbs: adjustedFood.carbs * newServings,
+                  adjustedFat: adjustedFood.fat * newServings,
+                }
+              : f
+          ),
+        };
+      } else {
+        return {
+          ...prev,
+          [category]: {
+            ...adjustedFood,
+            servings: newServings,
+            adjustedCalories: Math.round(adjustedFood.calories * newServings),
+            adjustedProtein: adjustedFood.protein * newServings,
+            adjustedCarbs: adjustedFood.carbs * newServings,
+            adjustedFat: adjustedFood.fat * newServings,
+          },
+        };
+      }
+    });
   };
 
   const handleSave = async () => {
@@ -233,11 +317,11 @@ export const MealEditor = ({
           break;
         }
         case "scan": {
-          // TODO: Convert scanned ingredients to meal
+          // Note: Scanned ingredients conversion to meal format not yet implemented
           throw new Error("Scan mode not implemented yet");
         }
       }
-      
+
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save meal");
@@ -259,8 +343,10 @@ export const MealEditor = ({
 
       if (!response.ok) throw new Error("Analysis failed");
       const data = await response.json();
-      // TODO: Handle the analyzed data - we'll need to convert this to MealSelection format
-      console.log("Description analysis:", data);
+      // Note: Analysis data conversion to MealSelection format pending implementation
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Description analysis:", data);
+      }
     } catch (error) {
       console.error("Error analyzing description:", error);
       setError("Failed to analyze meal description");
@@ -282,8 +368,10 @@ export const MealEditor = ({
 
       if (!response.ok) throw new Error("Analysis failed");
       const data = await response.json();
-      // TODO: Handle the analyzed recipe data - we'll need to convert this to MealSelection format
-      console.log("Recipe analysis:", data);
+      // Note: Recipe analysis data conversion to MealSelection format pending implementation
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Recipe analysis:", data);
+      }
     } catch (error) {
       console.error("Error analyzing recipe:", error);
       setError("Failed to analyze recipe");
@@ -293,8 +381,8 @@ export const MealEditor = ({
   };
 
   return (
-    <Dialog 
-      open={isOpen} 
+    <Dialog
+      open={isOpen}
       onOpenChange={(open) => {
         // Only handle actual close requests
         if (!open && !loading) {
@@ -302,7 +390,10 @@ export const MealEditor = ({
         }
       }}
     >
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle>
             {initialSelections ? "Edit Meal" : "Create New Meal"}
@@ -359,36 +450,73 @@ export const MealEditor = ({
                                   ? selections.condiments?.some(
                                       (f) => f.id === food.id
                                     )
-                                  : (selections[category as CategoryType] as Food | null)?.id === food.id;
+                                  : (
+                                      selections[
+                                        category as CategoryType
+                                      ] as Food | null
+                                    )?.id === food.id;
 
-                              const selectedFood = 
+                              const selectedFood =
                                 category === "condiments"
                                   ? selections.condiments?.find(
                                       (f) => f.id === food.id
                                     )
-                                  : selections[category as CategoryType] as Food | null;
+                                  : (selections[
+                                      category as CategoryType
+                                    ] as Food | null);
 
                               return (
-                                <FoodItem
-                                  key={food.id || index}
-                                  food={food}
-                                  category={category as CategoryType}
-                                  index={index}
-                                  isSelected={!!isSelected}
-                                  selectedFoodInCategory={selectedFood || null}
-                                  onSelect={() =>
-                                    handleFoodSelect(
-                                      category as CategoryType,
-                                      food
-                                    )
-                                  }
-                                  showVisibilityControls={false}
-                                  isChildView={false}
-                                  onServingClick={() => {}}
-                                  isHidden={false}
-                                  onToggleVisibility={() => {}}
-                                  mealType={mealType || "breakfast"}
-                                />
+                                <div key={food.id || index}>
+                                  <FoodItem
+                                    key={food.id || index}
+                                    food={food}
+                                    category={category as CategoryType}
+                                    index={index}
+                                    isSelected={!!isSelected}
+                                    selectedFoodInCategory={
+                                      selectedFood || null
+                                    }
+                                    onSelect={() =>
+                                      handleFoodSelect(
+                                        category as CategoryType,
+                                        food
+                                      )
+                                    }
+                                    onServingClick={() =>
+                                      handleServingClick(
+                                        category as CategoryType,
+                                        food
+                                      )
+                                    }
+                                    showVisibilityControls={false}
+                                    isChildView={false}
+                                    onToggleVisibility={() => {}}
+                                    isHidden={false}
+                                    mealType={mealType || "breakfast"}
+                                  />
+                                  {servingSelectorContext?.food.id ===
+                                    food.id && (
+                                    <div className="mt-2 p-4 bg-white border rounded-lg shadow-lg">
+                                      <ServingSelector
+                                        food={servingSelectorContext.food}
+                                        currentServings={
+                                          servingSelectorContext.currentServings
+                                        }
+                                        onConfirm={(adjustedFood) => {
+                                          handleServingsChange(
+                                            servingSelectorContext.category,
+                                            adjustedFood,
+                                            adjustedFood.servings
+                                          );
+                                        }}
+                                        onCancel={() =>
+                                          setServingSelectorContext(null)
+                                        }
+                                        compact={true}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>
@@ -410,7 +538,7 @@ export const MealEditor = ({
                   onChange={(e) => setDescription(e.target.value)}
                   className="h-[200px]"
                 />
-                <Button 
+                <Button
                   onClick={handleDescriptionAnalysis}
                   disabled={!description.trim() || loading}
                 >
@@ -429,7 +557,7 @@ export const MealEditor = ({
                   onChange={(e) => setRecipe(e.target.value)}
                   className="h-[200px]"
                 />
-                <Button 
+                <Button
                   onClick={handleRecipeAnalysis}
                   disabled={!recipe.trim() || loading}
                 >
@@ -457,7 +585,9 @@ export const MealEditor = ({
                       }}
                       onError={(error: string | Error) => {
                         console.error("Food search error:", error);
-                        setError(typeof error === 'string' ? error : error.message);
+                        setError(
+                          typeof error === "string" ? error : error.message
+                        );
                       }}
                       onScanRequest={() => setIsScanning(true)}
                     />

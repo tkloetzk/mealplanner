@@ -9,12 +9,6 @@ const createJestConfig = nextJest({
 const config = {
   testEnvironment: "jest-environment-jsdom",
   setupFilesAfterEnv: ["<rootDir>/src/jest.setup.js"],
-  moduleNameMapper: {
-    // Handle module aliases
-    "^@/(.*)$": "<rootDir>/src/$1",
-    "\\.css$": "<rootDir>/__mocks__/styleMock.js",
-    "lucide-react": "<rootDir>/__mocks__/lucide-react.js",
-  },
   testPathIgnorePatterns: [
     "<rootDir>/node_modules/",
     "<rootDir>/.next/",
@@ -30,15 +24,18 @@ const config = {
   },
   transformIgnorePatterns: ["^.+\\.module\\.(css|sass|scss)$"],
   moduleNameMapper: {
-    "^.+\\.module\\.(css|sass|scss)$": "identity-obj-proxy",
+    // Handle module aliases (must be first)
     "^@/(.*)$": "<rootDir>/src/$1",
+    // Handle CSS modules
+    "^.+\\.module\\.(css|sass|scss)$": "identity-obj-proxy",
+    // Handle regular CSS imports
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
     // Handle image imports
     "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
       "<rootDir>/__mocks__/fileMock.js",
-
-    // Handle CSS imports
-    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+    // Handle lucide-react mock
+    "lucide-react": "<rootDir>/__mocks__/lucide-react.js",
+    // Handle punycode
     punycode: "<rootDir>/node_modules/punycode/",
   },
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],

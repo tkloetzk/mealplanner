@@ -9,8 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Trash2 } from "lucide-react";
-import { Food, CategoryType, ServingSizeUnit, MealType } from "@/types/food";
+import { AlertCircle, Trash2, Minus, Plus } from "lucide-react";
+import { Food, ServingSizeUnit } from "@/types/food";
+import { CategoryType, MealType } from "@/types/shared";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { validateNutrition, isValidFood } from "./utils/validateNutrition";
@@ -44,13 +45,12 @@ const RECOMMENDED_USES = [
   { label: "Any", value: "any" },
 ] as const;
 
-const MEAL_TYPES: { label: string; value: string }[] = [
+const MEAL_TYPES: { label: string; value: MealType }[] = [
   { label: "Breakfast", value: "breakfast" },
   { label: "Lunch", value: "lunch" },
   { label: "Dinner", value: "dinner" },
   { label: "Snack", value: "snack" },
-  { label: "Grazing", value: "grazing" },
-];
+] as const;
 
 interface FoodEditorProps {
   onSave: (food: Food) => Promise<void>;
@@ -512,16 +512,54 @@ export function FoodEditor({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
             <div>
-              <Label className="text-sm" htmlFor="servingSize">
-                Serving Size
-              </Label>
-              <Input
-                id="servingSize"
-                value={food.servingSize ?? "1"}
-                onChange={handleTextInput("servingSize")}
-              />
+              <Label className="text-sm mb-2 block">Serving Size</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 shrink-0"
+                  onClick={() => {
+                    const currentValue = parseFloat(food.servingSize ?? "1");
+                    if (!isNaN(currentValue) && currentValue > 0.25) {
+                      setFood((prev) => ({
+                        ...prev,
+                        servingSize: (currentValue - 0.25).toString(),
+                      }));
+                    }
+                  }}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input
+                  id="servingSize"
+                  type="number"
+                  min="0.25"
+                  step="0.25"
+                  value={food.servingSize ?? "1"}
+                  onChange={handleTextInput("servingSize")}
+                  className="h-10 text-center"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 shrink-0"
+                  onClick={() => {
+                    const currentValue = parseFloat(food.servingSize ?? "1");
+                    if (!isNaN(currentValue)) {
+                      setFood((prev) => ({
+                        ...prev,
+                        servingSize: (currentValue + 0.25).toString(),
+                      }));
+                    }
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div>
               <Label className="text-sm">Unit</Label>
@@ -531,7 +569,7 @@ export function FoodEditor({
                   setFood((prev) => ({ ...prev, servingSizeUnit: value }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -14,7 +14,7 @@ interface FoodItemProps {
   index: number;
   selectedFoodInCategory: Food | null;
   onSelect: () => void;
-  onServingClick: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onServingClick: () => void;
   onEditFood?: () => void;
   isHidden: boolean;
   onToggleVisibility: () => void;
@@ -123,7 +123,9 @@ export const FoodItem = ({
         <div className="flex items-center justify-between mt-3 pt-3 border-t">
           <div className="text-sm font-medium text-blue-600">
             {`${selectedFoodInCategory.servings || 1} serving(s) • ${Math.round(
-              selectedFoodInCategory.adjustedCalories || selectedFoodInCategory.calories * (selectedFoodInCategory.servings || 1)
+              selectedFoodInCategory.adjustedCalories ||
+                selectedFoodInCategory.calories *
+                  (selectedFoodInCategory.servings || 1)
             )} cal total`}
           </div>
           <div className="flex items-center gap-2">
@@ -140,16 +142,16 @@ export const FoodItem = ({
                 <Edit className="h-4 w-4 text-blue-600" />
               </div>
             )}
-            <div
+            <button
               onClick={(e) => {
                 e.stopPropagation();
-                onServingClick(e);
+                onServingClick();
               }}
               className="p-2 rounded-full hover:bg-blue-200 transition-colors"
               title="Adjust Servings"
             >
               <Sliders className="h-4 w-4 text-blue-600" />
-            </div>
+            </button>
           </div>
         </div>
       )}

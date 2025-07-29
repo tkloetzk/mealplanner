@@ -7,6 +7,8 @@ import type { CategoryType, MealType, DayType } from "@/types/shared";
 import type { Kid } from "@/types/user";
 import type { Food, SelectedFood, NutritionSummary } from "@/types/food";
 import { format } from "date-fns";
+import { calculateTargetDate } from "@/utils/dateUtils";
+import { saveMealHistory } from "@/utils/mealApiUtils";
 
 interface MealSelectionResponse {
   kidId: string;
@@ -199,52 +201,15 @@ export const useMealStore = create<MealStore>((set, get) => ({
     const updatedSelections =
       updatedState.selections[selectedKid][selectedDay][selectedMeal];
 
-    // Get the current date and adjust it to match the selected day
-    const today = new Date();
-    const currentDay = today.getDay();
-    const daysMap: Record<string, number> = {
-      sunday: 0,
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5,
-      saturday: 6,
-    };
-    const targetDay = daysMap[selectedDay.toLowerCase()];
-    const diff = targetDay - currentDay;
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + diff);
-
+    // Save to database
     try {
-      console.log("Saving meal history with selections:", {
+      const targetDate = calculateTargetDate(selectedDay);
+      await saveMealHistory({
+        kidId: selectedKid,
         meal: selectedMeal,
-        date: targetDate.toISOString(),
+        date: targetDate,
         selections: updatedSelections,
       });
-
-      const response = await fetch("/api/meal-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kidId: selectedKid,
-          mealData: {
-            meal: selectedMeal,
-            date: targetDate.toISOString(),
-            selections: updatedSelections,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(
-          `Failed to save meal history: ${JSON.stringify(error)}`
-        );
-      }
-
-      const result = await response.json();
-      console.log("Save result:", result);
     } catch (error) {
       console.error("Failed to save meal selection:", error);
     }
@@ -293,52 +258,15 @@ export const useMealStore = create<MealStore>((set, get) => ({
     const updatedSelections =
       updatedState.selections[selectedKid][selectedDay][selectedMeal];
 
-    // Get the current date and adjust it to match the selected day
-    const today = new Date();
-    const currentDay = today.getDay();
-    const daysMap: Record<string, number> = {
-      sunday: 0,
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5,
-      saturday: 6,
-    };
-    const targetDay = daysMap[selectedDay.toLowerCase()];
-    const diff = targetDay - currentDay;
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + diff);
-
+    // Save to database
     try {
-      console.log("Saving meal history with adjusted servings:", {
+      const targetDate = calculateTargetDate(selectedDay);
+      await saveMealHistory({
+        kidId: selectedKid,
         meal: selectedMeal,
-        date: targetDate.toISOString(),
+        date: targetDate,
         selections: updatedSelections,
       });
-
-      const response = await fetch("/api/meal-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kidId: selectedKid,
-          mealData: {
-            meal: selectedMeal,
-            date: targetDate.toISOString(),
-            selections: updatedSelections,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(
-          `Failed to save meal history: ${JSON.stringify(error)}`
-        );
-      }
-
-      const result = await response.json();
-      console.log("Save result:", result);
     } catch (error) {
       console.error("Failed to save serving adjustment:", error);
     }
@@ -376,52 +304,15 @@ export const useMealStore = create<MealStore>((set, get) => ({
     const updatedSelections =
       updatedState.selections[selectedKid][selectedDay][mealType];
 
-    // Get the current date and adjust it to match the selected day
-    const today = new Date();
-    const currentDay = today.getDay();
-    const daysMap: Record<string, number> = {
-      sunday: 0,
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5,
-      saturday: 6,
-    };
-    const targetDay = daysMap[selectedDay.toLowerCase()];
-    const diff = targetDay - currentDay;
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + diff);
-
+    // Save to database
     try {
-      console.log("Saving meal history with milk toggle:", {
+      const targetDate = calculateTargetDate(selectedDay);
+      await saveMealHistory({
+        kidId: selectedKid,
         meal: mealType,
-        date: targetDate.toISOString(),
+        date: targetDate,
         selections: updatedSelections,
       });
-
-      const response = await fetch("/api/meal-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kidId: selectedKid,
-          mealData: {
-            meal: mealType,
-            date: targetDate.toISOString(),
-            selections: updatedSelections,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(
-          `Failed to save meal history: ${JSON.stringify(error)}`
-        );
-      }
-
-      const result = await response.json();
-      console.log("Save result:", result);
     } catch (error) {
       console.error("Failed to save milk toggle:", error);
     }
