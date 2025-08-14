@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, MessageSquare, X, Layers } from "lucide-react";
+import { X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -13,10 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ServingSelector } from "@/components/features/meals/shared/ServingSelector";
 import { MilkToggle } from "@/components/features/meals/shared/MilkToggle";
-import { FoodEditor } from "@/components/features/food/FoodEditor";
 import { CompactNutritionProgress } from "@/components/features/nutrition/NutritionSummary/components/CompactNutritionProgress";
-import { FoodItem } from "@/components/features/meals/shared/FoodItem";
-import { MealHistory } from "@/components/features/meals/shared/MealHistory/MealHistory";
 import { useMealStore } from "@/store/useMealStore";
 import {
   useCurrentMealSelection,
@@ -27,23 +23,31 @@ import {
 import { MealHistoryRecord, MealSelection } from "@/types/meals";
 import { CategoryType, MealType, DayType } from "@/types/shared";
 import { Kid } from "@/types/user";
-import { ChildView } from "@/components/features/meals/ChildView/ChildView";
-import { MEAL_TYPES } from "@/constants";
-import { FoodImageAnalysis } from "../../food/FoodAnalysis/components/FoodImageAnalysis/FoodImageAnalysis";
-import { MealAnalysis } from "../MealAnalysis/MealAnalysis";
-import { AddMenu } from "../shared/AddMenu/AddMenu";
 import { MealPlannerHeader } from "../MealPlannerHeader";
-import { produce } from "immer";
-import { getOrderedDays, getCurrentDay, calculateTargetDate } from "@/utils/dateUtils";
+import { getCurrentDay, calculateTargetDate } from "@/utils/dateUtils";
 import { Food } from "@/types/food";
 import { NutritionSummary } from "@/components/features/nutrition/NutritionSummary/NutritionSummary";
-import { DAYS_OF_WEEK } from "@/constants/index";
 import { isCategoryKey } from "@/utils/meal-categories";
-import { mealService } from "@/services/meal/mealService";
-import { MealEditor } from "../MealEditor/MealEditor";
-import { getValidCategory } from "@/utils/meal-categories";
 import { useFoodManagement } from "./hooks/useFoodManagement";
 import { useMealHistory } from "./hooks/useMealHistory";
+
+// Import smaller components
+import { DaySelector } from "./components/DaySelector";
+import { MealSelector } from "./components/MealSelector";
+import { AnalysisButtons } from "./components/AnalysisButtons";
+import { FoodGrid } from "./components/FoodGrid";
+import { WeeklyView } from "./components/WeeklyView";
+import { HistoryView } from "./components/HistoryView";
+
+// Dynamic imports for heavy components
+import { 
+  LazyFoodImageAnalysis,
+  LazyMealAnalysis,
+  LazyFoodEditor,
+  LazyMealEditor,
+  LazyChildView,
+  ComponentLoader
+} from "./components/LazyComponents";
 
 interface AnalysisDialogProps {
   isOpen: boolean;
@@ -133,14 +137,13 @@ export const MealPlanner = () => {
   // Initialize kids in store
   useEffect(() => {
     initializeKids(kids);
-  }, [kids, initializeKids]);
+  }, []);
 
   // Load selections from history when component mounts or when selected day/kid changes
   useEffect(() => {
-    const loadSelections = async () => {
-      if (!selectedKid || !selectedDay) return;
+    if (!selectedKid || !selectedDay) return;
 
-      setIsLoading(true);
+    const loadSelections = async () => {
       try {
         // Calculate target date for the selected day
         const targetDate = calculateTargetDate(selectedDay);
@@ -152,15 +155,11 @@ export const MealPlanner = () => {
         });
       } catch (error) {
         console.error("Error loading selections:", error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
     loadSelections();
-  }, [selectedKid, selectedDay, loadSelectionsFromHistory]);
-
-  // Food context handling
+  }, [selectedKid, selectedDay]);
 
   const handleServingClick = useCallback((category: CategoryType, food: Food) => {
     if (!selectedKid || !selectedDay || !selectedMeal) return;
@@ -187,27 +186,21 @@ export const MealPlanner = () => {
     });
   }, []);
 
-  // Food visibility handling is now in useFoodManagement hook
-
-  // fetchFoodOptions is now in useFoodManagement hook
-
   useEffect(() => {
     fetchFoodOptions();
   }, []);
 
-  // handleSaveFood and handleDeleteFood are now in useFoodManagement hook
-
   useEffect(() => {
     const currentDay = getCurrentDay();
     setSelectedDay(currentDay);
-  }, [setSelectedDay]);
+  }, []);
 
   // Fetch meal history when kid is selected
   useEffect(() => {
-    fetchMealHistory(selectedKid);
-  }, [selectedKid, fetchMealHistory]);
-
-  // fetchMealHistory is now in useMealHistory hook
+    if (selectedKid) {
+      fetchMealHistory(selectedKid);
+    }
+  }, [selectedKid]);
 
   const handleFoodSelectWithRefresh = async (
     category: CategoryType,
@@ -237,27 +230,9 @@ export const MealPlanner = () => {
     setTimeout(() => fetchMealHistory(selectedKid), 500);
   };
 
-  useEffect(() => {
-    console.log("MealPlanner state:", {
-      selectedKid,
-      selectedDay,
-      selectedMeal,
-      currentMealSelection,
-      showAiAnalysis,
-    });
-  }, [
-    selectedKid,
-    selectedDay,
-    selectedMeal,
-    currentMealSelection,
-    showAiAnalysis,
-  ]);
-
   const handleAddMeal = useCallback(() => {
     setShowMealEditor(true);
   }, []);
-
-  // handleSaveMeal is now in useMealHistory hook
 
   return (
     <div className="container mx-auto p-4" data-testid="meal-planner">
@@ -274,18 +249,20 @@ export const MealPlanner = () => {
           Please select a kid to start planning meals
         </div>
       ) : isChildView ? (
-        <ChildView
-          selectedMeal={selectedMeal}
-          foodOptions={foodOptions}
-          selections={selections[selectedKid]}
-          selectedDay={selectedDay}
-          onFoodSelect={(category, food) => {
-            if (isCategoryKey(category)) {
-              handleFoodSelectWithRefresh(category, food);
-            }
-          }}
-          onMealSelect={setSelectedMeal}
-        />
+        <Suspense fallback={<ComponentLoader />}>
+          <LazyChildView
+            selectedMeal={selectedMeal}
+            foodOptions={foodOptions}
+            selections={selections[selectedKid]}
+            selectedDay={selectedDay}
+            onFoodSelect={(category, food) => {
+              if (isCategoryKey(category)) {
+                handleFoodSelectWithRefresh(category, food);
+              }
+            }}
+            onMealSelect={setSelectedMeal}
+          />
+        </Suspense>
       ) : (
         <Tabs defaultValue="planner" className="w-full">
           <TabsList className="mb-4">
@@ -295,87 +272,38 @@ export const MealPlanner = () => {
           </TabsList>
 
           <TabsContent value="planner">
-            {/* Day Selection */}
-            <div className="flex space-x-2 overflow-x-auto pb-2 mb-4">
-              {getOrderedDays().map((day, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedDay(day as DayType)}
-                  className={`px-4 py-2 rounded-lg capitalize ${
-                    selectedDay === day
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100"
-                  }`}
-                >
-                  {day as string}
-                </button>
-              ))}
-            </div>
+            <DaySelector 
+              selectedDay={selectedDay} 
+              onDaySelect={setSelectedDay} 
+            />
 
-            {/* Meal Selection */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              {(MEAL_TYPES as readonly MealType[]).map((meal) => (
-                <button
-                  key={meal}
-                  onClick={() => setSelectedMeal(meal)}
-                  data-testid={`${meal}-meal-button`}
-                  className={`p-4 rounded-lg text-lg capitalize ${
-                    selectedMeal === meal
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                  }`}
-                >
-                  {meal}
-                </button>
-              ))}
-            </div>
+            <MealSelector 
+              selectedMeal={selectedMeal} 
+              onMealSelect={setSelectedMeal} 
+            />
 
             {!isChildView && (
               <>
-                {/* AI Analysis Buttons */}
-                <div className="mb-4 flex gap-2 justify-end">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => setShowImageAnalysis(true)}
-                  >
-                    <Camera className="w-4 h-4" />
-                    Analyze Plate Photo
-                  </Button>
+                <AnalysisButtons
+                  selectedMeal={selectedMeal}
+                  currentMealSelection={currentMealSelection}
+                  onImageAnalysis={() => setShowImageAnalysis(true)}
+                  onMealAnalysis={() => {
+                    console.log("Analyze button clicked", {
+                      selectedKid,
+                      selectedDay,
+                      selectedMeal,
+                      currentMealSelection,
+                      showAiAnalysis,
+                    });
+                    setShowAiAnalysis(true);
+                  }}
+                />
 
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => {
-                      console.log("Analyze button clicked", {
-                        selectedKid,
-                        selectedDay,
-                        selectedMeal,
-                        currentMealSelection,
-                        showAiAnalysis,
-                      });
-                      setShowAiAnalysis(true);
-                    }}
-                    disabled={
-                      !selectedMeal ||
-                      !currentMealSelection ||
-                      Object.values(currentMealSelection).every(
-                        (food) =>
-                          !food || (Array.isArray(food) && food.length === 0)
-                      )
-                    }
-                  >
-                    <MessageSquare className="w-4 w-4" />
-                    Analyze Meal Plan
-                  </Button>
-                </div>
-
-                {/* Nutrition Summary */}
                 <NutritionSummary selectedMeal={selectedMeal} />
                 <div className="mb-6">
                   {!isChildView && selectedMeal && (
                     <>
-                      {/* Milk toggle remains the same */}
                       {selectedMeal !== "snack" && (
                         <div className="mb-6" data-testid="milk-toggle">
                           <MilkToggle
@@ -392,199 +320,46 @@ export const MealPlanner = () => {
                   )}
                 </div>
 
-                {/* Food Selection Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-14">
-                  <AddMenu
-                    onAddFood={() =>
-                      setSelectedFoodContext({
-                        mode: "add",
-                        category: "proteins",
-                        food: {} as Food,
-                      })
-                    }
-                    onAddMeal={handleAddMeal}
-                    className="z-40 fixed bottom-4 right-4"
-                  />
-
-                  {(
-                    Object.entries(foodOptions) as [CategoryType, Food[]][]
-                  ).map(([category, foods]) => {
-                    const compatibleFoods = selectedMeal
-                      ? foods.filter((food) =>
-                          food.meal?.includes(selectedMeal)
-                        )
-                      : foods;
-
-                    if (compatibleFoods.length === 0) return null;
-                    return (
-                      <Card key={category}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-lg font-semibold capitalize">
-                              {category}
-                            </h3>
-                            {category === "other" && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleToggleAllOtherFoodVisibility}
-                                title="Toggle visibility for all 'Other' foods"
-                              >
-                                <Layers className="h-4 w-4 text-gray-500" />
-                              </Button>
-                            )}
-                          </div>
-                          {compatibleFoods.length === 0 ? (
-                            <div className="text-center text-gray-500 py-4">
-                              <span>No food options available</span>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {compatibleFoods.map((food, index) => {
-                                const currentMealSelections =
-                                  selectedKid && selectedDay && selectedMeal
-                                    ? selections[selectedKid]?.[selectedDay]?.[
-                                        selectedMeal
-                                      ]
-                                    : null;
-
-                                const validCategory =
-                                  getValidCategory(category);
-                                if (!validCategory) return null;
-
-                                const selectedFoodInCategory =
-                                  validCategory === "condiments"
-                                    ? currentMealSelections?.condiments?.find(
-                                        (c) =>
-                                          c.name.toLowerCase() ===
-                                          food.name.toLowerCase()
-                                      ) || null
-                                    : currentMealSelections?.[validCategory] ||
-                                      null;
-
-                                const isSelected =
-                                  validCategory === "condiments"
-                                    ? currentMealSelections?.condiments?.some(
-                                        (c) =>
-                                          c.name.toLowerCase() ===
-                                          food.name.toLowerCase()
-                                      )
-                                    : selectedFoodInCategory?.name.toLowerCase() ===
-                                      food.name.toLowerCase();
-
-                                // Only render if we have valid food data
-                                if (!food) return null;
-
-                                return (
-                                  <FoodItem
-                                    key={food.id || index}
-                                    food={food}
-                                    category={validCategory}
-                                    index={index}
-                                    isSelected={!!isSelected}
-                                    selectedFoodInCategory={
-                                      selectedFoodInCategory
-                                    }
-                                    onSelect={() =>
-                                      handleFoodSelectWithRefresh(
-                                        validCategory,
-                                        food
-                                      )
-                                    }
-                                    onServingClick={() =>
-                                      handleServingClick(validCategory, food)
-                                    }
-                                    onEditFood={() =>
-                                      handleEditFood(validCategory, food)
-                                    }
-                                    isHidden={food.hiddenFromChild || false}
-                                    onToggleVisibility={() =>
-                                      handleToggleVisibility(food)
-                                    }
-                                    showVisibilityControls={!isChildView}
-                                    isChildView={isChildView}
-                                    mealType={selectedMeal || "breakfast"}
-                                  />
-                                );
-                              })}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                  {/* Add a global check for completely empty foodOptions */}
-                  {Object.values(foodOptions).every(
-                    (categoryFoods) => categoryFoods.length === 0
-                  ) && (
-                    <div className="text-center text-gray-500 py-12">
-                      <p className="text-xl mb-4">No food options available</p>
-                      <p>Please add some foods to get started</p>
-                    </div>
-                  )}
-                </div>
+                <FoodGrid
+                  foodOptions={foodOptions}
+                  selectedMeal={selectedMeal}
+                  selectedKid={selectedKid}
+                  selectedDay={selectedDay}
+                  currentMealSelection={selections[selectedKid]?.[selectedDay]?.[selectedMeal!] || null}
+                  onFoodSelect={handleFoodSelectWithRefresh}
+                  onServingClick={handleServingClick}
+                  onEditFood={handleEditFood}
+                  onToggleVisibility={handleToggleVisibility}
+                  onToggleAllOtherFoodVisibility={handleToggleAllOtherFoodVisibility}
+                  onAddFood={() =>
+                    setSelectedFoodContext({
+                      mode: "add",
+                      category: "proteins",
+                      food: {} as Food,
+                    })
+                  }
+                  onAddMeal={handleAddMeal}
+                  setSelectedFoodContext={setSelectedFoodContext}
+                />
               </>
             )}
           </TabsContent>
 
           <TabsContent value="weekly">
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-              {DAYS_OF_WEEK.map((day: DayType) => (
-                <Card key={day} className="p-4">
-                  <h3 className="text-lg font-semibold capitalize mb-3">
-                    {day}
-                  </h3>
-                  {Object.entries(selections[day] ?? {}).map(([meal]) => {
-                    const nutrition = calculateMealNutrition(meal as MealType);
-                    if (nutrition.calories > 0) {
-                      return (
-                        <div key={meal} className="mb-4 p-2 bg-gray-50 rounded">
-                          <div className="font-medium capitalize">{meal}</div>
-                          <div className="text-sm text-gray-600">
-                            {Math.round(nutrition.calories)} cal | P:{" "}
-                            {Math.round(nutrition.protein)}g
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </Card>
-              ))}
-            </div>
+            <WeeklyView
+              selections={selections}
+              calculateMealNutrition={calculateMealNutrition}
+            />
           </TabsContent>
 
           <TabsContent value="history">
-            {selectedKid ? (
-              <div className="space-y-4">
-                {/* Optional loading state */}
-                {isLoading ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                  </div>
-                ) : !mealHistory[selectedKid] ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                    <p className="mt-2 text-gray-600">
-                      Loading meal history...
-                    </p>
-                  </div>
-                ) : mealHistory[selectedKid].length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    No meal history available
-                  </div>
-                ) : (
-                  <MealHistory historyEntries={mealHistory[selectedKid]} />
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500">
-                Please select a kid to view their meal history
-              </div>
-            )}
+            <HistoryView
+              selectedKid={selectedKid}
+              isLoading={isLoading}
+              mealHistory={mealHistory}
+            />
           </TabsContent>
 
-          {/* Add the plate analysis dialog */}
           <AlertDialog
             open={showPlateAnalysis}
             onOpenChange={setShowPlateAnalysis}
@@ -594,33 +369,31 @@ export const MealPlanner = () => {
                 <AlertDialogTitle>Analyze Plate Photo</AlertDialogTitle>
               </AlertDialogHeader>
 
-              <FoodImageAnalysis
-                onAnalysisComplete={async (analysis) => {
-                  if (selectedHistoryEntry) {
-                    try {
-                      // Update the meal history with consumption data
-                      await fetch(
-                        `/api/meal-history/${selectedHistoryEntry._id}`,
-                        {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            consumptionData: analysis,
-                          }),
-                        }
-                      );
+              <Suspense fallback={<ComponentLoader />}>
+                <LazyFoodImageAnalysis
+                  onAnalysisComplete={async (analysis) => {
+                    if (selectedHistoryEntry) {
+                      try {
+                        await fetch(
+                          `/api/meal-history/${selectedHistoryEntry._id}`,
+                          {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              consumptionData: analysis,
+                            }),
+                          }
+                        );
 
-                      // Refresh meal history data
-                      // You'll need to implement this based on your data fetching strategy
-
-                      setShowPlateAnalysis(false);
-                      setSelectedHistoryEntry(null);
-                    } catch (error) {
-                      console.error("Failed to update meal history:", error);
+                        setShowPlateAnalysis(false);
+                        setSelectedHistoryEntry(null);
+                      } catch (error) {
+                        console.error("Failed to update meal history:", error);
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </Suspense>
             </AlertDialogContent>
           </AlertDialog>
         </Tabs>
@@ -657,25 +430,29 @@ export const MealPlanner = () => {
       {/* FoodEditor Modal */}
       {(selectedFoodContext?.mode === "edit" ||
         selectedFoodContext?.mode === "add") && (
-        <FoodEditor
-          onSave={handleSaveFood}
-          onCancel={() => setSelectedFoodContext(null)}
-          onDelete={handleDeleteFood}
-          initialFood={selectedFoodContext.food}
-        />
+        <Suspense fallback={<ComponentLoader />}>
+          <LazyFoodEditor
+            onSave={handleSaveFood}
+            onCancel={() => setSelectedFoodContext(null)}
+            onDelete={handleDeleteFood}
+            initialFood={selectedFoodContext.food}
+          />
+        </Suspense>
       )}
 
       {/* AI Analysis Dialogs */}
       {selectedKid && selectedDay && selectedMeal && currentMealSelection && (
-        <MealAnalysis
-          selectedMeal={selectedMeal}
-          mealSelections={currentMealSelection}
-          onAnalysisComplete={(analysis) => {
-            console.log("Meal analysis completed:", analysis);
-          }}
-          isOpen={showAiAnalysis}
-          onClose={() => setShowAiAnalysis(false)}
-        />
+        <Suspense fallback={<ComponentLoader />}>
+          <LazyMealAnalysis
+            selectedMeal={selectedMeal}
+            mealSelections={currentMealSelection}
+            onAnalysisComplete={(analysis) => {
+              console.log("Meal analysis completed:", analysis);
+            }}
+            isOpen={showAiAnalysis}
+            onClose={() => setShowAiAnalysis(false)}
+          />
+        </Suspense>
       )}
 
       {/* Food Image Analysis Dialog */}
@@ -688,11 +465,13 @@ export const MealPlanner = () => {
             Take a photo of a prepared meal to get nutritional insights and
             recommendations.
           </p>
-          <FoodImageAnalysis
-            onAnalysisComplete={(analysis) => {
-              console.log("Analysis completed:", analysis);
-            }}
-          />
+          <Suspense fallback={<ComponentLoader />}>
+            <LazyFoodImageAnalysis
+              onAnalysisComplete={(analysis) => {
+                console.log("Analysis completed:", analysis);
+              }}
+            />
+          </Suspense>
         </div>
       </AnalysisDialog>
 
@@ -708,21 +487,23 @@ export const MealPlanner = () => {
 
       {/* Add MealEditor */}
       {showMealEditor && (
-        <MealEditor
-          isOpen={showMealEditor}
-          onClose={() => {
-            setShowMealEditor(false);
-          }}
-          onSave={async (name, selections) => {
-            try {
-              await handleSaveMeal(name, selections, selectedMeal, selectedKid);
+        <Suspense fallback={<ComponentLoader />}>
+          <LazyMealEditor
+            isOpen={showMealEditor}
+            onClose={() => {
               setShowMealEditor(false);
-            } catch (error) {
-              console.error("Failed to save meal:", error);
-            }
-          }}
-          mealType={selectedMeal || undefined}
-        />
+            }}
+            onSave={async (name, selections) => {
+              try {
+                await handleSaveMeal(name, selections, selectedMeal, selectedKid);
+                setShowMealEditor(false);
+              } catch (error) {
+                console.error("Failed to save meal:", error);
+              }
+            }}
+            mealType={selectedMeal || undefined}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 // src/components/__tests__/KidsViewIntegration.test.tsx
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { MOCK_FOODS } from "@/__mocks__/testConstants";
 import { MealPlanner } from "../meals/MealPlanner";
 import userEvent from "@testing-library/user-event";
@@ -7,26 +7,56 @@ import { useMealStore } from "@/store/useMealStore";
 import { MealType } from "@/types/meals";
 import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 
+// Mock the meal service
+jest.mock("@/services/meal/mealService", () => ({
+  mealService: {
+    getMealHistory: jest.fn().mockResolvedValue({
+      success: true,
+      data: [],
+    }),
+  },
+}));
+
+// Mock the food management hook
+jest.mock("@/components/features/meals/MealPlanner/hooks/useFoodManagement", () => ({
+  useFoodManagement: () => ({
+    foodOptions: MOCK_FOODS,
+    selectedFoodContext: null,
+    setSelectedFoodContext: jest.fn(),
+    fetchFoodOptions: jest.fn(),
+    handleToggleVisibility: jest.fn(),
+    handleToggleAllOtherFoodVisibility: jest.fn(),
+    handleSaveFood: jest.fn(),
+    handleDeleteFood: jest.fn(),
+  }),
+}));
+
 describe("Kids View Integration Tests", () => {
   // Add user setup
   const user = userEvent.setup();
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   // Reset store state before each test
   beforeEach(() => {
-    const { initializeKids } = useMealStore.getState();
-    useMealStore.setState({
-      selections: {
-        "1": structuredClone(DEFAULT_MEAL_PLAN),
-      },
-      selectedKid: "1",
-      selectedDay: "monday",
-      selectedMeal: "breakfast",
-      mealHistory: {},
+    act(() => {
+      const { initializeKids } = useMealStore.getState();
+      useMealStore.setState({
+        selections: {
+          "1": structuredClone(DEFAULT_MEAL_PLAN),
+        },
+        selectedKid: "1",
+        selectedDay: "monday",
+        selectedMeal: "breakfast",
+        mealHistory: {},
+      });
+      initializeKids([
+        { id: "1", name: "Presley" },
+        { id: "2", name: "Evy" },
+      ]);
     });
-    initializeKids([
-      { id: "1", name: "Presley" },
-      { id: "2", name: "Evy" },
-    ]);
 
     // Mock fetch calls
     global.fetch = jest.fn().mockImplementation((url) => {
@@ -36,13 +66,15 @@ describe("Kids View Integration Tests", () => {
           json: () => Promise.resolve(MOCK_FOODS),
         });
       }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
     });
   });
 
   // Test helper functions
   const renderMealPlanner = async () => {
-    const result = render(<MealPlanner />);
+    const result = await act(async () => {
+      return render(<MealPlanner />);
+    });
     await waitFor(() => {
       const element = screen.getByTestId("meal-planner");
       expect(element).toBeInTheDocument();
@@ -141,12 +173,12 @@ describe("Kids View Integration Tests", () => {
     expect(screen.getByText(MOCK_FOODS.proteins[0].name)).toBeInTheDocument();
     expect(screen.getByText(MOCK_FOODS.fruits[0].name)).toBeInTheDocument();
 
-    // Verify nutrition information is updated
+    // Verify nutrition information is updated - use the specific testid to avoid ambiguity
     const expectedCalories =
       MOCK_FOODS.proteins[0].calories + MOCK_FOODS.fruits[0].calories;
     expect(
-      screen.getByText(new RegExp(`${expectedCalories}.*cal`))
-    ).toBeInTheDocument();
+      screen.getByTestId("calories-value")
+    ).toHaveTextContent(`${expectedCalories} / 400 cal`);
   });
 
   it("filters out hidden foods in kid's view", async () => {

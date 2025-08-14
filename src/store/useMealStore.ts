@@ -75,7 +75,9 @@ const adjustFoodServings = (food: Food, newServings: number): SelectedFood => {
   };
 };
 
-export const useMealStore = create<MealStore>((set, get) => ({
+export const useMealStore = create<MealStore>()(
+  // Use subscribeWithSelector middleware for better performance
+  (set, get) => ({
   // Initial state
   selections: {},
   selectedKid: "",
@@ -84,66 +86,89 @@ export const useMealStore = create<MealStore>((set, get) => ({
   mealHistory: {},
 
   // Selection actions
-  setSelectedKid: async (kidId) => {
+  setSelectedKid: (kidId) => {
+    // Only update if different to prevent unnecessary re-renders
+    const currentKidId = get().selectedKid;
+    if (currentKidId === kidId) return;
+    
     set({ selectedKid: kidId });
 
-    // Load meal selections from database
+    // Initialize with default meal plan if not exists (sync operation)
     if (kidId) {
-      const state = get();
-      try {
-        const response = await fetch(
-          `/api/meal-selections?kidId=${kidId}&day=${state.selectedDay}`
-        );
-        if (!response.ok) throw new Error("Failed to fetch meal selections");
+      set(
+        produce((state) => {
+          if (!state.selections[kidId]) {
+            state.selections[kidId] = structuredClone(DEFAULT_MEAL_PLAN);
+          }
+        })
+      );
 
-        const selections = (await response.json()) as MealSelectionResponse[];
+      // Load meal selections from database async (don't await)
+      const loadSelections = async () => {
+        try {
+          const state = get();
+          const response = await fetch(
+            `/api/meal-selections?kidId=${kidId}&day=${state.selectedDay}`
+          );
+          if (!response.ok) throw new Error("Failed to fetch meal selections");
 
-        // Update store with fetched selections
-        set(
-          produce((state) => {
-            if (!state.selections[kidId]) {
-              state.selections[kidId] = structuredClone(DEFAULT_MEAL_PLAN);
-            }
+          const selections = (await response.json()) as MealSelectionResponse[];
 
-            // Update selections with data from database
-            selections.forEach((selection) => {
-              if (selection.meal && selection.selections) {
-                state.selections[kidId][state.selectedDay][selection.meal] =
-                  selection.selections;
-              }
-            });
-          })
-        );
-      } catch (error) {
-        console.error("Failed to load meal selections:", error);
-        // Initialize with default meal plan if fetch fails
-        set(
-          produce((state) => {
-            if (!state.selections[kidId]) {
-              state.selections[kidId] = structuredClone(DEFAULT_MEAL_PLAN);
-            }
-          })
-        );
-      }
+          // Update store with fetched selections
+          set(
+            produce((state) => {
+              // Update selections with data from database
+              selections.forEach((selection) => {
+                if (selection.meal && selection.selections) {
+                  state.selections[kidId][state.selectedDay][selection.meal] =
+                    selection.selections;
+                }
+              });
+            })
+          );
+        } catch (error) {
+          console.error("Failed to load meal selections:", error);
+        }
+      };
+      
+      loadSelections();
     }
   },
-  setSelectedDay: (day) => set({ selectedDay: day }),
-  setSelectedMeal: (meal) => set({ selectedMeal: meal }),
+  setSelectedDay: (day) => {
+    const currentDay = get().selectedDay;
+    if (currentDay === day) return;
+    set({ selectedDay: day });
+  },
+  setSelectedMeal: (meal) => {
+    const currentMeal = get().selectedMeal;
+    if (currentMeal === meal) return;
+    set({ selectedMeal: meal });
+  },
 
   // Meal management actions
-  initializeKids: (kids) =>
-    set(
-      produce((state) => {
-        kids.forEach((kid) => {
-          if (!state.selections[kid.id]) {
-            state.selections[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
-          }
-        });
-        if (!state.selectedKid && kids.length > 0) {
-          state.selectedKid = kids[0].id;
-        }
-      })
-    ),
+  initializeKids: (kids) => {
+    const currentState = get();
+    let needsUpdate = false;
+    
+    const newSelections = { ...currentState.selections };
+    let newSelectedKid = currentState.selectedKid;
+    
+    kids.forEach((kid) => {
+      if (!newSelections[kid.id]) {
+        newSelections[kid.id] = structuredClone(DEFAULT_MEAL_PLAN);
+        needsUpdate = true;
+      }
+    });
+    
+    if (!newSelectedKid && kids.length > 0) {
+      newSelectedKid = kids[0].id;
+      needsUpdate = true;
+    }
+    
+    if (needsUpdate) {
+      set({ selections: newSelections, selectedKid: newSelectedKid });
+    }
+  },
 
   handleFoodSelect: async (category: CategoryType, food: Food) => {
     const state = get();
@@ -547,4 +572,5 @@ export const useMealStore = create<MealStore>((set, get) => ({
       throw error;
     }
   },
-}));
+})
+);

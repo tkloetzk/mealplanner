@@ -27,8 +27,8 @@ export function getCurrentDay(date: Date = new Date()): DayType {
   return DAYS[date.getDay()];
 }
 
-export const getOrderedDays = (): DayType[] => {
-  const today = new Date().getDay();
+export const getOrderedDays = (date: Date = new Date()): DayType[] => {
+  const today = date.getDay();
   return [...DAYS.slice(today), ...DAYS.slice(0, today)];
 };
 
@@ -46,7 +46,7 @@ export function calculateTargetDate(selectedDay: DayType, baseDate: Date = new D
 
   let diff = targetDay - currentDay;
   // If the target day is earlier in the week than the current day,
-  // we want to load this week's day, not last week's
+  // we want next week's occurrence of that day for meal planning
   if (diff < 0) {
     diff += 7;
   }

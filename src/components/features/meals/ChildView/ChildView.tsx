@@ -9,7 +9,7 @@ import {
   FoodOptions,
 } from "@/types/food";
 import { CategoryFoodGrid } from "./CategoryFoodGrid";
-import { MealSelector } from "../MealPlanner/components/MealSelector";
+import { MealSelector } from "../MealPlanner/components/MealSelector/MealSelector";
 import { useMemo } from "react";
 
 interface ChildViewProps {

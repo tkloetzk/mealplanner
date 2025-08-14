@@ -1,5 +1,93 @@
 // src/utils/numericValidator.ts
 
+export interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+}
+
+export interface ValidateNumericOptions {
+  min?: number;
+  max?: number;
+  integer?: boolean;
+  required?: boolean;
+  decimalPlaces?: number;
+}
+
+/**
+ * Validates a numeric value with various constraints
+ * @param value - The value to validate
+ * @param options - Validation options
+ * @returns Validation result
+ */
+export function validateNumeric(
+  value: unknown,
+  options: ValidateNumericOptions = {}
+): ValidationResult {
+  const {
+    min,
+    max,
+    integer = false,
+    required = true,
+    decimalPlaces
+  } = options;
+
+  // Handle null/undefined values
+  if (value === null || value === undefined) {
+    if (required) {
+      return { isValid: false, error: 'Value is required' };
+    }
+    return { isValid: true };
+  }
+
+  // Convert to number
+  const numValue = Number(value);
+
+  // Check if it's a valid number
+  if (isNaN(numValue) || !isFinite(numValue)) {
+    return { isValid: false, error: 'Value must be a valid number' };
+  }
+
+  // Check if it should be positive (default behavior)
+  if (min === undefined && numValue < 0) {
+    return { isValid: false, error: 'Value must be positive' };
+  }
+
+  // Check minimum constraint
+  if (min !== undefined && numValue < min) {
+    if (max !== undefined) {
+      return { isValid: false, error: `Value must be between ${min} and ${max}` };
+    }
+    return { isValid: false, error: `Value must be at least ${min}` };
+  }
+
+  // Check maximum constraint
+  if (max !== undefined && numValue > max) {
+    if (min !== undefined) {
+      return { isValid: false, error: `Value must be between ${min} and ${max}` };
+    }
+    return { isValid: false, error: `Value must be at most ${max}` };
+  }
+
+  // Check integer constraint
+  if (integer && !Number.isInteger(numValue)) {
+    return { isValid: false, error: 'Value must be a whole number' };
+  }
+
+  // Check decimal places constraint
+  if (decimalPlaces !== undefined) {
+    const decimalString = numValue.toString();
+    const decimalIndex = decimalString.indexOf('.');
+    if (decimalIndex !== -1) {
+      const actualDecimalPlaces = decimalString.length - decimalIndex - 1;
+      if (actualDecimalPlaces > decimalPlaces) {
+        return { isValid: false, error: `Value must have at most ${decimalPlaces} decimal places` };
+      }
+    }
+  }
+
+  return { isValid: true };
+}
+
 // Fields that should always be numeric
 export const NUMERIC_FIELDS = [
   "calories",

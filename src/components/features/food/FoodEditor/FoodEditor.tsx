@@ -232,7 +232,7 @@ export function FoodEditor({
     }
   };
 
-  const isNew = initialFood && Object.keys(initialFood).length === 0;
+  const isNew = !initialFood || !initialFood.id;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 z-50 overflow-auto">
