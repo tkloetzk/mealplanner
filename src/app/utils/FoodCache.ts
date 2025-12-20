@@ -34,4 +34,8 @@ export class FoodCache {
       timestamp: Date.now(),
     };
   }
+
+  public clear() {
+    delete this.cache["foods"];
+  }
 }

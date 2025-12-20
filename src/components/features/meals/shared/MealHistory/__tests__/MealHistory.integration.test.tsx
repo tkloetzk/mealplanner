@@ -34,7 +34,15 @@ const mockHistoryData: MealHistoryRecord[] = [
       condiments: [],
     },
     consumptionData: {
-      percentEaten: 100,
+      foods: [
+        {
+          foodId: "test-food-id",
+          status: 'eaten',
+          percentageEaten: 100,
+          notes: "All food was eaten",
+        }
+      ],
+      overallStatus: 'eaten',
       notes: "All food was eaten",
     },
   },
@@ -90,7 +98,7 @@ describe("MealHistory Integration", () => {
     render(<MealHistory historyEntries={mockHistoryData} />);
 
     expect(screen.getByText("All food was eaten")).toBeInTheDocument();
-    expect(screen.getByText(/100%/)).toBeInTheDocument();
+    expect(screen.getByText("Overall Status: eaten")).toBeInTheDocument();
   });
 
   it("groups multiple meals on the same day correctly", () => {

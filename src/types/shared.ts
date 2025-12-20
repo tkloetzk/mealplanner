@@ -38,7 +38,15 @@ export interface AdjustedNutritionInfo extends NutritionInfo {
   adjustedFat: number;
 }
 
+export interface FoodConsumptionStatus {
+  foodId: string;
+  status: 'not_eaten' | 'partially_eaten' | 'eaten';
+  percentageEaten?: number;
+  notes?: string;
+}
+
 export interface ConsumptionInfo {
-  percentageEaten: number;
+  foods: FoodConsumptionStatus[];
+  overallStatus: 'offered' | 'partially_eaten' | 'eaten';
   notes?: string;
 }

@@ -31,9 +31,9 @@ export interface MealPlan {
 }
 
 export interface MealHistoryRecord {
-  _id?: string;
+  _id: string;
   kidId: string;
-  date: Date | string;
+  date: string;
   meal: MealType;
   selections: MealSelection;
   consumptionData?: ConsumptionInfo;

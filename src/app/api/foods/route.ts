@@ -1,6 +1,7 @@
 // src/app/api/foods/route.ts
 import { NextResponse } from "next/server";
-import { CategoryType, Food } from "@/types/food";
+import { Food } from "@/types/food";
+import { CategoryType } from "@/types/shared";
 import { DatabaseService } from "@/app/utils/DatabaseService";
 import { ObjectId } from "mongodb";
 import { FoodCache } from "@/app/utils/FoodCache";
@@ -22,7 +23,7 @@ export async function GET() {
   }
 
   try {
-    const foodsCollection = await getCollection("foods");
+    const foodsCollection = await getCollection<FoodDocument>("foods");
     const foods = await foodsCollection.find({}).toArray();
 
     const transformedFoods = foods.reduce<GroupedFoods>((acc, food) => {
@@ -62,6 +63,8 @@ export async function POST(request: Request) {
     const service = DatabaseService.getInstance();
     const foodsCollection = await service.getCollection("foods");
     const result = await foodsCollection.insertOne(validatedFoodData);
+
+    FoodCache.getInstance().clear();
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     return handleError(error, "Failed to add food");

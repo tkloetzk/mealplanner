@@ -20,8 +20,8 @@ import {
   useDailyNutrition,
   useMealNutrition,
 } from "@/store/mealSelectors";
-import { MealHistoryRecord, MealSelection } from "@/types/meals";
-import { CategoryType, MealType, DayType } from "@/types/shared";
+import { MealHistoryRecord } from "@/types/meals";
+import { CategoryType } from "@/types/shared";
 import { Kid } from "@/types/user";
 import { MealPlannerHeader } from "../MealPlannerHeader";
 import { getCurrentDay, calculateTargetDate } from "@/utils/dateUtils";
@@ -40,13 +40,13 @@ import { WeeklyView } from "./components/WeeklyView";
 import { HistoryView } from "./components/HistoryView";
 
 // Dynamic imports for heavy components
-import { 
+import {
   LazyFoodImageAnalysis,
   LazyMealAnalysis,
   LazyFoodEditor,
   LazyMealEditor,
   LazyChildView,
-  ComponentLoader
+  ComponentLoader,
 } from "./components/LazyComponents";
 
 interface AnalysisDialogProps {
@@ -137,7 +137,7 @@ export const MealPlanner = () => {
   // Initialize kids in store
   useEffect(() => {
     initializeKids(kids);
-  }, []);
+  }, [initializeKids, kids]);
 
   // Load selections from history when component mounts or when selected day/kid changes
   useEffect(() => {
@@ -159,76 +159,62 @@ export const MealPlanner = () => {
     };
 
     loadSelections();
-  }, [selectedKid, selectedDay]);
+  }, [selectedKid, selectedDay, loadSelectionsFromHistory]);
 
-  const handleServingClick = useCallback((category: CategoryType, food: Food) => {
-    if (!selectedKid || !selectedDay || !selectedMeal) return;
+  const handleServingClick = useCallback(
+    (category: CategoryType, food: Food) => {
+      if (!selectedKid || !selectedDay || !selectedMeal) return;
 
-    const currentFood = currentMealSelection
-      ? category === "condiments"
-        ? currentMealSelection.condiments.find((c) => c.id === food.id)
-        : currentMealSelection[category]
-      : null;
+      const currentFood = currentMealSelection
+        ? category === "condiments"
+          ? currentMealSelection.condiments.find((c: Food) => c.id === food.id)
+          : currentMealSelection[
+              category as Exclude<CategoryType, "condiments">
+            ]
+        : null;
 
-    setSelectedFoodContext({
-      category,
-      food,
-      mode: "serving",
-      currentServings: currentFood?.servings || 1,
-    });
-  }, [selectedKid, selectedDay, selectedMeal, currentMealSelection]);
+      setSelectedFoodContext({
+        category,
+        food,
+        mode: "serving",
+        currentServings: currentFood?.servings || 1,
+      });
+    },
+    [
+      selectedKid,
+      selectedDay,
+      selectedMeal,
+      currentMealSelection,
+      setSelectedFoodContext,
+    ]
+  );
 
-  const handleEditFood = useCallback((category: CategoryType, food: Food) => {
-    setSelectedFoodContext({
-      category,
-      food,
-      mode: "edit",
-    });
-  }, []);
+  const handleEditFood = useCallback(
+    (category: CategoryType, food: Food) => {
+      setSelectedFoodContext({
+        category,
+        food,
+        mode: "edit",
+      });
+    },
+    [setSelectedFoodContext]
+  );
 
   useEffect(() => {
     fetchFoodOptions();
-  }, []);
+  }, [fetchFoodOptions]);
 
   useEffect(() => {
     const currentDay = getCurrentDay();
     setSelectedDay(currentDay);
-  }, []);
+  }, [setSelectedDay]);
 
   // Fetch meal history when kid is selected
   useEffect(() => {
     if (selectedKid) {
       fetchMealHistory(selectedKid);
     }
-  }, [selectedKid]);
-
-  const handleFoodSelectWithRefresh = async (
-    category: CategoryType,
-    food: Food
-  ) => {
-    await handleFoodSelect(category, food);
-    // Wait a bit for the database to update
-    setTimeout(() => fetchMealHistory(selectedKid), 500);
-  };
-
-  const handleServingAdjustmentWithRefresh = async (
-    category: CategoryType,
-    id: string,
-    servings: number
-  ) => {
-    await handleServingAdjustment(category, id, servings);
-    // Wait a bit for the database to update
-    setTimeout(() => fetchMealHistory(selectedKid), 500);
-  };
-
-  const handleMilkToggleWithRefresh = async (
-    mealType: MealType,
-    enabled: boolean
-  ) => {
-    await handleMilkToggle(mealType, enabled);
-    // Wait a bit for the database to update
-    setTimeout(() => fetchMealHistory(selectedKid), 500);
-  };
+  }, [selectedKid, fetchMealHistory]);
 
   const handleAddMeal = useCallback(() => {
     setShowMealEditor(true);
@@ -257,7 +243,7 @@ export const MealPlanner = () => {
             selectedDay={selectedDay}
             onFoodSelect={(category, food) => {
               if (isCategoryKey(category)) {
-                handleFoodSelectWithRefresh(category, food);
+                handleFoodSelect(category, food);
               }
             }}
             onMealSelect={setSelectedMeal}
@@ -272,14 +258,14 @@ export const MealPlanner = () => {
           </TabsList>
 
           <TabsContent value="planner">
-            <DaySelector 
-              selectedDay={selectedDay} 
-              onDaySelect={setSelectedDay} 
+            <DaySelector
+              selectedDay={selectedDay}
+              onDaySelect={setSelectedDay}
             />
 
-            <MealSelector 
-              selectedMeal={selectedMeal} 
-              onMealSelect={setSelectedMeal} 
+            <MealSelector
+              selectedMeal={selectedMeal}
+              onMealSelect={setSelectedMeal}
             />
 
             {!isChildView && (
@@ -311,7 +297,7 @@ export const MealPlanner = () => {
                               selectedMeal ? milkInclusion[selectedMeal] : false
                             }
                             onChange={(value) =>
-                              handleMilkToggleWithRefresh(selectedMeal!, value)
+                              handleMilkToggle(selectedMeal!, value)
                             }
                           />
                         </div>
@@ -325,12 +311,17 @@ export const MealPlanner = () => {
                   selectedMeal={selectedMeal}
                   selectedKid={selectedKid}
                   selectedDay={selectedDay}
-                  currentMealSelection={selections[selectedKid]?.[selectedDay]?.[selectedMeal!] || null}
-                  onFoodSelect={handleFoodSelectWithRefresh}
+                  currentMealSelection={
+                    selections[selectedKid]?.[selectedDay]?.[selectedMeal!] ||
+                    null
+                  }
+                  onFoodSelect={handleFoodSelect}
                   onServingClick={handleServingClick}
                   onEditFood={handleEditFood}
                   onToggleVisibility={handleToggleVisibility}
-                  onToggleAllOtherFoodVisibility={handleToggleAllOtherFoodVisibility}
+                  onToggleAllOtherFoodVisibility={
+                    handleToggleAllOtherFoodVisibility
+                  }
                   onAddFood={() =>
                     setSelectedFoodContext({
                       mode: "add",
@@ -413,7 +404,7 @@ export const MealPlanner = () => {
               food={selectedFoodContext.food}
               currentServings={selectedFoodContext.currentServings ?? 1}
               onConfirm={(adjustedFood) => {
-                handleServingAdjustmentWithRefresh(
+                handleServingAdjustment(
                   selectedFoodContext.category,
                   adjustedFood.id,
                   adjustedFood.servings
@@ -495,7 +486,12 @@ export const MealPlanner = () => {
             }}
             onSave={async (name, selections) => {
               try {
-                await handleSaveMeal(name, selections, selectedMeal, selectedKid);
+                await handleSaveMeal(
+                  name,
+                  selections,
+                  selectedMeal,
+                  selectedKid
+                );
                 setShowMealEditor(false);
               } catch (error) {
                 console.error("Failed to save meal:", error);

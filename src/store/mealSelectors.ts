@@ -1,28 +1,25 @@
 import { useMemo } from "react";
-import { shallow } from "zustand/shallow";
 import { useMealStore } from "./useMealStore";
-import { MealType } from "@/types/meals";
+import type { MealSelection } from "@/types/meals";
+import type { MealType } from "@/types/shared";
 
 // Get current meal's selections
-export const useCurrentMealSelection = () => {
-  return useMealStore(
-    (state) => {
-      const { selectedKid, selectedDay, selectedMeal, selections } = state;
-      if (!selectedKid || !selectedDay || !selectedMeal) return null;
-      return selections[selectedKid]?.[selectedDay]?.[selectedMeal] || null;
-    },
-    shallow
-  );
+export const useCurrentMealSelection = (): MealSelection | null => {
+  return useMealStore((state) => {
+    const { selectedKid, selectedDay, selectedMeal, selections } = state;
+    if (!selectedKid || !selectedDay || !selectedMeal) return null;
+    return selections[selectedKid]?.[selectedDay]?.[selectedMeal] || null;
+  });
 };
 
 // Get nutrition info for a specific meal
-export const useMealNutrition = (meal: MealType) => {
-  const selections = useMealStore((state) => state.selections, shallow);
+export const useMealNutrition = (meal: MealType | null) => {
+  const selections = useMealStore((state) => state.selections);
   const selectedKid = useMealStore((state) => state.selectedKid);
   const selectedDay = useMealStore((state) => state.selectedDay);
-  
+
   return useMemo(() => {
-    if (!selectedKid || !selectedDay) {
+    if (!selectedKid || !selectedDay || !meal) {
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
 
@@ -58,10 +55,10 @@ export const useMealNutrition = (meal: MealType) => {
 
 // Get daily nutrition totals
 export const useDailyNutrition = () => {
-  const selections = useMealStore((state) => state.selections, shallow);
+  const selections = useMealStore((state) => state.selections);
   const selectedKid = useMealStore((state) => state.selectedKid);
   const selectedDay = useMealStore((state) => state.selectedDay);
-  
+
   return useMemo(() => {
     if (!selectedKid || !selectedDay) {
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -89,7 +86,10 @@ export const useDailyNutrition = () => {
       });
 
       // Add condiments if they exist for this meal
-      if (mealSelections.condiments && Array.isArray(mealSelections.condiments)) {
+      if (
+        mealSelections.condiments &&
+        Array.isArray(mealSelections.condiments)
+      ) {
         mealSelections.condiments.forEach((condiment) => {
           if (!condiment) return;
           totals.calories += condiment.adjustedCalories || 0;
@@ -104,12 +104,12 @@ export const useDailyNutrition = () => {
   }, [selections, selectedKid, selectedDay]);
 };
 
-// Get milk inclusion status for all meals  
+// Get milk inclusion status for all meals
 export const useMilkInclusion = () => {
-  const selections = useMealStore((state) => state.selections, shallow);
+  const selections = useMealStore((state) => state.selections);
   const selectedKid = useMealStore((state) => state.selectedKid);
   const selectedDay = useMealStore((state) => state.selectedDay);
-  
+
   return useMemo(() => {
     if (!selectedKid || !selectedDay) {
       return {

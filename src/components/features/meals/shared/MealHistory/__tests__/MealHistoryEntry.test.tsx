@@ -68,7 +68,15 @@ describe("MealHistoryEntry", () => {
       ],
     },
     consumptionData: {
-      percentEaten: 100,
+      foods: [
+        {
+          foodId: "test-food-id",
+          status: 'eaten',
+          percentageEaten: 100,
+          notes: "All food was eaten",
+        }
+      ],
+      overallStatus: 'eaten',
       notes: "All food was eaten",
     },
   };
@@ -93,7 +101,7 @@ describe("MealHistoryEntry", () => {
   it("displays consumption data", () => {
     render(<MealHistoryEntry entries={[mockEntry]} />);
 
-    expect(screen.getByText("100% eaten")).toBeInTheDocument();
+    expect(screen.getByText("Overall Status: eaten")).toBeInTheDocument();
     expect(screen.getByText("All food was eaten")).toBeInTheDocument();
   });
 

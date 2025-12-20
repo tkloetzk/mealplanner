@@ -25,12 +25,13 @@ export function useFoodManagement() {
     other: [],
   });
 
-  const [selectedFoodContext, setSelectedFoodContext] = useState<FoodContext | null>(null);
+  const [selectedFoodContext, setSelectedFoodContext] =
+    useState<FoodContext | null>(null);
 
   const fetchFoodOptions = useCallback(async () => {
     const result = await safeAsync(async () => {
       const response = await fetch("/api/foods");
-      return handleApiResponse(response);
+      return handleApiResponse<Record<string, unknown>>(response);
     }, "Fetch food options");
 
     if (result.success) {
@@ -114,34 +115,44 @@ export function useFoodManagement() {
     );
   }, []);
 
-  const handleSaveFood = useCallback(async (food: Food) => {
-    try {
-      const response = await fetch("/api/foods", {
-        method: food.id ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(food),
-      });
-      if (!response.ok) throw new Error("Failed to save food");
-      setSelectedFoodContext(null);
-      // Refresh food options after save
-      await fetchFoodOptions();
-    } catch (error) {
-      console.error("Error saving food:", error);
-    }
-  }, [fetchFoodOptions]);
+  const handleSaveFood = useCallback(
+    async (food: Food) => {
+      try {
+        const isUpdate = Boolean(food.id);
+        const response = await fetch(
+          isUpdate ? `/api/foods/${food.id}` : "/api/foods",
+          {
+            method: isUpdate ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(food),
+          }
+        );
+        if (!response.ok) throw new Error("Failed to save food");
+        setSelectedFoodContext(null);
+        // Refresh food options after save
+        await fetchFoodOptions();
+      } catch (error) {
+        console.error("Error saving food:", error);
+      }
+    },
+    [fetchFoodOptions]
+  );
 
-  const handleDeleteFood = useCallback(async (foodId: string) => {
-    try {
-      const response = await fetch(`/api/foods/${foodId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete food");
-      setSelectedFoodContext(null);
-      await fetchFoodOptions();
-    } catch (error) {
-      console.error("Error deleting food:", error);
-    }
-  }, [fetchFoodOptions]);
+  const handleDeleteFood = useCallback(
+    async (foodId: string) => {
+      try {
+        const response = await fetch(`/api/foods/${foodId}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) throw new Error("Failed to delete food");
+        setSelectedFoodContext(null);
+        await fetchFoodOptions();
+      } catch (error) {
+        console.error("Error deleting food:", error);
+      }
+    },
+    [fetchFoodOptions]
+  );
 
   return {
     foodOptions,

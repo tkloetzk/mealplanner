@@ -2,18 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { DatabaseService } from "@/app/utils/DatabaseService";
 import { handleError } from "@/app/utils/apiUtils";
+import { FoodCache } from "@/app/utils/FoodCache";
 
-type Props = {
-  params: Promise<{
-    id: string;
-  }>;
-};
-
-export async function DELETE(request: NextRequest) {
-  const foodId = request.nextUrl.searchParams.get("id");
-  if (!foodId) {
-    return handleError(null, "Invalid food ID", 400);
-  }
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const foodId = params.id;
+  if (!foodId) return handleError(null, "Invalid food ID", 400);
 
   try {
     const service = DatabaseService.getInstance();
@@ -23,6 +19,7 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (result.deletedCount === 1) {
+      FoodCache.getInstance().clear();
       return NextResponse.json({ message: "Food deleted successfully" });
     } else {
       return handleError(null, "Food not found or could not be deleted", 404);
@@ -32,8 +29,11 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-export const PUT = async (request: NextRequest, props: Props) => {
-  const { id: foodId } = await props.params;
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const foodId = params.id;
 
   try {
     const service = DatabaseService.getInstance();
@@ -51,6 +51,7 @@ export const PUT = async (request: NextRequest, props: Props) => {
     );
 
     if (result.modifiedCount === 1) {
+      FoodCache.getInstance().clear();
       return NextResponse.json({ message: "Food updated successfully" });
     } else {
       return NextResponse.json(
@@ -65,10 +66,13 @@ export const PUT = async (request: NextRequest, props: Props) => {
       { status: 500 }
     );
   }
-};
+}
 
-export async function PATCH(request: NextRequest, props: Props) {
-  const { id: foodId } = await props.params;
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const foodId = params.id;
 
   try {
     const service = DatabaseService.getInstance();
@@ -97,6 +101,7 @@ export async function PATCH(request: NextRequest, props: Props) {
       return NextResponse.json({ error: "Food not found" }, { status: 404 });
     }
 
+    FoodCache.getInstance().clear();
     return NextResponse.json({
       success: true,
       message: "Food visibility updated successfully",

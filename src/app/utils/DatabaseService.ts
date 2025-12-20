@@ -1,6 +1,6 @@
 // lib/DatabaseService.ts
 import DatabaseConnection from "@/lib/db";
-import { Collection } from "mongodb";
+import type { Collection, Document } from "mongodb";
 
 export class DatabaseService {
   private static instance: DatabaseService;

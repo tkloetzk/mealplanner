@@ -1,11 +1,6 @@
 // src/types/food.ts
 import { ObjectId } from "mongodb";
-import {
-  CategoryType,
-  MealType,
-  NutritionInfo,
-  AdjustedNutritionInfo,
-} from "./shared";
+import { CategoryType, MealType, NutritionInfo } from "./shared";
 
 export type ServingSizeUnit =
   | "g"

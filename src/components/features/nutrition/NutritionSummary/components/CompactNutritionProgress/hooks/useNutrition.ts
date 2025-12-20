@@ -7,7 +7,6 @@ import {
   getProgressBarWidth,
   getProgressColor,
   getNutrientColor,
-  ensureNumber,
 } from "@/utils/nutritionUtils";
 import { Food } from "@/types/food";
 
@@ -40,10 +39,10 @@ export function useNutrition(
           const foodItem = food as Food;
           const servings = foodItem.servings || 1;
           return {
-            calories: sum.calories + (foodItem.calories * servings),
-            protein: sum.protein + (foodItem.protein * servings),
-            carbs: sum.carbs + (foodItem.carbs * servings),
-            fat: sum.fat + (foodItem.fat * servings),
+            calories: sum.calories + foodItem.calories * servings,
+            protein: sum.protein + foodItem.protein * servings,
+            carbs: sum.carbs + foodItem.carbs * servings,
+            fat: sum.fat + foodItem.fat * servings,
           };
         },
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -54,10 +53,10 @@ export function useNutrition(
       (sum: NutritionSummary, condiment: Food) => {
         const servings = condiment.servings || 1;
         return {
-          calories: sum.calories + (condiment.calories * servings),
-          protein: sum.protein + (condiment.protein * servings),
-          carbs: sum.carbs + (condiment.carbs * servings),
-          fat: sum.fat + (condiment.fat * servings),
+          calories: sum.calories + condiment.calories * servings,
+          protein: sum.protein + condiment.protein * servings,
+          carbs: sum.carbs + condiment.carbs * servings,
+          fat: sum.fat + condiment.fat * servings,
         };
       },
       { calories: 0, protein: 0, carbs: 0, fat: 0 }

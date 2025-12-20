@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { DatabaseService } from "@/app/utils/DatabaseService";
 import { startOfDay, endOfDay } from "date-fns";
 import { MealHistoryRecord, MealSelection } from "@/types/meals";
-import { WithId } from "mongodb";
+import { ObjectId, WithId } from "mongodb";
+
+type MealHistoryRecordDb = Omit<MealHistoryRecord, "_id" | "date"> & {
+  _id: ObjectId;
+  date: Date;
+};
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -30,10 +35,11 @@ export async function GET(request: Request) {
     });
 
     const service = DatabaseService.getInstance();
-    const mealHistoryCollection = await service.getCollection("mealHistory");
+    const mealHistoryCollection =
+      await service.getCollection<MealHistoryRecordDb>("mealHistory");
 
     const history = await mealHistoryCollection
-      .find<WithId<MealHistoryRecord>>({
+      .find<WithId<MealHistoryRecordDb>>({
         kidId,
         date: {
           $gte: start,
@@ -45,10 +51,13 @@ export async function GET(request: Request) {
     console.log("Found history entries:", history.length);
 
     // Transform dates to ISO strings for consistent serialization
-    const transformedHistory = history.map((entry) => ({
-      ...entry,
-      date: new Date(entry.date).toISOString(),
+    const transformedHistory: MealHistoryRecord[] = history.map((entry) => ({
       _id: entry._id.toString(),
+      kidId: entry.kidId,
+      date: new Date(entry.date).toISOString(),
+      meal: entry.meal,
+      selections: entry.selections,
+      consumptionData: entry.consumptionData,
     }));
 
     return NextResponse.json({ history: transformedHistory });
@@ -118,7 +127,8 @@ export async function POST(request: Request) {
     }
 
     const service = DatabaseService.getInstance();
-    const mealHistoryCollection = await service.getCollection("mealHistory");
+    const mealHistoryCollection =
+      await service.getCollection<MealHistoryRecordDb>("mealHistory");
 
     // Create date filter for exact day match
     const date = new Date(mealData.date);
@@ -135,11 +145,14 @@ export async function POST(request: Request) {
     console.log("Saving meal history with filter:", existingRecordFilter);
 
     // Prepare document to save
-    const mealHistoryDoc: Omit<MealHistoryRecord, "_id"> = {
+    const mealHistoryDoc: Omit<MealHistoryRecordDb, "_id"> = {
       kidId,
       date: start,
       meal: mealData.meal,
       selections: mealData.selections,
+      ...(mealData.consumptionData && {
+        consumptionData: mealData.consumptionData,
+      }),
     };
 
     console.log("Document to save:", mealHistoryDoc);
@@ -156,7 +169,27 @@ export async function POST(request: Request) {
 
     console.log("Save result:", result);
 
-    return NextResponse.json({ success: true, data: result });
+    const updated =
+      result && typeof result === "object" && "value" in result
+        ? (result as { value: WithId<MealHistoryRecordDb> | null }).value
+        : (result as WithId<MealHistoryRecordDb> | null);
+    if (!updated) {
+      return NextResponse.json(
+        { error: "Failed to save meal history" },
+        { status: 500 }
+      );
+    }
+
+    const dto: MealHistoryRecord = {
+      _id: updated._id.toString(),
+      kidId: updated.kidId,
+      date: new Date(updated.date).toISOString(),
+      meal: updated.meal,
+      selections: updated.selections,
+      consumptionData: updated.consumptionData,
+    };
+
+    return NextResponse.json({ success: true, data: dto });
   } catch (error) {
     console.error("Error saving meal history:", error);
     return NextResponse.json(

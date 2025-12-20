@@ -2,6 +2,24 @@ import { NextResponse } from "next/server";
 import { DatabaseService } from "@/app/utils/DatabaseService";
 import { ensureNestedNumericFields } from "@/utils/validation/numericValidator";
 
+let mealSelectionsIndexEnsured = false;
+
+async function ensureMealSelectionsIndex() {
+  if (mealSelectionsIndexEnsured) return;
+
+  const service = DatabaseService.getInstance();
+  const mealSelectionsCollection = await service.getCollection(
+    "mealSelections"
+  );
+
+  await mealSelectionsCollection.createIndex(
+    { kidId: 1, day: 1, meal: 1 },
+    { unique: true }
+  );
+
+  mealSelectionsIndexEnsured = true;
+}
+
 export async function POST(request: Request) {
   try {
     const { kidId, day, meal, selections } = await request.json();
@@ -51,11 +69,7 @@ export async function POST(request: Request) {
       }
     );
 
-    // Create index to support the query
-    await mealSelectionsCollection.createIndex(
-      { kidId: 1, day: 1, meal: 1 },
-      { unique: true }
-    );
+    await ensureMealSelectionsIndex();
 
     return NextResponse.json(result);
   } catch (error) {
@@ -83,6 +97,7 @@ export async function GET(request: Request) {
   }
 
   try {
+    await ensureMealSelectionsIndex();
     const service = DatabaseService.getInstance();
     const mealSelectionsCollection = await service.getCollection(
       "mealSelections"
