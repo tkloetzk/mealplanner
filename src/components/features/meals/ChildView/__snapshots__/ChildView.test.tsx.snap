@@ -19,7 +19,7 @@ exports[`ChildView Component matches snapshot when no meal is selected 1`] = `
         <div
           class="text-xl capitalize"
         >
-          breakfast
+          Breakfast
         </div>
       </div>
       <div
@@ -28,7 +28,7 @@ exports[`ChildView Component matches snapshot when no meal is selected 1`] = `
         <div
           class="text-xl capitalize"
         >
-          lunch
+          Lunch
         </div>
       </div>
       <div
@@ -37,7 +37,7 @@ exports[`ChildView Component matches snapshot when no meal is selected 1`] = `
         <div
           class="text-xl capitalize"
         >
-          dinner
+          Dinner
         </div>
       </div>
       <div
@@ -46,7 +46,25 @@ exports[`ChildView Component matches snapshot when no meal is selected 1`] = `
         <div
           class="text-xl capitalize"
         >
-          snack
+          Midmorning Snack
+        </div>
+      </div>
+      <div
+        class="rounded-xl border bg-card text-card-foreground shadow p-6 text-center cursor-pointer hover:bg-blue-50 transition-colors"
+      >
+        <div
+          class="text-xl capitalize"
+        >
+          Afternoon Snack
+        </div>
+      </div>
+      <div
+        class="rounded-xl border bg-card text-card-foreground shadow p-6 text-center cursor-pointer hover:bg-blue-50 transition-colors"
+      >
+        <div
+          class="text-xl capitalize"
+        >
+          Bedtime Snack
         </div>
       </div>
     </div>

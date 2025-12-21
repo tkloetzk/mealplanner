@@ -1,5 +1,7 @@
 import { Food } from "./food";
-import { MealType, DayType, ConsumptionInfo } from "./shared";
+import type { DayType, ConsumptionInfo } from "./shared";
+
+export type MealType = import("./shared").MealType;
 
 export interface MealSelection {
   proteins: Food | null;
@@ -16,7 +18,9 @@ export interface DayMeals {
   breakfast: MealSelection;
   lunch: MealSelection;
   dinner: MealSelection;
-  snack: MealSelection;
+  midmorning_snack: MealSelection;
+  afternoon_snack: MealSelection;
+  bedtime_snack: MealSelection;
 }
 
 export interface MealPlan {

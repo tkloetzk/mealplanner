@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { NutritionSummary } from "../NutritionSummary";
 import { useMealStore } from "@/store/useMealStore";
 import { MealType } from "@/types/meals";
+import type { Food } from "@/types/food";
 import { ServingSizeUnit } from "@/types/food";
 
 // Mock fetch globally since it's an external dependency
@@ -33,7 +34,7 @@ describe("NutritionSummary Integration", () => {
     jest.clearAllMocks();
   });
 
-  const testFood = {
+  const testFood: Food = {
     id: "1",
     name: "Chicken",
     calories: 200,
@@ -52,7 +53,7 @@ describe("NutritionSummary Integration", () => {
     adjustedFat: 12,
   };
 
-  const testFish = {
+  const testFish: Food = {
     id: "2",
     name: "Fish",
     calories: 150,
@@ -118,7 +119,7 @@ describe("NutritionSummary Integration", () => {
 
     // Should show combined calories from all meals (350 + 200 + 200 = 750)
     expect(screen.getByTestId("calories-value")).toHaveTextContent(
-      "750 / 1400 cal"
+      "750 / 1800 cal"
     );
   });
 

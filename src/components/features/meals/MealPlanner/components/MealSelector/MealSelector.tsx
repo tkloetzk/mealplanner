@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
-import { MEAL_TYPES } from "@/constants";
-import { MealType } from "@/types/food";
+import { MEAL_TYPES, MEAL_TYPE_LABELS } from "@/constants";
+import type { MealType } from "@/types/shared";
 
 interface MealSelectorProps {
   onMealSelect: (meal: MealType) => void;
@@ -16,7 +16,9 @@ export function MealSelector({ onMealSelect }: MealSelectorProps) {
             className="p-6 text-center cursor-pointer hover:bg-blue-50 transition-colors"
             onClick={() => onMealSelect(meal)}
           >
-            <div className="text-xl capitalize">{meal}</div>
+            <div className="text-xl capitalize">
+              {MEAL_TYPE_LABELS[meal] ?? meal}
+            </div>
           </Card>
         ))}
       </div>

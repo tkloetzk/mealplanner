@@ -9,7 +9,7 @@ import {
   VEGETABLES,
 } from "@/__mocks__/testConstants";
 import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
-import { MEAL_TYPES } from "@/constants";
+import { MEAL_TYPES, MEAL_TYPE_LABELS } from "@/constants";
 import { ChildView } from "./ChildView";
 import { MealType } from "@/types/meals";
 
@@ -38,7 +38,9 @@ describe("ChildView Component", () => {
 
     // Verify meal type buttons are present
     MEAL_TYPES.forEach((meal) => {
-      expect(screen.getByText(new RegExp(meal, "i"))).toBeInTheDocument();
+      const label =
+        MEAL_TYPE_LABELS[meal as keyof typeof MEAL_TYPE_LABELS] ?? meal;
+      expect(screen.getByText(new RegExp(label, "i"))).toBeInTheDocument();
     });
   });
 

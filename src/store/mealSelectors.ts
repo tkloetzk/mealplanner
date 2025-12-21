@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useMealStore } from "./useMealStore";
 import type { MealSelection } from "@/types/meals";
 import type { MealType } from "@/types/shared";
+import { MEAL_TYPES } from "@/constants";
 
 // Get current meal's selections
 export const useCurrentMealSelection = (): MealSelection | null => {
@@ -112,19 +113,16 @@ export const useMilkInclusion = () => {
 
   return useMemo(() => {
     if (!selectedKid || !selectedDay) {
-      return {
-        breakfast: false,
-        lunch: false,
-        dinner: false,
-        snack: false,
-      };
+      return Object.fromEntries(
+        (MEAL_TYPES as readonly MealType[]).map((meal) => [meal, false])
+      ) as Record<MealType, boolean>;
     }
 
-    return {
-      breakfast: !!selections[selectedKid]?.[selectedDay]?.breakfast?.milk,
-      lunch: !!selections[selectedKid]?.[selectedDay]?.lunch?.milk,
-      dinner: !!selections[selectedKid]?.[selectedDay]?.dinner?.milk,
-      snack: !!selections[selectedKid]?.[selectedDay]?.snack?.milk,
-    };
+    return Object.fromEntries(
+      (MEAL_TYPES as readonly MealType[]).map((meal) => [
+        meal,
+        !!selections[selectedKid]?.[selectedDay]?.[meal]?.milk,
+      ])
+    ) as Record<MealType, boolean>;
   }, [selections, selectedKid, selectedDay]);
 };

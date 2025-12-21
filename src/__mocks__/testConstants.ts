@@ -1,7 +1,14 @@
 // src/test/testConstants.ts
-import { CategoryType, ServingSizeUnit } from "@/types/food";
+import type { CategoryType } from "@/types/shared";
+import type { ServingSizeUnit } from "@/types/food";
 import { Kid } from "@/types/user";
-import { BREAKFAST, LUNCH, DINNER, DAYS_OF_WEEK } from "@/constants/index";
+import {
+  BREAKFAST,
+  LUNCH,
+  DINNER,
+  AFTERNOON_SNACK,
+  DAYS_OF_WEEK,
+} from "@/constants/index";
 import { RANCH_OPTION } from "@/constants/meal-goals";
 // Constant for selected day
 export const SELECTED_DAY = DAYS_OF_WEEK[6];
@@ -90,7 +97,7 @@ export const MOCK_FOODS = {
       servingSize: "1",
       servingSizeUnit: "plate" as ServingSizeUnit,
       category: "other" as CategoryType,
-      meal: [BREAKFAST, LUNCH, DINNER, "snack"],
+      meal: [BREAKFAST, LUNCH, DINNER, AFTERNOON_SNACK],
       hiddenFromChild: true,
     },
     {

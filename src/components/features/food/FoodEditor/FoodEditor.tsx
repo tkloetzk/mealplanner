@@ -49,7 +49,9 @@ const MEAL_TYPES: { label: string; value: MealType }[] = [
   { label: "Breakfast", value: "breakfast" },
   { label: "Lunch", value: "lunch" },
   { label: "Dinner", value: "dinner" },
-  { label: "Snack", value: "snack" },
+  { label: "Midmorning Snack", value: "midmorning_snack" },
+  { label: "Afternoon Snack", value: "afternoon_snack" },
+  { label: "Bedtime Snack", value: "bedtime_snack" },
 ] as const;
 
 interface FoodEditorProps {

@@ -12,6 +12,7 @@ import { MealEditor } from "@/components/features/meals/MealEditor/MealEditor";
 import { Food } from "@/types/food";
 import type { MealSelection } from "@/types/meals";
 import type { MealType } from "@/types/shared";
+import { MEAL_TYPES } from "@/constants";
 
 interface AddFoodMenuProps {
   onFoodAdded: (food: Food) => Promise<void>;
@@ -46,7 +47,7 @@ export function AddFoodMenu({ onFoodAdded }: AddFoodMenuProps) {
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name,
       category: "other",
-      meal: ["breakfast", "lunch", "dinner", "snack"] as MealType[],
+      meal: [...(MEAL_TYPES as readonly MealType[])],
       servings: 1,
       servingSize: "1",
       servingSizeUnit: "piece",

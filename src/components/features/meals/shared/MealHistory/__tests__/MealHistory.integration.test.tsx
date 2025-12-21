@@ -7,7 +7,7 @@ const mockHistoryData: MealHistoryRecord[] = [
     _id: "1",
     kidId: "kid1",
     meal: "breakfast" as MealType,
-    date: new Date(Date.UTC(2024, 1, 5, 8, 0, 0)), // Feb 5, 2024 08:00:00 UTC
+    date: new Date(Date.UTC(2024, 1, 5, 8, 0, 0)).toISOString(), // Feb 5, 2024 08:00:00 UTC
     selections: {
       proteins: {
         id: "1",
@@ -32,17 +32,18 @@ const mockHistoryData: MealHistoryRecord[] = [
       milk: null,
       ranch: null,
       condiments: [],
+      other: null,
     },
     consumptionData: {
       foods: [
         {
           foodId: "test-food-id",
-          status: 'eaten',
+          status: "eaten",
           percentageEaten: 100,
           notes: "All food was eaten",
-        }
+        },
       ],
-      overallStatus: 'eaten',
+      overallStatus: "eaten",
       notes: "All food was eaten",
     },
   },
@@ -50,7 +51,7 @@ const mockHistoryData: MealHistoryRecord[] = [
     _id: "2",
     kidId: "kid1",
     meal: "lunch" as MealType,
-    date: new Date(Date.UTC(2024, 1, 4, 12, 0, 0)), // Feb 4, 2024 12:00:00 UTC
+    date: new Date(Date.UTC(2024, 1, 4, 12, 0, 0)).toISOString(), // Feb 4, 2024 12:00:00 UTC
     selections: {
       proteins: null,
       grains: null,
@@ -59,6 +60,7 @@ const mockHistoryData: MealHistoryRecord[] = [
       milk: null,
       ranch: null,
       condiments: [],
+      other: null,
     },
   },
 ];
@@ -108,7 +110,7 @@ describe("MealHistory Integration", () => {
         _id: "3",
         kidId: "kid1",
         meal: "dinner" as MealType,
-        date: new Date("2024-02-05T18:00:00.000Z"),
+        date: new Date("2024-02-05T18:00:00.000Z").toISOString(),
         selections: {
           proteins: {
             id: "2",
@@ -133,6 +135,7 @@ describe("MealHistory Integration", () => {
           milk: null,
           ranch: null,
           condiments: [],
+          other: null,
         },
       },
     ];
@@ -152,7 +155,7 @@ describe("MealHistory Integration", () => {
         _id: "3",
         kidId: "kid1",
         meal: "dinner" as MealType,
-        date: new Date("2024-02-05T18:00:00.000Z"),
+        date: new Date("2024-02-05T18:00:00.000Z").toISOString(),
         selections: {
           proteins: {
             id: "2",
@@ -177,6 +180,7 @@ describe("MealHistory Integration", () => {
           milk: null,
           ranch: null,
           condiments: [],
+          other: null,
         },
       },
     ];
@@ -184,8 +188,8 @@ describe("MealHistory Integration", () => {
     render(<MealHistory historyEntries={multiMealData} />);
 
     // Total calories for today: Eggs (140) + Chicken (150) = 290
-    expect(screen.getByText(/290 \/ 1400 cal/)).toBeInTheDocument();
-    expect(screen.getByText(/20.7% of daily goal/)).toBeInTheDocument();
+    expect(screen.getByText(/290 \/ 1800 cal/)).toBeInTheDocument();
+    expect(screen.getByText(/16.1% of daily goal/)).toBeInTheDocument();
   });
 
   it("handles empty history", () => {

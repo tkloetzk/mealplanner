@@ -266,8 +266,8 @@ describe("MealPlanner Integration Tests", () => {
       expect(screen.getByTestId("milk-toggle")).toBeInTheDocument();
     });
 
-    // Select snack (should not show milk toggle)
-    const snackButton = screen.getByTestId("snack-meal-button");
+    // Select a snack meal (should not show milk toggle)
+    const snackButton = screen.getByTestId("midmorning_snack-meal-button");
     await user.click(snackButton);
 
     await waitFor(() => {

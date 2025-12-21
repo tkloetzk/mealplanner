@@ -13,7 +13,13 @@ export const CATEGORY_STYLES = {
 
 export type CategoryType = keyof typeof CATEGORY_STYLES;
 
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+export type MealType =
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+  | "midmorning_snack"
+  | "afternoon_snack"
+  | "bedtime_snack";
 
 export type DayType =
   | "monday"
@@ -40,13 +46,13 @@ export interface AdjustedNutritionInfo extends NutritionInfo {
 
 export interface FoodConsumptionStatus {
   foodId: string;
-  status: 'not_eaten' | 'partially_eaten' | 'eaten';
+  status: "not_eaten" | "partially_eaten" | "eaten";
   percentageEaten?: number;
   notes?: string;
 }
 
 export interface ConsumptionInfo {
   foods: FoodConsumptionStatus[];
-  overallStatus: 'offered' | 'partially_eaten' | 'eaten';
+  overallStatus: "offered" | "partially_eaten" | "eaten";
   notes?: string;
 }

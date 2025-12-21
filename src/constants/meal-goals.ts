@@ -7,7 +7,9 @@ export const DAILY_GOALS = {
     breakfast: 400,
     lunch: 400,
     dinner: 400,
-    snack: 200,
+    midmorning_snack: 200,
+    afternoon_snack: 200,
+    bedtime_snack: 200,
   },
   dailyTotals: {
     protein: {
@@ -18,7 +20,7 @@ export const DAILY_GOALS = {
       min: 35,
       max: 49,
     },
-    calories: 1400, // Total of all meals (400 * 3 + 200)
+    calories: 1800, // Total of all meals (400 * 3 + 200 * 3)
   },
 };
 
@@ -38,7 +40,9 @@ export const DEFAULT_MEAL_PLAN: MealPlan = DAYS_OF_WEEK.reduce((plan, day) => {
     breakfast: createDefaultMealSelection(),
     lunch: createDefaultMealSelection(),
     dinner: createDefaultMealSelection(),
-    snack: createDefaultMealSelection(),
+    midmorning_snack: createDefaultMealSelection(),
+    afternoon_snack: createDefaultMealSelection(),
+    bedtime_snack: createDefaultMealSelection(),
   };
   return plan;
 }, {} as MealPlan);
@@ -57,7 +61,7 @@ export const MILK_OPTION: Food = {
   fat: 5,
   servingSize: "1",
   servingSizeUnit: "cup",
-  meal: ["breakfast", "lunch", "dinner", "snack"] as MealType[],
+  meal: ["breakfast", "lunch", "dinner"] as MealType[],
   upc: "085239284063",
   category: "milk",
   ingredients: "reduced fat milk, vitamin d3, vitamin a palmitate.",
@@ -81,7 +85,14 @@ export const RANCH_OPTION = {
   servingSize: "1",
   servingSizeUnit: "tbsp" as const,
   category: "condiments" as const,
-  meal: ["breakfast", "lunch", "dinner", "snack"], // Add meal compatibility
+  meal: [
+    "breakfast",
+    "lunch",
+    "dinner",
+    "midmorning_snack",
+    "afternoon_snack",
+    "bedtime_snack",
+  ], // Add meal compatibility
   score: "e",
   upc: "071100005509",
   novaGroup: 4,

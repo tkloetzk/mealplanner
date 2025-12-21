@@ -14,6 +14,7 @@ import { ServingSelector } from "@/components/features/meals/shared/ServingSelec
 import { MilkToggle } from "@/components/features/meals/shared/MilkToggle";
 import { CompactNutritionProgress } from "@/components/features/nutrition/NutritionSummary/components/CompactNutritionProgress";
 import { useMealStore } from "@/store/useMealStore";
+import { isSnackMeal } from "@/constants";
 import {
   useCurrentMealSelection,
   useMilkInclusion,
@@ -290,7 +291,7 @@ export const MealPlanner = () => {
                 <div className="mb-6">
                   {!isChildView && selectedMeal && (
                     <>
-                      {selectedMeal !== "snack" && (
+                      {!isSnackMeal(selectedMeal) && (
                         <div className="mb-6" data-testid="milk-toggle">
                           <MilkToggle
                             isSelected={
