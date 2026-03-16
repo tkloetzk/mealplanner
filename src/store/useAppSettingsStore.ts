@@ -2,7 +2,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { MEAL_TYPES } from "@/constants";
 import type { MealType } from "@/types/shared";
-import { DAILY_GOALS } from "@/constants/meal-goals";
+import { DAILY_GOALS, MILK_OPTION } from "@/constants/meal-goals";
+import { getPediatricGuidelines } from "@/constants/pediatric-nutrition-guidelines";
+import type { Food } from "@/types/food";
+import { distributeMealCalories, adjustForActivity } from "@/utils/nutritionUtils";
 
 type NutritionMode = "recommended" | "custom";
 type NutritionScope = "per_day" | "per_meal";
@@ -18,17 +21,27 @@ type CustomNutritionGoals = {
   protein: MacroRange;
   carbs: MacroRange;
   fat: MacroRange;
+  sodium?: MacroRange;
+  sugar?: MacroRange;
+  saturatedFat?: MacroRange;
 };
+
+export type ActivityLevel = 'sedentary' | 'moderate' | 'active';
 
 export type KidSettings = {
   id: string;
   name: string;
   age: number;
+  activityLevel?: ActivityLevel;  // Optional enhancement
+  restrictions?: string; // Dietary restrictions, allergies, etc.
 };
 
 type AppSettingsState = {
   enabledMeals: MealType[];
   kids: KidSettings[];
+  milkFood: Food;
+  setMilkFood: (food: Food) => void;
+  resetMilkFood: () => void;
 
   nutritionMode: NutritionMode;
   nutritionScope: NutritionScope;
@@ -51,6 +64,9 @@ type AppSettingsState = {
   setCustomGoalsForKid: (kidId: string, goals: CustomNutritionGoals) => void;
   setCustomGoalsForAllKids: (goals: CustomNutritionGoals) => void;
 
+  hydrateFromServer: () => Promise<void>;
+  syncToServer: () => Promise<void>;
+
   getEnabledMeals: () => MealType[];
   getTargetsForKid: (kidId: string) => {
     dailyCalories: number;
@@ -58,6 +74,9 @@ type AppSettingsState = {
     protein: MacroRange;
     carbs: MacroRange;
     fat: MacroRange;
+    sodium?: MacroRange;
+    sugar?: MacroRange;
+    saturatedFat?: MacroRange;
   };
   getMealCaloriesTarget: (kidId: string, meal: MealType) => number;
 };
@@ -75,6 +94,9 @@ const defaultCustomGoals = (): CustomNutritionGoals => ({
   protein: { ...DAILY_GOALS.dailyTotals.protein },
   carbs: { min: 0, max: 0 },
   fat: { ...DAILY_GOALS.dailyTotals.fat },
+  sodium: { max: DAILY_GOALS.dailyTotals.sodiumMax },
+  sugar: { max: 25 }, // Default: AAP/AHA recommendation for added sugars
+  saturatedFat: { max: 20 }, // Default: AAP/AHA recommendation for saturated fat
 });
 
 const normalizeEnabledMeals = (meals: MealType[]) => {
@@ -87,9 +109,10 @@ export const useAppSettingsStore = create<AppSettingsState>()(
     (set, get) => ({
       enabledMeals: [...(MEAL_TYPES as readonly MealType[])],
       kids: [
-        { id: "1", name: "Presley", age: 5 },
-        { id: "2", name: "Evy", age: 3 },
+        { id: "1", name: "Presley", age: 5, activityLevel: 'moderate' },
+        { id: "2", name: "Evy", age: 3, activityLevel: 'active' },
       ],
+      milkFood: MILK_OPTION,
 
       nutritionMode: "recommended",
       nutritionScope: "per_meal",
@@ -97,6 +120,9 @@ export const useAppSettingsStore = create<AppSettingsState>()(
 
       customGoalsByKidId: {},
       customGoalsForAllKids: defaultCustomGoals(),
+
+      setMilkFood: (food) => set({ milkFood: food }),
+      resetMilkFood: () => set({ milkFood: MILK_OPTION }),
 
       setEnabledMeals: (meals) =>
         set({ enabledMeals: normalizeEnabledMeals(meals) }),
@@ -111,7 +137,7 @@ export const useAppSettingsStore = create<AppSettingsState>()(
 
       addKid: () => {
         const id = createLocalId();
-        set({ kids: [...get().kids, { id, name: "", age: 0 }] });
+        set({ kids: [...get().kids, { id, name: "", age: 0, activityLevel: 'moderate' }] });
       },
 
       updateKid: (kidId, patch) => {
@@ -151,23 +177,54 @@ export const useAppSettingsStore = create<AppSettingsState>()(
       },
 
       getTargetsForKid: (kidId) => {
-        const enabledMeals = get().getEnabledMeals();
+        const state = get();
+        const enabledMeals = state.getEnabledMeals();
 
-        if (get().nutritionMode === "recommended") {
-          return {
+        if (state.nutritionMode === "recommended") {
+          // NEW: Age-based lookup
+          const kid = state.kids.find(k => k.id === kidId);
+          if (!kid) return {
             dailyCalories: DAILY_GOALS.dailyTotals.calories,
             mealCalories: DAILY_GOALS.mealCalories as Record<MealType, number>,
             protein: DAILY_GOALS.dailyTotals.protein,
             carbs: { min: 0, max: 0 },
             fat: DAILY_GOALS.dailyTotals.fat,
+            sodium: { max: DAILY_GOALS.dailyTotals.sodiumMax },
+            sugar: { max: 25 }, // Default fallback: AAP/AHA recommendation for added sugars
+            saturatedFat: { max: 20 }, // Default fallback: AAP/AHA recommendation for saturated fat
+          }; // fallback
+
+          const guidelines = getPediatricGuidelines(kid.age);
+          const avgCalories = (guidelines.caloriesMin + guidelines.caloriesMax) / 2;
+
+          // Adjust calories based on activity level
+          const adjustedCalories = kid.activityLevel
+            ? adjustForActivity(avgCalories, kid.activityLevel)
+            : avgCalories;
+
+          // Calculate macro ranges from percentages
+          const fatGramsMin = Math.round((adjustedCalories * guidelines.fatPercentMin / 100) / 9);
+          const fatGramsMax = Math.round((adjustedCalories * guidelines.fatPercentMax / 100) / 9);
+          const carbsGramsMin = Math.round((adjustedCalories * guidelines.carbsPercentMin / 100) / 4);
+          const carbsGramsMax = Math.round((adjustedCalories * guidelines.carbsPercentMax / 100) / 4);
+
+          return {
+            dailyCalories: adjustedCalories,
+            mealCalories: distributeMealCalories(adjustedCalories, enabledMeals),
+            protein: { min: guidelines.proteinGrams, max: Math.round(guidelines.proteinGrams * 1.5) },
+            fat: { min: fatGramsMin, max: fatGramsMax },
+            carbs: { min: carbsGramsMin, max: carbsGramsMax },
+            sodium: { max: guidelines.sodiumMaxMg },
+            sugar: { max: guidelines.sugarMaxG }, // AAP/AHA recommendation: Age-specific added sugars limit
+            saturatedFat: { max: guidelines.saturatedFatMaxG }, // AAP/AHA recommendation: Age-specific saturated fat limit
           };
         }
 
-        const baseGoals = get().sameGoalsForAllKids
-          ? get().customGoalsForAllKids
-          : get().customGoalsByKidId[kidId] || get().customGoalsForAllKids;
+        const baseGoals = state.sameGoalsForAllKids
+          ? state.customGoalsForAllKids
+          : state.customGoalsByKidId[kidId] || state.customGoalsForAllKids;
 
-        if (get().nutritionScope === "per_day") {
+        if (state.nutritionScope === "per_day") {
           const perMeal =
             enabledMeals.length > 0
               ? Math.round(baseGoals.dailyCalories / enabledMeals.length)
@@ -183,6 +240,9 @@ export const useAppSettingsStore = create<AppSettingsState>()(
             protein: baseGoals.protein,
             carbs: baseGoals.carbs,
             fat: baseGoals.fat,
+            sodium: baseGoals.sodium || { max: DAILY_GOALS.dailyTotals.sodiumMax },
+            sugar: baseGoals.sugar || { max: guidelines.sugarMaxG }, // Age-specific limit
+            saturatedFat: baseGoals.saturatedFat || { max: guidelines.saturatedFatMaxG }, // Age-specific limit
           };
         }
 
@@ -204,12 +264,51 @@ export const useAppSettingsStore = create<AppSettingsState>()(
           protein: baseGoals.protein,
           carbs: baseGoals.carbs,
           fat: baseGoals.fat,
+          sodium: baseGoals.sodium || { max: DAILY_GOALS.dailyTotals.sodiumMax },
+          sugar: baseGoals.sugar || { max: guidelines.sugarMaxG }, // Age-specific limit
+          saturatedFat: baseGoals.saturatedFat || { max: guidelines.saturatedFatMaxG }, // Age-specific limit
         };
       },
 
       getMealCaloriesTarget: (kidId, meal) => {
         const targets = get().getTargetsForKid(kidId);
         return targets.mealCalories[meal] ?? 0;
+      },
+
+      hydrateFromServer: async () => {
+        try {
+          const res = await fetch("/api/settings");
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!data) return;
+          const { familyId: _f, updatedAt: _u, ...settings } = data;
+          set(settings);
+        } catch {
+          // Offline — keep localStorage state
+        }
+      },
+
+      syncToServer: async () => {
+        const state = get();
+        const body = {
+          enabledMeals: state.enabledMeals,
+          kids: state.kids,
+          milkFood: state.milkFood,
+          nutritionMode: state.nutritionMode,
+          nutritionScope: state.nutritionScope,
+          sameGoalsForAllKids: state.sameGoalsForAllKids,
+          customGoalsByKidId: state.customGoalsByKidId,
+          customGoalsForAllKids: state.customGoalsForAllKids,
+        };
+        try {
+          await fetch("/api/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+        } catch {
+          // Offline — localStorage already cached via persist middleware
+        }
       },
     }),
     {

@@ -1,217 +1,444 @@
-import React, { useState } from "react";
+// src/components/features/food/FoodSearch/FoodSearch.tsx
+//
+// Unified food search with a three-tier cascade:
+//   1. Local DB + Open Food Facts (parallel, via /api/foods/search)
+//   2. Explicit AI estimate (user clicks a button)
+//
+// Results are grouped by source and displayed in a listbox.
+
+import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Food } from "@/types/food";
-import { Camera } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Camera, Sparkles, Search, Database, Globe, Loader2 } from "lucide-react";
+import type { Food } from "@/types/food";
+import type {
+  FoodSearchResult,
+  FoodSearchResponse,
+} from "@/types/foodSearch";
+import { searchResultToPartialFood } from "@/services/food/normalizers";
+
+// ── Props ──────────────────────────────────────────────────────────────
 
 interface FoodSearchProps {
-  onFoodFound: (food: Food) => void;
+  onFoodFound: (food: Partial<Food>, source?: FoodSearchResult["source"]) => void;
   onError: (error: string) => void;
   onScanRequest?: () => void;
 }
 
-interface SearchResult {
-  id?: string;
-  title: string;
-  image?: string;
-  isGeneric?: boolean;
-}
+// ── Source display config ──────────────────────────────────────────────
 
-export function FoodSearch({
-  onFoodFound,
-  onError,
-  onScanRequest,
-}: FoodSearchProps) {
+const SOURCE_CONFIG = {
+  local: { label: "Your Foods", icon: Database, color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
+  openfoodfacts: { label: "Open Food Facts", icon: Globe, color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
+  spoonacular: { label: "Product Database", icon: Globe, color: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" },
+  ai: { label: "AI Estimate", icon: Sparkles, color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" },
+} as const;
+
+// ── Component ──────────────────────────────────────────────────────────
+
+export function FoodSearch({ onFoodFound, onError, onScanRequest }: FoodSearchProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isEstimating, setIsEstimating] = useState(false);
+  const [results, setResults] = useState<FoodSearchResult[]>([]);
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
-  const handleSearch = async () => {
-    setIsLoading(true);
+  // ── Search handler ───────────────────────────────────────────────
+
+  const handleSearch = useCallback(async () => {
+    const trimmed = searchTerm.trim();
+    if (!trimmed) return;
+
+    setIsSearching(true);
+    setResults([]);
+    setShowResults(false);
+    setSelectedIndex(-1);
+
     try {
-      if (/^\d+$/.test(searchTerm)) {
-        // UPC search
-        console.log("searchTermupc", searchTerm);
+      // Check if input looks like a UPC barcode (all digits, 8-14 chars)
+      const isUPC = /^\d{8,14}$/.test(trimmed);
 
-        const response = await fetch(`/api/upc?upc=${searchTerm}`);
-        if (!response.ok) {
-          throw new Error("Product not found");
+      if (isUPC) {
+        const response = await fetch(`/api/foods/search?id=${trimmed}`);
+        if (response.ok) {
+          const result: FoodSearchResult = await response.json();
+          onFoodFound(searchResultToPartialFood(result), result.source);
+          return;
         }
-        const data = await response.json();
-        onFoodFound(data);
-      } else {
-        console.log("searchTerm", searchTerm);
-        // Text search
-        const response = await fetch(
-          `/api/foods/search?query=${encodeURIComponent(searchTerm)}`
-        );
-        if (!response.ok) {
-          throw new Error("Search failed");
-        }
-        const data = await response.json();
-        setSearchResults(data.products || []);
-        setShowDropdown(true);
+        // If UPC lookup fails, fall through to text search
+      }
+
+      // Text search — hits local DB + Open Food Facts in parallel
+      const response = await fetch(
+        `/api/foods/search?query=${encodeURIComponent(trimmed)}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Search failed");
+      }
+
+      const data: FoodSearchResponse = await response.json();
+      setResults(data.results);
+      setAiAvailable(data.aiAvailable);
+      setShowResults(true);
+
+      // If no results at all, auto-trigger AI estimate if available
+      if (data.results.length === 0 && data.aiAvailable) {
+        await handleAIEstimate(trimmed);
       }
     } catch (error) {
-      console.error(error);
-      if (searchTerm.length > 0) {
-        await handleAnalyzeFood(searchTerm);
-      }
+      console.error("Search error:", error);
+      onError("Search failed. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
-  };
+  }, [searchTerm, onFoodFound, onError]);
 
-  const handleAnalyzeFood = async (searchText: string) => {
-    try {
-      const response = await fetch("/api/analyze-food", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `Can you give me nutritional information on one serving of ${searchText}? 
-          Reply in a JSON object with properties of 
-          note, calories, protein (in grams), carbs (in grams), fat (in grams), servingSize, servingSizeUnit (grams, millileters, ounces, tsp, tbsp, cups, pieces), category (if its a protein, vegetable, grain, fruit, or other) in reference to one serving`,
-        }),
-      });
+  // ── AI estimate handler ──────────────────────────────────────────
 
-      if (!response.ok) throw new Error("Analysis failed");
-      const data = await response.json();
+  const handleAIEstimate = useCallback(
+    async (foodName?: string) => {
+      const name = foodName ?? searchTerm.trim();
+      if (!name) return;
 
-      console.log("Raw analysis response:", data);
-      // Create a properly structured food object from the analysis
-      const analyzedFood: Partial<Food> = {
-        name: searchText,
-        calories: parseFloat(data.calories || 0),
-        protein: parseFloat(data.protein || 0),
-        carbs: parseFloat(data.carbs || 0),
-        fat: parseFloat(data.fat || 0),
-        servingSize: data.servingSize || "1",
-        servingSizeUnit: data.servingSizeUnit || "piece",
-        category: data.category || "other",
-        meal: data.meal || ["breakfast", "lunch", "dinner"],
-        analysis: data.analysis || null,
-        cloudinaryUrl: data.imageUrl || null,
-      };
-      // const analyzedFood: Partial<Food> = {
-      //   name: searchText,
-      //   calories: parseFloat(data.output.calories || 0),
-      //   protein: parseFloat(data.output.protein || 0),
-      //   carbs: parseFloat(data.output.carbs || 0),
-      //   fat: parseFloat(data.output.fat || 0),
-      //   servingSize: data.output.servingSize || "1",
-      //   servingSizeUnit: data.output.servingSizeUnit || "piece",
-      //   category: data.output.category || "other",
-      //   meal: data.output.meal || ["breakfast", "lunch", "dinner"],
-      //   analysis: data.output.analysis || null,
-      //   cloudinaryUrl: data.output.imageUrl || null,
-      // };
-      console.log("Structured food object:", analyzedFood);
+      setIsEstimating(true);
+      try {
+        const response = await fetch("/api/foods/estimate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
 
-      onFoodFound(analyzedFood as Food);
-      setShowDropdown(false);
-      return analyzedFood;
-    } catch (error) {
-      onError("Could not find nutritional information");
-      throw error;
-    }
-  };
-
-  const handleSelectProduct = async (result: SearchResult) => {
-    setIsLoading(true);
-    try {
-      if (result.isGeneric) {
-        await handleAnalyzeFood(searchTerm);
-      } else {
-        const response = await fetch(`/api/foods/search?id=${result.id}`);
-        if (!response.ok) {
-          throw new Error("Failed to get product details");
+        if (response.status === 429) {
+          onFoodFound(
+            {
+              name,
+              calories: 0,
+              protein: 0,
+              carbs: 0,
+              fat: 0,
+              servingSize: "1",
+              servingSizeUnit: "piece",
+              category: "other",
+              meal: ["breakfast", "lunch", "dinner"],
+            },
+            "ai"
+          );
+          onError(
+            "AI estimation quota exceeded. Please fill in nutrition values manually."
+          );
+          return;
         }
-        const details = await response.json();
 
-        if (details.upc) {
-          const upcResponse = await fetch(`/api/upc?upc=${details.upc}`);
-          if (!upcResponse.ok) {
-            throw new Error("Failed to get UPC details");
-          }
-          const data = await upcResponse.json();
-          onFoodFound({ ...data, spoonImage: details.image });
+        if (!response.ok) {
+          throw new Error("AI estimation failed");
+        }
+
+        const result: FoodSearchResult = await response.json();
+        const food = searchResultToPartialFood(result);
+        onFoodFound(food, "ai");
+        setShowResults(false);
+      } catch (error) {
+        console.error("AI estimate error:", error);
+        onError("Could not estimate nutrition. Please enter values manually.");
+      } finally {
+        setIsEstimating(false);
+      }
+    },
+    [searchTerm, onFoodFound, onError]
+  );
+
+  // ── Select a result ──────────────────────────────────────────────
+
+  const handleSelectResult = useCallback(
+    async (result: FoodSearchResult) => {
+      setIsSearching(true);
+      try {
+        if (result.nutrition) {
+          // Result already has full nutrition — use directly
+          const food = searchResultToPartialFood(result);
+          onFoodFound(food, result.source);
         } else {
-          await handleAnalyzeFood(result.title);
+          // Need to fetch details (e.g. OFF product by barcode, or Spoonacular)
+          const response = await fetch(
+            `/api/foods/search?id=${encodeURIComponent(result.id)}`
+          );
+          if (!response.ok) throw new Error("Failed to get product details");
+          const detail: FoodSearchResult = await response.json();
+          const food = searchResultToPartialFood(detail);
+          onFoodFound(food, detail.source);
         }
+        setShowResults(false);
+      } catch (error) {
+        console.error("Select error:", error);
+        onError("Failed to load product details");
+      } finally {
+        setIsSearching(false);
       }
-    } catch (error) {
-      console.error(error);
-      onError("Failed to get product details");
-    } finally {
-      setIsLoading(false);
-      setShowDropdown(false);
-    }
-  };
+    },
+    [onFoodFound, onError]
+  );
+
+  // ── Keyboard navigation ──────────────────────────────────────────
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!showResults || results.length === 0) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleSearch();
+        }
+        return;
+      }
+
+      const totalItems = results.length + (aiAvailable ? 1 : 0);
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.min(prev + 1, totalItems - 1));
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.max(prev - 1, -1));
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (selectedIndex >= 0 && selectedIndex < results.length) {
+            handleSelectResult(results[selectedIndex]);
+          } else if (selectedIndex === results.length && aiAvailable) {
+            handleAIEstimate();
+          } else {
+            handleSearch();
+          }
+          break;
+        case "Escape":
+          setShowResults(false);
+          setSelectedIndex(-1);
+          inputRef.current?.focus();
+          break;
+      }
+    },
+    [showResults, results, aiAvailable, selectedIndex, handleSearch, handleSelectResult, handleAIEstimate]
+  );
+
+  // ── Group results by source ──────────────────────────────────────
+
+  const groupedResults = groupBySource(results);
+
+  // ── Render ───────────────────────────────────────────────────────
+
+  const isLoading = isSearching || isEstimating;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="relative flex flex-col gap-2" onKeyDown={handleKeyDown}>
+      {/* Search input row */}
       <div className="flex gap-2">
-        <Input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Enter UPC or search text"
-          disabled={isLoading}
-        />
-        <Button onClick={handleSearch} disabled={isLoading || !searchTerm}>
-          {isLoading ? "Searching..." : "Search"}
+        <div className="relative flex-1">
+          <Input
+            ref={inputRef}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search foods or enter UPC..."
+            disabled={isLoading}
+            aria-label="Search for food"
+            aria-expanded={showResults}
+            aria-controls="food-search-results"
+            aria-activedescendant={
+              selectedIndex >= 0 ? `food-result-${selectedIndex}` : undefined
+            }
+            role="combobox"
+            aria-autocomplete="list"
+            autoComplete="off"
+          />
+        </div>
+        <Button
+          onClick={handleSearch}
+          disabled={isLoading || !searchTerm.trim()}
+          aria-label="Search"
+        >
+          {isSearching ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          <span className="ml-1.5 hidden sm:inline">
+            {isSearching ? "Searching..." : "Search"}
+          </span>
         </Button>
         {onScanRequest && (
           <Button
             variant="outline"
             onClick={onScanRequest}
-            data-testid="barcode-scanner"
+            disabled={isLoading}
+            aria-label="Scan barcode"
           >
             <Camera className="h-4 w-4" />
           </Button>
         )}
       </div>
 
-      {searchResults.length > 0 && showDropdown && (
-        <DropdownMenu open={true} onOpenChange={setShowDropdown}>
-          <DropdownMenuTrigger asChild>
-            <div />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-full" align="start">
-            <DropdownMenuItem
-              onSelect={() =>
-                handleSelectProduct({ title: searchTerm, isGeneric: true })
-              }
-              className="cursor-pointer"
-            >
-              <div className="text-muted-foreground">Generic - No Brand</div>
-            </DropdownMenuItem>
+      {/* Results dropdown */}
+      {showResults && (results.length > 0 || aiAvailable) && (
+        <ul
+          id="food-search-results"
+          ref={listRef}
+          role="listbox"
+          aria-label="Search results"
+          className="absolute top-full left-0 right-0 z-50 mt-1 max-h-80 overflow-y-auto rounded-md border bg-popover shadow-lg"
+        >
+          {groupedResults.map(([source, items]) => {
+            const config = SOURCE_CONFIG[source];
+            const Icon = config.icon;
 
-            {searchResults.map((result, i) => (
-              <DropdownMenuItem
-                key={i}
-                onSelect={() => handleSelectProduct(result)}
-                className="flex items-center gap-2 cursor-pointer"
+            return (
+              <li key={source} role="presentation">
+                {/* Source group header */}
+                <div className="sticky top-0 z-10 flex items-center gap-2 bg-muted/80 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                  <Icon className="h-3 w-3" />
+                  {config.label}
+                  <span className="ml-auto">{items.length}</span>
+                </div>
+
+                {/* Results within this source */}
+                <ul role="group" aria-label={config.label}>
+                  {items.map((result) => {
+                    const flatIndex = results.indexOf(result);
+                    const isSelected = flatIndex === selectedIndex;
+
+                    return (
+                      <li
+                        key={result.id}
+                        id={`food-result-${flatIndex}`}
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-accent text-accent-foreground"
+                            : "hover:bg-accent/50"
+                        }`}
+                        onClick={() => handleSelectResult(result)}
+                        onMouseEnter={() => setSelectedIndex(flatIndex)}
+                      >
+                        {/* Thumbnail */}
+                        {result.image ? (
+                          <img
+                            src={result.image}
+                            alt=""
+                            className="h-8 w-8 rounded object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded bg-muted flex-shrink-0" />
+                        )}
+
+                        {/* Name + nutrition preview */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {result.name}
+                          </p>
+                          {result.nutrition && (
+                            <p className="text-xs text-muted-foreground">
+                              {result.nutrition.calories} cal
+                              {result.nutrition.protein != null &&
+                                ` · ${result.nutrition.protein}g protein`}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Source badge */}
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] flex-shrink-0 ${config.color}`}
+                        >
+                          {source === "local" ? "Saved" : source === "openfoodfacts" ? "OFF" : source}
+                        </Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            );
+          })}
+
+          {/* AI Estimate option — always at the bottom */}
+          {aiAvailable && (
+            <li
+              id={`food-result-${results.length}`}
+              role="option"
+              aria-selected={selectedIndex === results.length}
+              className={`flex items-center gap-3 px-3 py-3 cursor-pointer border-t transition-colors ${
+                selectedIndex === results.length
+                  ? "bg-accent text-accent-foreground"
+                  : "hover:bg-accent/50"
+              }`}
+              onClick={() => handleAIEstimate()}
+              onMouseEnter={() => setSelectedIndex(results.length)}
+            >
+              {isEstimating ? (
+                <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-purple-600" />
+              )}
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {isEstimating
+                    ? "Estimating nutrition..."
+                    : `Get AI estimate for "${searchTerm.trim()}"`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Uses AI to estimate nutritional values
+                </p>
+              </div>
+              <Badge
+                variant="secondary"
+                className={SOURCE_CONFIG.ai.color}
               >
-                {result.image && (
-                  <img
-                    src={result.image}
-                    alt={result.title}
-                    className="w-8 h-8 object-cover rounded"
-                  />
-                )}
-                <span>{result.title}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                AI
+              </Badge>
+            </li>
+          )}
+
+          {/* Empty state (no results, no AI) */}
+          {results.length === 0 && !aiAvailable && (
+            <li className="px-3 py-4 text-center text-sm text-muted-foreground">
+              No results found for &ldquo;{searchTerm}&rdquo;
+            </li>
+          )}
+        </ul>
       )}
     </div>
   );
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────
+
+function groupBySource(
+  results: FoodSearchResult[]
+): [FoodSearchResult["source"], FoodSearchResult[]][] {
+  const order: FoodSearchResult["source"][] = [
+    "local",
+    "openfoodfacts",
+    "spoonacular",
+    "ai",
+  ];
+  const groups = new Map<FoodSearchResult["source"], FoodSearchResult[]>();
+
+  for (const result of results) {
+    const existing = groups.get(result.source);
+    if (existing) {
+      existing.push(result);
+    } else {
+      groups.set(result.source, [result]);
+    }
+  }
+
+  // Return in display order, omitting empty groups
+  return order
+    .filter((source) => groups.has(source))
+    .map((source) => [source, groups.get(source)!]);
 }

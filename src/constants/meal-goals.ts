@@ -21,18 +21,19 @@ export const DAILY_GOALS = {
       max: 49,
     },
     calories: 1800, // Total of all meals (400 * 3 + 200 * 3)
+    sodiumMax: 1500,  // Default, will be age-adjusted
   },
 };
 
 export const createDefaultMealSelection = () => ({
-  grains: null,
-  fruits: null,
-  proteins: null,
-  vegetables: null,
+  grains: [],
+  fruits: [],
+  proteins: [],
+  vegetables: [],
   milk: null,
   condiments: [],
   ranch: null,
-  other: null,
+  other: [],
 });
 
 export const DEFAULT_MEAL_PLAN: MealPlan = DAYS_OF_WEEK.reduce((plan, day) => {
@@ -75,34 +76,3 @@ export const MILK_OPTION: Food = {
   score: "c",
 };
 
-export const RANCH_OPTION = {
-  name: "Ranch Dressing",
-  id: "ranch1",
-  calories: 65,
-  protein: 0,
-  carbs: 0.5,
-  fat: 6.5,
-  servingSize: "1",
-  servingSizeUnit: "tbsp" as const,
-  category: "condiments" as const,
-  meal: [
-    "breakfast",
-    "lunch",
-    "dinner",
-    "midmorning_snack",
-    "afternoon_snack",
-    "bedtime_snack",
-  ], // Add meal compatibility
-  score: "e",
-  upc: "071100005509",
-  novaGroup: 4,
-  nutrientLevels: {
-    fat: "high",
-    salt: "high",
-    "saturated-fat": "high",
-    sugars: "low",
-  },
-  recommendedUses: ["proteins", "vegetables"],
-  ingredients:
-    "vegetable oil (soybean and/or canola), water, sugar, salt, nonfat buttermilk, egg yolk, natural flavors, less than 1% of: spices, garlic*, onion*, vinegar, phosphoric acid, xanthan gum, modified food starch, monosodium glutamate, artificial flavors, disodium phosphate, sorbic acid and calcium disodium edta added to preserve freshness, disodium inosinate , guanylate,",
-} as const;

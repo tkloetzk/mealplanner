@@ -1,23 +1,16 @@
 import { NextResponse } from "next/server";
-import clientPromise from "@/services/infrastructure/database/mongodb/mongodb";
+import { DatabaseService } from "@/app/utils/DatabaseService";
 
 export async function GET() {
   try {
-    const client = await clientPromise;
-    const db = client.db("mealplanner_dev");
+    const testCollection = await DatabaseService.getInstance().getCollection("test");
 
-    // Test database connection with a ping
-    await db.command({ ping: 1 });
-
-    // Try to create a test document
-    const testCollection = db.collection("test");
     await testCollection.insertOne({
       test: true,
       date: new Date(),
       message: "MongoDB connection successful!",
     });
 
-    // Retrieve the test document
     const result = await testCollection.findOne({ test: true });
 
     return NextResponse.json({

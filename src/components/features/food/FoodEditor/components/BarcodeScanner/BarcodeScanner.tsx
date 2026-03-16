@@ -4,9 +4,12 @@ import { Result, useZxing } from "react-zxing";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { Food } from "@/types/food";
+import { isIOSDevice } from "@/utils/mediaDeviceUtils";
+import type { FoodSearchResult } from "@/types/foodSearch";
+import { searchResultToPartialFood } from "@/services/food/normalizers";
 
 interface BarcodeScannerProps {
-  onScan: (upc: Food) => void;
+  onScan: (food: Partial<Food>) => void;
   onClose: () => void;
 }
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
@@ -18,7 +21,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     setScanning(false);
 
     try {
-      const response = await fetch(`/api/upc?upc=${result.getText()}`);
+      const response = await fetch(`/api/foods/search?id=${result.getText()}`);
       if (!response.ok) {
         const data = await response.json();
         if (response.status === 404) {
@@ -28,9 +31,8 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         }
         return;
       }
-      const data = await response.json();
-      console.log(data);
-      onScan(data); // Now we're actually using the data
+      const data: FoodSearchResult = await response.json();
+      onScan(searchResultToPartialFood(data));
       onClose();
     } catch (error) {
       console.log(error);
@@ -41,12 +43,24 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const { ref } = useZxing({
     onDecodeResult: handleScan,
     onError: (error) => {
+      const iOS = isIOSDevice();
+
       if (error instanceof Error) {
         // Now TypeScript knows error has a `message` property
         if (error.message.includes("NotAllowedError")) {
-          setError("Camera access denied. Please enable camera permissions.");
+          setError(
+            iOS
+              ? "Camera access denied. On iPhone, go to Settings > Safari > Camera and enable access for this site."
+              : "Camera access denied. Please enable camera permissions in your browser settings."
+          );
         } else if (error.message.includes("NotFoundError")) {
           setError("No camera found. Please try on a device with a camera.");
+        } else if (error.message.includes("NotSupportedError")) {
+          setError(
+            iOS
+              ? "Camera not supported. Ensure you're using Safari and accessing via HTTPS or localhost."
+              : "Camera not supported. Please use HTTPS or localhost."
+          );
         } else {
           setError("Error accessing camera. Please try again.");
         }

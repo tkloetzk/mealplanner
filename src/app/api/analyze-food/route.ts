@@ -1,130 +1,43 @@
-// app/api/analyze-food-consumption/route.ts
+// app/api/analyze-food/route.ts
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateTextWithFallback } from "@/services/ai/geminiService";
+import { safeParseAiJson } from "@/utils/parseAiJson";
 
 export async function POST(request: Request) {
   try {
     const { prompt } = await request.json();
 
-    // Add timeout to the OpenRouter API call
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
+    let output: string;
     try {
-      // const response = await fetch(
-      //   "https://openrouter.ai/api/v1/chat/completions",
-      //   {
-      //     method: "POST",
-      //     signal: controller.signal,
-      //     headers: {
-      //       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      //       "Content-Type": "application/json",
-      //       "HTTP-Referer":
-      //         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-      //       "X-Title": "Kid's Meal Planner",
-      //     },
-      //     body: JSON.stringify({
-      //       model: "google/gemini-2.0-flash-thinking-exp:free",
-      //       messages: [
-      //         {
-      //           role: "user",
-      //           content: [
-      //             {
-      //               type: "image",
-      //               image: imageContent,
-      //             },
-      //             {
-      //               type: "text",
-      //               text: `Analyze this plate photo and determine how much of each food item was eaten compared to the original meal which contained: ${originalMeal}. Respond with ONLY a JSON object in this format: {"foods":[{"name":"food name","percentageEaten":number,"notes":"string"}],"summary":"string"}`,
-      //             },
-      //           ],
-      //         },
-      //       ],
-      //       temperature: 1,
-      //       top_p: 0.95,
-      //       top_k: 40,
-      //       max_tokens: 500,
-      //     }),
-      //   }
-      // );
-
-      //
-
-      // const apiKey = process.env.GEMINI_API_KEY;
-      // if (!apiKey) {
-      //   throw new Error("GEMINI_API_KEY is not defined in the environment");
-      // }
-      // const genAI = new GoogleGenerativeAI(apiKey);
-      // const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-      // Retrieve the data we recieve as part of the request body
-      //const data = await req.json();
-
-      // Define a prompt varibale
-      //const prompt = data.body;
-
-      // Pass the prompt to the model and retrieve the output
-      // const result = await model.generateContent(prompt);
-      // const response = await result.response;
-      // const output = await response.text();
-
-      //
-
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("GEMINI_API_KEY is not defined in the environment");
-      }
-
-      const generationConfig = {
+      output = await generateTextWithFallback(prompt, {
         temperature: 1,
-        top_p: 0.95,
-        top_k: 40,
-        max_output_tokens: 8192,
-        response_mime_type: "application/json",
-      };
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash-exp",
-        generationConfig,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 8192,
       });
-
-      const result = await model.generateContent(prompt);
-
-      //const prompt = "Explain how AI works";
-
-      // const result = await model.generateContent(prompt);
-      const response = await result.response;
-      //console.log(result.response.text());
-
-      const output = await response.text();
-
-      console.log(output);
-      clearTimeout(timeout);
-
-      // if (!response.ok) {
-      //   const errorText = await response.text();
-      //   console.error("6a. OpenRouter API error:", errorText); // Debug point 6a
-      //   throw new Error(`API request failed: ${errorText}`);
-      // }
-
-      // const data = await response.json();
-      // const output =
-      //   data.choices[0]?.message?.content || "No analysis available.";
-      // console.log("6b. Successfully parsed OpenRouter response", output); // Debug point 6b
-
-      return NextResponse.json(JSON.parse(output));
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        return NextResponse.json(
-          { error: "Analysis request timed out" },
-          { status: 504 }
-        );
+    } catch (e) {
+      if (
+        e instanceof Error &&
+        (e as Error & { quotaExceeded?: boolean }).quotaExceeded
+      ) {
+        return NextResponse.json({ error: "quota_exceeded" }, { status: 429 });
       }
-      throw error;
-    } finally {
-      clearTimeout(timeout);
+      throw e;
     }
+
+    const { data, error } = safeParseAiJson(output);
+    if (error) {
+      console.error(
+        "analyze-food: bad AI response",
+        error,
+        output.slice(0, 300)
+      );
+      return NextResponse.json(
+        { error: "AI returned an unexpected response format" },
+        { status: 502 }
+      );
+    }
+    return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
       {

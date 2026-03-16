@@ -8,7 +8,7 @@ describe("AnalysisButtons", () => {
   const mockOnMealAnalysis = jest.fn();
 
   const mockMealSelection: MealSelection = {
-    proteins: {
+    proteins: [{
       id: "protein-1",
       name: "Chicken",
       calories: 200,
@@ -24,14 +24,14 @@ describe("AnalysisButtons", () => {
       adjustedFat: 8,
       meal: ["lunch"],
       category: "proteins",
-    },
-    grains: null,
-    fruits: null,
-    vegetables: null,
+    }],
+    grains: [],
+    fruits: [],
+    vegetables: [],
     milk: null,
     ranch: null,
     condiments: [],
-    other: null,
+    other: [],
   };
 
   const defaultProps = {
@@ -105,14 +105,14 @@ describe("AnalysisButtons", () => {
 
   it("disables meal analysis when meal selection is empty", () => {
     const emptyMealSelection: MealSelection = {
-      proteins: null,
-      grains: null,
-      fruits: null,
-      vegetables: null,
+      proteins: [],
+      grains: [],
+      fruits: [],
+      vegetables: [],
       milk: null,
       ranch: null,
       condiments: [],
-      other: null,
+      other: [],
     };
 
     render(
@@ -135,10 +135,10 @@ describe("AnalysisButtons", () => {
 
   it("enables meal analysis when meal has condiments", () => {
     const mealSelectionWithCondiments: MealSelection = {
-      proteins: null,
-      grains: null,
-      fruits: null,
-      vegetables: null,
+      proteins: [],
+      grains: [],
+      fruits: [],
+      vegetables: [],
       milk: null,
       ranch: null,
       condiments: [
@@ -160,7 +160,7 @@ describe("AnalysisButtons", () => {
           category: "condiments",
         },
       ],
-      other: null,
+      other: [],
     };
 
     render(

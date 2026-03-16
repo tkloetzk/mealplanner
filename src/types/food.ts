@@ -11,6 +11,21 @@ export type ServingSizeUnit =
   | "oz"
   | "tsp";
 
+export interface ServingSizeOption {
+  id: string;
+  label: string;
+  amount: number;
+  unit: ServingSizeUnit;
+  gramsEquivalent: number;
+}
+
+export interface FoodPreparation {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  cloudinaryUrl?: string;
+}
+
 export interface FoodScoreAnalysis {
   score: string;
   summary: string;
@@ -25,14 +40,17 @@ export interface Food extends NutritionInfo {
   meal: MealType[];
   servings: number;
   hiddenFromChild?: boolean;
-  servingSize: string;
-  servingSizeUnit: ServingSizeUnit;
+  servingSize?: string;
+  servingSizeUnit?: ServingSizeUnit;
   servingSizeImported?: string;
+  servingSizes?: ServingSizeOption[];
+  baseNutritionPer100g?: NutritionInfo;
   cloudinaryUrl?: string;
   imagePath?: string;
   imageUrl?: string;
   upc?: string;
   ingredients?: string;
+  ingredientText?: string[];
   novaGroup?: number;
   nutrientLevels?: {
     fat: string;
@@ -51,14 +69,18 @@ export interface Food extends NutritionInfo {
   adjustedProtein?: number;
   adjustedCarbs?: number;
   adjustedFat?: number;
+  preparations?: FoodPreparation[];
+  selectedPreparation?: FoodPreparation;
 }
 
 export interface SelectedFood extends Food {
   servings: number;
+  selectedServingSizeId?: string;
   adjustedCalories: number;
   adjustedProtein: number;
   adjustedCarbs: number;
   adjustedFat: number;
+  selectedPreparation?: FoodPreparation;
 }
 
 export interface FoodConsumption {
@@ -77,6 +99,12 @@ export interface NutritionSummary {
   protein: number;
   carbs: number;
   fat: number;
+  sodium?: number;
+  sugar?: number;
+  saturatedFat?: number;
+  fiber?: number;
+  transFat?: number;
+  cholesterol?: number;
 }
 
 export interface FoodDocument extends Food {

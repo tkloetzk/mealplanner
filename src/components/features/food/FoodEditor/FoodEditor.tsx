@@ -9,11 +9,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Trash2, Minus, Plus } from "lucide-react";
-import { Food, ServingSizeUnit } from "@/types/food";
-import { CategoryType, MealType } from "@/types/shared";
+import { AlertCircle, Trash2, Minus, Plus, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Food,
+  FoodPreparation,
+  ServingSizeUnit,
+  ServingSizeOption,
+} from "@/types/food";
+import { CategoryType, MealType, NutritionInfo } from "@/types/shared";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { validateNutrition, isValidFood } from "./utils/validateNutrition";
 import { FoodSearch } from "../FoodSearch/FoodSearch";
 import { ImageUploader } from "./components/BarcodeScanner/ImageUploader";
@@ -27,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { FoodScoreDisplay } from "../../meals/shared/FoodScoreDisplay";
 import { BarcodeScanner } from "./components/BarcodeScanner";
+import { calculateNutritionForServing } from "@/utils/foodMigration";
 
 // Add these constants at the top of the file
 const SUBCATEGORIES = [
@@ -73,6 +81,12 @@ export function FoodEditor({
     protein: 0,
     carbs: 0,
     fat: 0,
+    sodium: 0,
+    fiber: 0,
+    sugar: 0,
+    saturatedFat: 0,
+    transFat: 0,
+    cholesterol: 0,
     servingSize: "1",
     servingSizeUnit: "tbsp" as ServingSizeUnit,
     category: "proteins" as CategoryType,
@@ -86,6 +100,7 @@ export function FoodEditor({
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [food, setFood] = useState<Partial<Food>>(initialFoodState);
   const [isScanning, setIsScanning] = useState(false);
   const [showToChild, setShowToChild] = useState(!initialFood?.hiddenFromChild);
@@ -94,10 +109,63 @@ export function FoodEditor({
     initialFood?.cloudinaryUrl ||
       initialFood?.imageUrl ||
       initialFood?.imagePath ||
-      null
+      null,
   );
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // New state for multiple serving sizes
+  const [baseNutrition, setBaseNutrition] = useState<NutritionInfo>(
+    initialFood?.baseNutritionPer100g || {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+    },
+  );
+
+  const [servingSizes, setServingSizes] = useState<ServingSizeOption[]>(
+    initialFood?.servingSizes || [
+      {
+        id: "default",
+        label: "1 serving",
+        amount: 1,
+        unit: "piece",
+        gramsEquivalent: 100,
+      },
+    ],
+  );
+
+  // State for collapsible base nutrition section
+  const [showBaseNutrition, setShowBaseNutrition] = useState(false);
+  const [showExtendedNutrition, setShowExtendedNutrition] = useState(false);
+
+  const [preparations, setPreparations] = useState<FoodPreparation[]>(
+    initialFood?.preparations || [],
+  );
+
+  const handleAddPreparation = () => {
+    setPreparations((prev) => [
+      ...prev,
+      { id: `prep-${Date.now()}`, name: "" },
+    ]);
+  };
+
+  const handleUpdatePreparation = (
+    index: number,
+    field: keyof FoodPreparation,
+    value: string,
+  ) => {
+    setPreparations((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleRemovePreparation = (index: number) => {
+    setPreparations((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleDelete = async () => {
     if (!initialFood?.id) {
@@ -119,7 +187,7 @@ export function FoodEditor({
       setDeleteError(
         error instanceof Error
           ? error.message
-          : "An unexpected error occurred during deletion."
+          : "An unexpected error occurred during deletion.",
       );
     } finally {
       setLoading(false);
@@ -151,6 +219,42 @@ export function FoodEditor({
     (field: keyof Food) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setFood((prev) => ({ ...prev, [field]: e.target.value }));
     };
+
+  // Handlers for base nutrition
+  const handleBaseNutritionChange =
+    (field: keyof NutritionInfo) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value === "" ? 0 : Number(e.target.value);
+      setBaseNutrition((prev) => ({ ...prev, [field]: value }));
+    };
+
+  // Handlers for serving sizes
+  const handleAddServingSize = () => {
+    const newOption: ServingSizeOption = {
+      id: `serving-${Date.now()}`,
+      label: "",
+      amount: 1,
+      unit: "piece",
+      gramsEquivalent: 0,
+    };
+    setServingSizes([...servingSizes, newOption]);
+  };
+
+  const handleUpdateServingSize = (
+    index: number,
+    field: keyof ServingSizeOption,
+    value: string | number,
+  ) => {
+    const updated = [...servingSizes];
+    updated[index] = { ...updated[index], [field]: value };
+    setServingSizes(updated);
+  };
+
+  const handleRemoveServingSize = (index: number) => {
+    if (servingSizes.length > 1) {
+      setServingSizes(servingSizes.filter((_, i) => i !== index));
+    }
+  };
 
   const uploadImage = async (imageData: string) => {
     try {
@@ -186,7 +290,16 @@ export function FoodEditor({
   };
 
   const handleUPCFound = (data: Food) => {
+    setSearchError(null);
     setFood((prev) => ({ ...prev, ...data }));
+
+    // Update base nutrition if provided from UPC scan
+    if (data.baseNutritionPer100g) {
+      setBaseNutrition(data.baseNutritionPer100g);
+    }
+    if (data.servingSizes?.length) {
+      setServingSizes(data.servingSizes);
+    }
   };
 
   const handleImageCaptured = (imageData: string) => {
@@ -212,11 +325,34 @@ export function FoodEditor({
           food.cloudinaryUrl = cloudinaryUrl;
         }
 
+        // Auto-populate per-serving macros from base nutrition if not set manually
+        const perServing =
+          food.protein === 0 &&
+          food.carbs === 0 &&
+          food.fat === 0 &&
+          baseNutrition.protein > 0 &&
+          (servingSizes[0]?.gramsEquivalent ?? 0) > 0
+            ? calculateNutritionForServing(
+                baseNutrition,
+                servingSizes[0].gramsEquivalent,
+                1,
+              )
+            : null;
+
         // Add condiment-specific fields if category is condiments
         const foodToSave = {
           ...food,
+          ...(perServing && {
+            calories: Math.round(perServing.calories),
+            protein: perServing.protein,
+            carbs: perServing.carbs,
+            fat: perServing.fat,
+          }),
           hiddenFromChild: !showToChild,
           isCondiment: food.category === "condiments",
+          baseNutritionPer100g: baseNutrition,
+          servingSizes: servingSizes,
+          preparations: preparations.length > 0 ? preparations : undefined,
           ...(food.category === "condiments" && {
             subcategory: food.subcategory || "other",
             recommendedUses: food.recommendedUses || ["any"],
@@ -257,7 +393,7 @@ export function FoodEditor({
 
         <FoodSearch
           onFoodFound={handleUPCFound}
-          onError={(error) => setValidationErrors([error])}
+          onError={setSearchError}
           onScanRequest={() => setIsScanning(true)}
         />
 
@@ -269,6 +405,13 @@ export function FoodEditor({
             }}
             onClose={() => setIsScanning(false)}
           />
+        )}
+
+        {searchError && (
+          <Alert variant="destructive" className="py-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{searchError}</AlertDescription>
+          </Alert>
         )}
 
         <ImageUploader food={food} onUpload={handleImageCaptured} />
@@ -313,7 +456,7 @@ export function FoodEditor({
                           {level}
                         </span>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -354,6 +497,22 @@ export function FoodEditor({
               value={food.name ?? ""}
               onChange={handleTextInput("name")}
               required
+            />
+          </div>
+
+          <div>
+            <Label className="text-sm" htmlFor="ingredients">
+              Ingredients
+            </Label>
+            <Textarea
+              id="ingredients"
+              value={food.ingredients ?? ""}
+              onChange={(e) =>
+                setFood((prev) => ({ ...prev, ingredients: e.target.value }))
+              }
+              placeholder="e.g., Water, Sugar, Salt..."
+              rows={3}
+              className="text-sm"
             />
           </div>
 
@@ -431,7 +590,7 @@ export function FoodEditor({
                               recommendedUses: checked
                                 ? [...(prev.recommendedUses || []), value]
                                 : (prev.recommendedUses || []).filter(
-                                    (use) => use !== value
+                                    (use) => use !== value,
                                   ),
                             }))
                           }
@@ -478,8 +637,8 @@ export function FoodEditor({
                 Protein (g)
               </Label>
               <Input
-                id="protein"
                 type="number"
+                id="protein"
                 value={food.protein ?? 0}
                 onChange={handleNumberInput("protein")}
                 min={0}
@@ -491,8 +650,8 @@ export function FoodEditor({
                 Carbs (g)
               </Label>
               <Input
-                id="carbs"
                 type="number"
+                id="carbs"
                 value={food.carbs ?? 0}
                 onChange={handleNumberInput("carbs")}
                 min={0}
@@ -504,8 +663,8 @@ export function FoodEditor({
                 Fat (g)
               </Label>
               <Input
-                id="fat"
                 type="number"
+                id="fat"
                 value={food.fat ?? 0}
                 onChange={handleNumberInput("fat")}
                 min={0}
@@ -514,77 +673,256 @@ export function FoodEditor({
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm mb-2 block">Serving Size</Label>
+          {/* Base Nutrition Section (per 100g) - Collapsible */}
+          <div className="border rounded-lg">
+            <button
+              type="button"
+              onClick={() => setShowBaseNutrition(!showBaseNutrition)}
+              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-t-lg transition-colors"
+            >
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 shrink-0"
-                  onClick={() => {
-                    const currentValue = parseFloat(food.servingSize ?? "1");
-                    if (!isNaN(currentValue) && currentValue > 0.25) {
-                      setFood((prev) => ({
-                        ...prev,
-                        servingSize: (currentValue - 0.25).toString(),
-                      }));
-                    }
-                  }}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <Input
-                  id="servingSize"
-                  type="number"
-                  min="0.25"
-                  step="0.25"
-                  value={food.servingSize ?? "1"}
-                  onChange={handleTextInput("servingSize")}
-                  className="h-10 text-center"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 shrink-0"
-                  onClick={() => {
-                    const currentValue = parseFloat(food.servingSize ?? "1");
-                    if (!isNaN(currentValue)) {
-                      setFood((prev) => ({
-                        ...prev,
-                        servingSize: (currentValue + 0.25).toString(),
-                      }));
-                    }
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <span className="font-medium text-sm">
+                  Base Nutrition (per 100g)
+                </span>
+                {baseNutrition.calories > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    Auto-calculated
+                  </Badge>
+                )}
               </div>
-            </div>
-            <div>
-              <Label className="text-sm">Unit</Label>
-              <Select
-                value={food.servingSizeUnit}
-                onValueChange={(value: ServingSizeUnit) =>
-                  setFood((prev) => ({ ...prev, servingSizeUnit: value }))
-                }
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${
+                  showBaseNutrition ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showBaseNutrition && (
+              <div className="p-4 border-t bg-gray-50">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Calories</Label>
+                    <Input
+                      type="number"
+                      value={baseNutrition.calories ?? 0}
+                      onChange={handleBaseNutritionChange("calories")}
+                      min={0}
+                      step="0.1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Protein (g)</Label>
+                    <Input
+                      type="number"
+                      value={baseNutrition.protein ?? 0}
+                      onChange={handleBaseNutritionChange("protein")}
+                      min={0}
+                      step="0.1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Carbs (g)</Label>
+                    <Input
+                      type="number"
+                      value={baseNutrition.carbs ?? 0}
+                      onChange={handleBaseNutritionChange("carbs")}
+                      min={0}
+                      step="0.1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Fat (g)</Label>
+                    <Input
+                      type="number"
+                      value={baseNutrition.fat ?? 0}
+                      onChange={handleBaseNutritionChange("fat")}
+                      min={0}
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!showBaseNutrition && baseNutrition.calories === 0 && (
+              <p className="text-xs text-gray-500 px-3 pb-2">
+                Usually auto-calculated from serving sizes or UPC scan
+              </p>
+            )}
+          </div>
+
+          {/* Extended Nutrition (per serving) */}
+          <div className="border rounded-lg">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between p-3 text-sm font-medium"
+              onClick={() => setShowExtendedNutrition((v) => !v)}
+            >
+              <span>Extended Nutrition</span>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${showExtendedNutrition ? "rotate-180" : ""}`}
+              />
+            </button>
+            {showExtendedNutrition && (
+              <div className="grid grid-cols-2 gap-3 p-3 pt-0">
+                <div>
+                  <Label className="text-sm" htmlFor="sodium">Sodium (mg)</Label>
+                  <Input type="number" id="sodium" value={food.sodium ?? 0} onChange={handleNumberInput("sodium")} min={0} step="1" />
+                </div>
+                <div>
+                  <Label className="text-sm" htmlFor="fiber">Fiber (g)</Label>
+                  <Input type="number" id="fiber" value={food.fiber ?? 0} onChange={handleNumberInput("fiber")} min={0} step="0.1" />
+                </div>
+                <div>
+                  <Label className="text-sm" htmlFor="sugar">Sugar (g)</Label>
+                  <Input type="number" id="sugar" value={food.sugar ?? 0} onChange={handleNumberInput("sugar")} min={0} step="0.1" />
+                </div>
+                <div>
+                  <Label className="text-sm" htmlFor="saturatedFat">Saturated Fat (g)</Label>
+                  <Input type="number" id="saturatedFat" value={food.saturatedFat ?? 0} onChange={handleNumberInput("saturatedFat")} min={0} step="0.1" />
+                </div>
+                <div>
+                  <Label className="text-sm" htmlFor="transFat">Trans Fat (g)</Label>
+                  <Input type="number" id="transFat" value={food.transFat ?? 0} onChange={handleNumberInput("transFat")} min={0} step="0.1" />
+                </div>
+                <div>
+                  <Label className="text-sm" htmlFor="cholesterol">Cholesterol (mg)</Label>
+                  <Input type="number" id="cholesterol" value={food.cholesterol ?? 0} onChange={handleNumberInput("cholesterol")} min={0} step="1" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Serving Sizes Section */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="font-medium text-sm">Serving Sizes</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddServingSize}
               >
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="g">grams</SelectItem>
-                  <SelectItem value="ml">milliliters</SelectItem>
-                  <SelectItem value="oz">ounces</SelectItem>
-                  <SelectItem value="tsp">tsp</SelectItem>
-                  <SelectItem value="tbsp">tbsp</SelectItem>
-                  <SelectItem value="cup">cups</SelectItem>
-                  <SelectItem value="piece">pieces</SelectItem>
-                </SelectContent>
-              </Select>
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
             </div>
+
+            {servingSizes.map((option, index) => {
+              const calculatedNutrition = calculateNutritionForServing(
+                baseNutrition,
+                option.gramsEquivalent || 0,
+                1,
+              );
+
+              return (
+                <div
+                  key={option.id}
+                  className="border rounded-lg p-3 space-y-2 bg-white"
+                >
+                  <div className="flex justify-between items-start">
+                    <Label className="text-xs font-medium text-gray-600">
+                      Option {index + 1}
+                    </Label>
+                    {servingSizes.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveServingSize(index)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
+                      <Label className="text-xs">Label</Label>
+                      <Input
+                        placeholder="e.g., 1 strawberry, 1 cup"
+                        value={option.label}
+                        onChange={(e) =>
+                          handleUpdateServingSize(
+                            index,
+                            "label",
+                            e.target.value,
+                          )
+                        }
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Amount</Label>
+                      <Input
+                        type="number"
+                        value={option.amount}
+                        onChange={(e) =>
+                          handleUpdateServingSize(
+                            index,
+                            "amount",
+                            Number(e.target.value),
+                          )
+                        }
+                        min="0.1"
+                        step="0.1"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Unit</Label>
+                      <Select
+                        value={option.unit}
+                        onValueChange={(value) =>
+                          handleUpdateServingSize(index, "unit", value)
+                        }
+                      >
+                        <SelectTrigger className="text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="g">grams</SelectItem>
+                          <SelectItem value="ml">milliliters</SelectItem>
+                          <SelectItem value="oz">ounces</SelectItem>
+                          <SelectItem value="tsp">tsp</SelectItem>
+                          <SelectItem value="tbsp">tbsp</SelectItem>
+                          <SelectItem value="cup">cups</SelectItem>
+                          <SelectItem value="piece">pieces</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Weight (grams)</Label>
+                      <Input
+                        type="number"
+                        placeholder="How many grams?"
+                        value={option.gramsEquivalent || ""}
+                        onChange={(e) =>
+                          handleUpdateServingSize(
+                            index,
+                            "gramsEquivalent",
+                            Number(e.target.value),
+                          )
+                        }
+                        min="0"
+                        step="0.1"
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Calculated nutrition preview */}
+                  {option.gramsEquivalent > 0 && (
+                    <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                      Per serving: {Math.round(calculatedNutrition.calories)}{" "}
+                      cal, {calculatedNutrition.protein.toFixed(1)}g protein,{" "}
+                      {calculatedNutrition.carbs.toFixed(1)}g carbs,{" "}
+                      {calculatedNutrition.fat.toFixed(1)}g fat
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div>
@@ -608,6 +946,65 @@ export function FoodEditor({
             </div>
           </div>
 
+          {/* Preparations Section */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="font-medium text-sm">Preparations</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddPreparation}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
+            {preparations.length === 0 && (
+              <p className="text-xs text-gray-500">
+                Add preparation variants (e.g., Scrambled Eggs, Hard Boiled) so
+                kids can choose how it&apos;s made.
+              </p>
+            )}
+            {preparations.map((prep, index) => (
+              <div
+                key={prep.id}
+                className="border rounded-lg p-3 space-y-2 bg-white"
+              >
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs font-medium text-gray-600">
+                    Preparation {index + 1}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemovePreparation(index)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div>
+                  <Label className="text-xs">Name</Label>
+                  <Input
+                    placeholder="e.g., Scrambled Eggs"
+                    value={prep.name}
+                    onChange={(e) =>
+                      handleUpdatePreparation(index, "name", e.target.value)
+                    }
+                    className="text-sm"
+                  />
+                </div>
+                <ImageUploader
+                  imageUrl={prep.cloudinaryUrl || prep.imageUrl || null}
+                  onUpload={(url) =>
+                    handleUpdatePreparation(index, "cloudinaryUrl", url)
+                  }
+                />
+              </div>
+            ))}
+          </div>
+
           <div className="sticky bottom-0 bg-white pt-2 flex justify-end gap-2 border-t">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
@@ -618,7 +1015,7 @@ export function FoodEditor({
                 loading || !isValidFood(food) || validationErrors.length > 0
               }
             >
-              Save Food
+              {loading ? "Saving..." : "Save Food"}
             </Button>
           </div>
         </form>

@@ -57,6 +57,49 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const foodData = await request.json();
+
+    // Validate serving sizes structure if present
+    if (foodData.servingSizes) {
+      if (
+        !Array.isArray(foodData.servingSizes) ||
+        foodData.servingSizes.length === 0
+      ) {
+        return NextResponse.json(
+          { error: "servingSizes must be a non-empty array" },
+          { status: 400 }
+        );
+      }
+
+      // Validate each serving size option
+      for (const option of foodData.servingSizes) {
+        if (!option.id || !option.label || option.gramsEquivalent === undefined) {
+          return NextResponse.json(
+            {
+              error:
+                "Each serving size must have id, label, and gramsEquivalent",
+            },
+            { status: 400 }
+          );
+        }
+
+        if (option.gramsEquivalent <= 0) {
+          return NextResponse.json(
+            { error: "gramsEquivalent must be greater than 0" },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (!foodData.baseNutritionPer100g) {
+        return NextResponse.json(
+          {
+            error: "baseNutritionPer100g is required when using servingSizes",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Ensure all numeric fields are actually numbers before saving
     const validatedFoodData = ensureNestedNumericFields(foodData);
 

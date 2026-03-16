@@ -321,10 +321,10 @@ describe("MealStore Integration Tests", () => {
       });
 
       await waitFor(() => {
-        expect(nutritionResult.current.calories).toBe(testFood.calories);
-        expect(nutritionResult.current.protein).toBe(testFood.protein);
-        expect(nutritionResult.current.carbs).toBe(testFood.carbs);
-        expect(nutritionResult.current.fat).toBe(testFood.fat);
+        expect(nutritionResult.current.calories).toBe(Math.round(testFood.calories));
+        expect(nutritionResult.current.protein).toBe(Math.round(testFood.protein));
+        expect(nutritionResult.current.carbs).toBe(Math.round(testFood.carbs));
+        expect(nutritionResult.current.fat).toBe(Math.round(testFood.fat));
       });
     });
 

@@ -22,15 +22,12 @@ describe("NutritionSummary Integration", () => {
     // Clear fetch mock
     (global.fetch as jest.Mock).mockClear();
 
-    // Reset store to initial state
-    const store = useMealStore.getState();
-    store.initializeKids([]);
+    // Fully reset store state to prevent leakage between tests
+    useMealStore.setState({ selections: {}, selectedKid: "", mealHistory: {} });
   });
 
   afterEach(() => {
-    // Reset store to initial state
-    const store = useMealStore.getState();
-    store.initializeKids([]);
+    useMealStore.setState({ selections: {}, selectedKid: "", mealHistory: {} });
     jest.clearAllMocks();
   });
 
@@ -137,16 +134,16 @@ describe("NutritionSummary Integration", () => {
     // Add food and verify initial values
     await store.handleFoodSelect("proteins", testFood);
     expect(screen.getByTestId("calories-value")).toHaveTextContent(
-      "350 / 400 cal"
+      "200 / 400 cal"
     );
 
-    // Adjust servings
+    // Adjust servings to 2 (adjustedCalories = 200 * 2 = 400)
     await store.handleServingAdjustment("proteins", testFood.id, 2);
     rerender(<NutritionSummary {...defaultProps} />);
 
     // Verify updated values
     expect(screen.getByTestId("calories-value")).toHaveTextContent(
-      "150 / 400 cal"
+      "400 / 400 cal"
     );
   });
 

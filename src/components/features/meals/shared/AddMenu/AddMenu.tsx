@@ -5,17 +5,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Apple, UtensilsCrossed } from "lucide-react";
+import { Plus, Apple, UtensilsCrossed, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AddMenuProps {
   onAddFood: () => void;
+  onAddMultipleFoods: () => void;
   onAddMeal: () => void;
   className?: string;
 }
 
 export const AddMenu = ({
   onAddFood,
+  onAddMultipleFoods,
   onAddMeal,
   className = "",
 }: AddMenuProps) => {
@@ -24,6 +26,11 @@ export const AddMenu = ({
   const handleAddFood = () => {
     setIsOpen(false);
     onAddFood();
+  };
+
+  const handleAddMultipleFoods = () => {
+    setIsOpen(false);
+    onAddMultipleFoods();
   };
 
   const handleAddMeal = () => {
@@ -43,7 +50,7 @@ export const AddMenu = ({
           <span className="sr-only">Add menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem
           onClick={handleAddFood}
           className="cursor-pointer"
@@ -51,6 +58,14 @@ export const AddMenu = ({
         >
           <Apple className="mr-2 h-4 w-4" />
           <span>Add Food</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={handleAddMultipleFoods}
+          className="cursor-pointer"
+          data-testid="add-multiple-foods-option"
+        >
+          <Layers className="mr-2 h-4 w-4" />
+          <span>Add Multiple Foods</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={handleAddMeal}

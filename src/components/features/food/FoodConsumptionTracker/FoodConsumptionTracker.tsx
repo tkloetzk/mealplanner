@@ -10,19 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MealSelection } from "@/types/food";
+import {
+  ConsumptionData,
+  ConsumptionDisplay,
+} from "@/components/features/food/ConsumptionDisplay/ConsumptionDisplay";
 
 interface FoodConsumptionTrackerProps {
   selectedFoods: MealSelection;
   onAnalysisComplete: (consumptionData: ConsumptionData) => void;
-}
-
-interface ConsumptionData {
-  foods: {
-    name: string;
-    percentageEaten: number;
-    notes?: string;
-  }[];
-  summary: string;
 }
 
 export function FoodConsumptionTracker({
@@ -100,22 +95,7 @@ export function FoodConsumptionTracker({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analysis.foods.map((food, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="font-medium">{food.name}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-500 transition-all"
-                        style={{ width: `${food.percentageEaten}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      {food.percentageEaten}% eaten
-                    </span>
-                  </div>
-                </div>
-              ))}
+              <ConsumptionDisplay foods={analysis.foods} />
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">{analysis.summary}</p>
               </div>

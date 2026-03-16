@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Food, SelectedFood, ServingSizeUnit } from "@/types/food";
+import { calculateNutritionForServing } from "@/utils/foodMigration";
 import {
   Select,
   SelectContent,
@@ -28,22 +29,41 @@ export const ServingSelector: React.FC<ServingSelectorProps> = ({
 }) => {
   const [servings, setServings] = useState(food.servings || currentServings);
   const [servingUnit, setServingUnit] = useState<ServingSizeUnit>(
-    food.servingSizeUnit
+    food.servingSizes?.[0]?.unit ?? food.servingSizeUnit
   );
 
   useEffect(() => {
     setServings(food.servings || currentServings);
   }, [food.servings, currentServings]);
 
-  const createAdjustedFood = (validServings: number): SelectedFood => ({
-    ...food,
-    servings: validServings,
-    servingSizeUnit: servingUnit,
-    adjustedCalories: Math.round(food.calories * validServings),
-    adjustedProtein: food.protein * validServings,
-    adjustedCarbs: food.carbs * validServings,
-    adjustedFat: food.fat * validServings,
-  });
+  const computeNutrition = (validServings: number) => {
+    if (food.baseNutritionPer100g && food.servingSizes?.[0]?.gramsEquivalent) {
+      return calculateNutritionForServing(
+        food.baseNutritionPer100g,
+        food.servingSizes[0].gramsEquivalent,
+        validServings
+      );
+    }
+    return {
+      calories: food.calories * validServings,
+      protein: food.protein * validServings,
+      carbs: food.carbs * validServings,
+      fat: food.fat * validServings,
+    };
+  };
+
+  const createAdjustedFood = (validServings: number): SelectedFood => {
+    const nutrition = computeNutrition(validServings);
+    return {
+      ...food,
+      servings: validServings,
+      servingSizeUnit: servingUnit,
+      adjustedCalories: Math.round(nutrition.calories),
+      adjustedProtein: nutrition.protein,
+      adjustedCarbs: nutrition.carbs,
+      adjustedFat: nutrition.fat,
+    };
+  };
 
   const updateServings = (newServings: number) => {
     const validServings = Math.max(0.25, Math.min(5, newServings));
@@ -95,7 +115,7 @@ export const ServingSelector: React.FC<ServingSelectorProps> = ({
           data-testid="custom-serving-input"
         />
         <span className="text-sm text-gray-600 whitespace-nowrap">
-          {compact ? "servings" : `× ${food.servingSize}`}
+          {compact ? "servings" : `× ${food.servingSizes?.[0]?.label ?? `${food.servingSize} ${food.servingSizeUnit}`}`}
         </span>
       </div>
       <Button
@@ -139,42 +159,46 @@ export const ServingSelector: React.FC<ServingSelectorProps> = ({
   return (
     <div className="space-y-4">
       <div className="text-sm text-gray-600 mb-2">
-        Base serving: {food.servingSize} {food.servingSizeUnit}
+        Base serving: {food.servingSizes?.[0]?.label ?? `${food.servingSize} ${food.servingSizeUnit}`}
       </div>
 
       <ServingControls />
       <ServingUnitSelector />
 
       <div className="text-sm text-gray-600">
-        Total amount: {(parseFloat(food.servingSize) * servings).toFixed(2)}{" "}
-        {servingUnit}
+        {food.servingSizes?.[0] ? (
+          <>Total amount: {(food.servingSizes[0].amount * servings).toFixed(2)} {food.servingSizes[0].unit}</>
+        ) : (
+          <>Total amount: {(parseFloat(food.servingSize) * servings).toFixed(2)} {servingUnit}</>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg text-sm">
-        <div className="flex justify-between">
-          <span>Calories:</span>
-          <span className="font-medium" data-testid="calories-incremented">
-            {Math.round(food.calories * servings)}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Protein:</span>
-          <span className="font-medium">
-            {(food.protein * servings).toFixed(1)}g
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Carbs:</span>
-          <span className="font-medium">
-            {(food.carbs * servings).toFixed(1)}g
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Fat:</span>
-          <span className="font-medium">
-            {(food.fat * servings).toFixed(1)}g
-          </span>
-        </div>
+        {(() => {
+          const n = computeNutrition(servings);
+          return (
+            <>
+              <div className="flex justify-between">
+                <span>Calories:</span>
+                <span className="font-medium" data-testid="calories-incremented">
+                  {Math.round(n.calories)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Protein:</span>
+                <span className="font-medium">{n.protein.toFixed(1)}g</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Carbs:</span>
+                <span className="font-medium">{n.carbs.toFixed(1)}g</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Fat:</span>
+                <span className="font-medium">{n.fat.toFixed(1)}g</span>
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       <div className="flex justify-end gap-2">

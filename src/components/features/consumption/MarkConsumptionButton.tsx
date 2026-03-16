@@ -13,6 +13,8 @@ import type { MealSelection } from "@/types/meals";
 interface MarkConsumptionButtonProps {
   initialStatus?: ConsumptionInfo;
   mealId?: string;
+  /** The calendar date of this meal — forwarded to ConsumptionStatusSelector for time combination */
+  mealDate?: string | Date;
   mealSelections?: MealSelection; // The original foods that were offered in the meal
   onSave: (status: ConsumptionInfo) => void;
   children?: React.ReactNode;
@@ -20,6 +22,7 @@ interface MarkConsumptionButtonProps {
 
 export function MarkConsumptionButton({
   initialStatus,
+  mealDate,
   mealSelections,
   onSave,
   children = "Mark Consumption",
@@ -44,6 +47,7 @@ export function MarkConsumptionButton({
           </DialogHeader>
           <ConsumptionStatusSelector
             initialStatus={initialStatus}
+            mealDate={mealDate}
             mealSelections={mealSelections}
             onSave={handleSave}
             onCancel={() => setIsOpen(false)}

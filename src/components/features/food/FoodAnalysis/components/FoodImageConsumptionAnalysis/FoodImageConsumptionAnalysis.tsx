@@ -27,7 +27,6 @@ export function FoodImageConsumptionAnalysis({
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  console.log("originalMeal", originalMeal);
   // components/FoodImageConsumptionAnalysis.tsx
   const handleImageCapture = useCallback(
     async (imageData: string) => {
@@ -35,12 +34,6 @@ export function FoodImageConsumptionAnalysis({
       setError(null);
 
       try {
-        // Let's first log what we're sending to understand the data
-        console.log("Sending image data:", {
-          imageLength: imageData.length,
-          imageStart: imageData.slice(0, 50), // Just log the start to verify format
-        });
-
         const response = await fetch("/api/analyze-food-consumption", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

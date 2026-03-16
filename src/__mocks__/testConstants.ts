@@ -9,7 +9,6 @@ import {
   AFTERNOON_SNACK,
   DAYS_OF_WEEK,
 } from "@/constants/index";
-import { RANCH_OPTION } from "@/constants/meal-goals";
 // Constant for selected day
 export const SELECTED_DAY = DAYS_OF_WEEK[6];
 
@@ -114,5 +113,21 @@ export const MOCK_FOODS = {
       hiddenFromChild: false,
     },
   ],
-  condiments: [RANCH_OPTION],
+  condiments: [
+    {
+      id: "condiment-test-1",
+      name: "Ranch Dressing",
+      category: "condiments" as CategoryType,
+      calories: 65,
+      protein: 0,
+      carbs: 0.5,
+      fat: 6.5,
+      servingSize: "1",
+      servingSizeUnit: "tbsp" as ServingSizeUnit,
+      meal: [BREAKFAST, LUNCH, DINNER, AFTERNOON_SNACK],
+      recommendedUses: ["proteins", "vegetables"],
+      score: "e",
+      servings: 1,
+    },
+  ],
 };

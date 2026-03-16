@@ -1,5 +1,4 @@
 // src/__mocks__/testSetup/mocks.ts
-import { RANCH_OPTION } from "@/constants/meal-goals";
 import { MOCK_FOODS } from "../testConstants";
 
 export const mockHistoryData = {
@@ -10,12 +9,14 @@ export const mockHistoryData = {
       date: new Date().toISOString(),
       meal: "breakfast",
       selections: {
-        proteins: MOCK_FOODS.proteins[0],
-        fruits: null,
-        vegetables: null,
-        grains: null,
+        proteins: [MOCK_FOODS.proteins[0]],
+        fruits: [],
+        vegetables: [],
+        grains: [],
         milk: null,
         ranch: null,
+        condiments: [],
+        other: [],
       },
     },
   ],
@@ -44,7 +45,7 @@ export const setupFetchMock = () => {
             proteins: MOCK_FOODS.proteins,
             fruits: MOCK_FOODS.fruits,
             vegetables: MOCK_FOODS.vegetables,
-            condiments: [RANCH_OPTION],
+            condiments: MOCK_FOODS.condiments,
             other: MOCK_FOODS.other,
           }),
       });

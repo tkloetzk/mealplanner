@@ -22,6 +22,7 @@ interface FoodGridProps {
   onToggleVisibility: (food: Food) => void;
   onToggleAllOtherFoodVisibility: () => void;
   onAddFood: () => void;
+  onAddMultipleFoods: () => void;
   onAddMeal: () => void;
   setSelectedFoodContext: (context: FoodContext | null) => void;
 }
@@ -36,6 +37,7 @@ export const FoodGrid = React.memo(
     onEditFood,
     onToggleVisibility,
     onToggleAllOtherFoodVisibility,
+    onAddMultipleFoods,
     onAddMeal,
     setSelectedFoodContext,
   }: FoodGridProps) => {
@@ -62,6 +64,7 @@ export const FoodGrid = React.memo(
               food: {} as Food,
             })
           }
+          onAddMultipleFoods={onAddMultipleFoods}
           onAddMeal={onAddMeal}
           className="z-40 fixed bottom-4 right-4"
         />
@@ -102,24 +105,16 @@ export const FoodGrid = React.memo(
                         const validCategory = getValidCategory(category);
                         if (!validCategory || !food) return null;
 
-                        const selectedFoodInCategory =
-                          validCategory === "condiments"
-                            ? currentMealSelection?.condiments?.find(
-                                (c) =>
-                                  c.name.toLowerCase() ===
-                                  food.name.toLowerCase()
-                              ) || null
-                            : currentMealSelection?.[validCategory] || null;
+                        const categoryValue = currentMealSelection?.[validCategory];
+                        const isArrayCat = Array.isArray(categoryValue);
 
-                        const isSelected =
-                          validCategory === "condiments"
-                            ? currentMealSelection?.condiments?.some(
-                                (c) =>
-                                  c.name.toLowerCase() ===
-                                  food.name.toLowerCase()
-                              )
-                            : selectedFoodInCategory?.name.toLowerCase() ===
-                              food.name.toLowerCase();
+                        const selectedFoodInCategory = isArrayCat
+                          ? (categoryValue as Food[]).find((c) => c.id === food.id) || null
+                          : (categoryValue as Food | null) || null;
+
+                        const isSelected = isArrayCat
+                          ? (categoryValue as Food[]).some((c) => c.id === food.id)
+                          : (categoryValue as Food | null)?.id === food.id;
 
                         return (
                           <FoodItem

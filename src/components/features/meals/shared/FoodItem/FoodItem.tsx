@@ -122,7 +122,13 @@ export const FoodItem = ({
       {isSelected && selectedFoodInCategory && (
         <div className="flex items-center justify-between mt-3 pt-3 border-t">
           <div className="text-sm font-medium text-blue-600">
-            {`${selectedFoodInCategory.servings || 1} serving(s) • ${Math.round(
+            {`${selectedFoodInCategory.servings || 1} serving(s)${
+              food.servingSizes?.[0]?.label
+                ? ` (${food.servingSizes[0].label} each)`
+                : food.servingSize && food.servingSizeUnit
+                ? ` (${food.servingSize} ${food.servingSizeUnit} each)`
+                : ""
+            } • ${Math.round(
               selectedFoodInCategory.adjustedCalories ||
                 selectedFoodInCategory.calories *
                   (selectedFoodInCategory.servings || 1)

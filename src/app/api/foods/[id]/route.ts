@@ -6,9 +6,9 @@ import { FoodCache } from "@/app/utils/FoodCache";
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const foodId = params.id;
+  const { id: foodId } = await params;
   if (!foodId) return handleError(null, "Invalid food ID", 400);
 
   try {
@@ -31,9 +31,9 @@ export async function DELETE(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const foodId = params.id;
+  const { id: foodId } = await params;
 
   try {
     const service = DatabaseService.getInstance();
@@ -43,6 +43,48 @@ export async function PUT(
 
     if (!foodId) {
       return NextResponse.json({ error: "Invalid food ID" }, { status: 400 });
+    }
+
+    // Validate serving sizes structure if present
+    if (updatedFood.servingSizes) {
+      if (
+        !Array.isArray(updatedFood.servingSizes) ||
+        updatedFood.servingSizes.length === 0
+      ) {
+        return NextResponse.json(
+          { error: "servingSizes must be a non-empty array" },
+          { status: 400 }
+        );
+      }
+
+      // Validate each serving size option
+      for (const option of updatedFood.servingSizes) {
+        if (!option.id || !option.label || option.gramsEquivalent === undefined) {
+          return NextResponse.json(
+            {
+              error:
+                "Each serving size must have id, label, and gramsEquivalent",
+            },
+            { status: 400 }
+          );
+        }
+
+        if (option.gramsEquivalent <= 0) {
+          return NextResponse.json(
+            { error: "gramsEquivalent must be greater than 0" },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (!updatedFood.baseNutritionPer100g) {
+        return NextResponse.json(
+          {
+            error: "baseNutritionPer100g is required when using servingSizes",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const result = await foodsCollection.updateOne(
@@ -70,9 +112,9 @@ export async function PUT(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const foodId = params.id;
+  const { id: foodId } = await params;
 
   try {
     const service = DatabaseService.getInstance();

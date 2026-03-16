@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X } from "lucide-react";
+import { X, Copy } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -39,6 +39,7 @@ import { AnalysisButtons } from "./components/AnalysisButtons";
 import { FoodGrid } from "./components/FoodGrid";
 import { WeeklyView } from "./components/WeeklyView";
 import { HistoryView } from "./components/HistoryView";
+import { MultiFoodSelector } from "@/components/features/food/MultiFoodSelector/MultiFoodSelector";
 
 // Dynamic imports for heavy components
 import {
@@ -95,12 +96,15 @@ export const MealPlanner = () => {
     setSelectedDay,
     setSelectedMeal,
     handleFoodSelect,
+    handleBatchFoodSelect,
     handleServingAdjustment,
     handleMilkToggle,
     initializeKids,
     calculateMealNutrition,
     mealHistory,
     loadSelectionsFromHistory,
+    copyMealToKid,
+    copyDayToKid,
   } = useMealStore();
 
   const currentMealSelection = useCurrentMealSelection();
@@ -120,6 +124,9 @@ export const MealPlanner = () => {
   const [selectedHistoryEntry, setSelectedHistoryEntry] =
     useState<MealHistoryRecord | null>(null);
   const [showMealEditor, setShowMealEditor] = useState(false);
+  const [showMultiFoodSelector, setShowMultiFoodSelector] = useState(false);
+  const [copiedToKid, setCopiedToKid] = useState<string | null>(null);
+  const [copiedDayToKid, setCopiedDayToKid] = useState<string | null>(null);
 
   // Custom hooks
   const {
@@ -166,12 +173,11 @@ export const MealPlanner = () => {
     (category: CategoryType, food: Food) => {
       if (!selectedKid || !selectedDay || !selectedMeal) return;
 
+      const categoryValue = currentMealSelection?.[category];
       const currentFood = currentMealSelection
-        ? category === "condiments"
-          ? currentMealSelection.condiments.find((c: Food) => c.id === food.id)
-          : currentMealSelection[
-              category as Exclude<CategoryType, "condiments">
-            ]
+        ? Array.isArray(categoryValue)
+          ? (categoryValue as Food[]).find((c: Food) => c.id === food.id)
+          : (categoryValue as Food | null)
         : null;
 
       setSelectedFoodContext({
@@ -221,6 +227,25 @@ export const MealPlanner = () => {
     setShowMealEditor(true);
   }, []);
 
+  const handleAddMultipleFoods = useCallback(() => {
+    setShowMultiFoodSelector(true);
+  }, []);
+
+  const handleConfirmMultipleFoods = useCallback(
+    async (
+      selections: Array<{ category: CategoryType; food: Food; servings: number }>
+    ) => {
+      try {
+        await handleBatchFoodSelect(selections);
+        setShowMultiFoodSelector(false);
+      } catch (error) {
+        console.error("Failed to add multiple foods:", error);
+        // Error will be shown by MultiFoodSelector component
+      }
+    },
+    [handleBatchFoodSelect]
+  );
+
   return (
     <div className="container mx-auto p-4" data-testid="meal-planner">
       <MealPlannerHeader
@@ -268,6 +293,52 @@ export const MealPlanner = () => {
               selectedMeal={selectedMeal}
               onMealSelect={setSelectedMeal}
             />
+
+            {/* Copy meal to other kids */}
+            {!isChildView && kids.filter(k => k.id !== selectedKid).length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                {currentMealSelection &&
+                  Object.values(currentMealSelection).some(v => Array.isArray(v) ? v.length > 0 : v !== null) && (
+                  <>
+                    <span className="text-sm text-gray-500">Copy meal:</span>
+                    {kids.filter(k => k.id !== selectedKid).map(kid => (
+                      <Button
+                        key={kid.id}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                        onClick={async () => {
+                          await copyMealToKid(kid.id);
+                          setCopiedToKid(kid.id);
+                          setTimeout(() => setCopiedToKid(null), 2000);
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                        {copiedToKid === kid.id ? `Copied!` : kid.name}
+                      </Button>
+                    ))}
+                  </>
+                )}
+                <span className="text-sm text-gray-400">|</span>
+                <span className="text-sm text-gray-500">Copy all meals:</span>
+                {kids.filter(k => k.id !== selectedKid).map(kid => (
+                  <Button
+                    key={kid.id}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={async () => {
+                      await copyDayToKid(kid.id);
+                      setCopiedDayToKid(kid.id);
+                      setTimeout(() => setCopiedDayToKid(null), 2000);
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                    {copiedDayToKid === kid.id ? `All copied!` : kid.name}
+                  </Button>
+                ))}
+              </div>
+            )}
 
             {!isChildView && (
               <>
@@ -330,6 +401,7 @@ export const MealPlanner = () => {
                       food: {} as Food,
                     })
                   }
+                  onAddMultipleFoods={handleAddMultipleFoods}
                   onAddMeal={handleAddMeal}
                   setSelectedFoodContext={setSelectedFoodContext}
                 />
@@ -443,6 +515,7 @@ export const MealPlanner = () => {
             }}
             isOpen={showAiAnalysis}
             onClose={() => setShowAiAnalysis(false)}
+            kidId={selectedKid}
           />
         </Suspense>
       )}
@@ -493,6 +566,7 @@ export const MealPlanner = () => {
                   selectedMeal,
                   selectedKid
                 );
+                await fetchFoodOptions();
                 setShowMealEditor(false);
               } catch (error) {
                 console.error("Failed to save meal:", error);
@@ -502,6 +576,13 @@ export const MealPlanner = () => {
           />
         </Suspense>
       )}
+
+      {/* Multi-Food Selector Modal */}
+      <MultiFoodSelector
+        isOpen={showMultiFoodSelector}
+        onClose={() => setShowMultiFoodSelector(false)}
+        onConfirm={handleConfirmMultipleFoods}
+      />
     </div>
   );
 };

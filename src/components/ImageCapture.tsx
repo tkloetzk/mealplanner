@@ -3,6 +3,11 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Camera, X, RotateCcw, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import {
+  hasMediaDeviceSupport,
+  getMediaErrorMessage,
+  getOptimalMediaConstraints,
+} from "@/utils/mediaDeviceUtils";
 
 interface ImageCaptureProps {
   onCapture: (imageData: string) => void;
@@ -16,6 +21,7 @@ export function ImageCapture({ onCapture, onClose }: ImageCaptureProps) {
   const [cameraStatus, setCameraStatus] = useState<{
     status: "idle" | "initializing" | "ready" | "error";
     message?: string;
+    suggestedAction?: string;
   }>({ status: "idle" });
 
   // Debug logging function
@@ -36,23 +42,15 @@ export function ImageCapture({ onCapture, onClose }: ImageCaptureProps) {
 
     try {
       // Check for media devices support
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (!hasMediaDeviceSupport()) {
         throw new Error("Media devices not supported");
       }
 
-      // Multiple constraint attempts
-      const constraintOptions = [
-        {
-          video: {
-            facingMode: "environment",
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-          },
-        },
-        { video: true },
-      ];
+      // Get optimal constraint options for the current device
+      const constraintOptions = getOptimalMediaConstraints();
 
       let stream: MediaStream | null = null;
+      let lastError: unknown = null;
 
       // Try different constraint sets
       for (const constraints of constraintOptions) {
@@ -66,11 +64,13 @@ export function ImageCapture({ onCapture, onClose }: ImageCaptureProps) {
           if (stream) break;
         } catch (constraintError) {
           logDebug("Constraint attempt failed", constraintError);
+          lastError = constraintError; // Preserve the error
         }
       }
 
       if (!stream) {
-        throw new Error("Could not access camera");
+        // Throw the last error we received, or a generic message
+        throw lastError || new Error("Could not access camera");
       }
 
       // Store stream reference
@@ -112,24 +112,23 @@ export function ImageCapture({ onCapture, onClose }: ImageCaptureProps) {
       }
     } catch (err) {
       logDebug("Camera initialization error", err);
+      const errorInfo = getMediaErrorMessage(err);
       setCameraStatus({
         status: "error",
-        message: err instanceof Error ? err.message : "Unknown error",
+        message: errorInfo.message,
+        suggestedAction: errorInfo.suggestedAction,
       });
     }
   }, []);
 
-  // Initialize camera on mount and provide method for retaking
+  // Cleanup camera stream when component unmounts or modal closes
   useEffect(() => {
-    startCamera();
-
-    // Cleanup function
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [startCamera]);
+  }, []);
 
   // Capture image method
   const captureImage = useCallback(() => {
@@ -160,9 +159,14 @@ export function ImageCapture({ onCapture, onClose }: ImageCaptureProps) {
   if (cameraStatus.status === "error") {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white p-6 rounded-lg text-center">
+        <div className="bg-white p-6 rounded-lg text-center max-w-md">
           <h3 className="text-lg font-bold text-red-500 mb-4">Camera Error</h3>
-          <p className="mb-4">{cameraStatus.message}</p>
+          <p className="mb-2 font-semibold">{cameraStatus.message}</p>
+          {cameraStatus.suggestedAction && (
+            <p className="mb-4 text-sm text-gray-600">
+              {cameraStatus.suggestedAction}
+            </p>
+          )}
           <div className="flex justify-center space-x-2">
             <Button onClick={startCamera}>Retry</Button>
             <Button variant="outline" onClick={onClose}>
@@ -201,6 +205,46 @@ export function ImageCapture({ onCapture, onClose }: ImageCaptureProps) {
               <Check className="h-4 w-4 mr-2" />
               Use Photo
             </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Idle state - show "Start Camera" button
+  if (cameraStatus.status === "idle") {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-semibold text-lg">Take Food Photo</h3>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="bg-gray-100 rounded-full p-6">
+                <Camera className="h-12 w-12 text-gray-600" />
+              </div>
+            </div>
+            <div>
+              <p className="text-gray-700 mb-2">
+                We&apos;ll need access to your camera
+              </p>
+              <p className="text-sm text-gray-500">
+                Click the button below to start your camera and take a photo
+              </p>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <Button onClick={startCamera} className="w-full">
+                <Camera className="h-4 w-4 mr-2" />
+                Start Camera
+              </Button>
+              <Button variant="outline" onClick={onClose} className="w-full">
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       </div>

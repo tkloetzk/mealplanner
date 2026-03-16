@@ -15,6 +15,9 @@ import {
 import { MEAL_TYPES, MEAL_TYPE_LABELS } from "@/constants";
 import type { MealType } from "@/types/shared";
 import { useAppSettingsStore } from "@/store/useAppSettingsStore";
+import { getPediatricGuidelines, getAgeGroup } from "@/constants/pediatric-nutrition-guidelines";
+import { adjustForActivity } from "@/utils/nutritionUtils";
+import { useState, useEffect, useRef } from "react";
 
 const numberValue = (value: string) => {
   const num = Number(value);
@@ -52,6 +55,25 @@ export default function SettingsPage() {
   );
 
   const getEnabledMeals = useAppSettingsStore((s) => s.getEnabledMeals);
+  const milkFood = useAppSettingsStore((s) => s.milkFood);
+  const setMilkFood = useAppSettingsStore((s) => s.setMilkFood);
+  const resetMilkFood = useAppSettingsStore((s) => s.resetMilkFood);
+
+  const [editingMilk, setEditingMilk] = useState(false);
+  const [milkDraft, setMilkDraft] = useState(milkFood);
+  const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    setSaved(true);
+    savedTimer.current = setTimeout(() => setSaved(false), 2000);
+  }, [enabledMeals, kids, nutritionMode, nutritionScope, sameGoalsForAllKids, customGoalsForAllKids, customGoalsByKidId, milkFood]);
 
   const enabledMealsResolved = getEnabledMeals();
 
@@ -60,7 +82,14 @@ export default function SettingsPage() {
       <div className="container mx-auto p-4 max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Settings</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">Settings</h1>
+              {saved && (
+                <span className="text-sm font-medium text-green-600 transition-opacity">
+                  ✓ Saved
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-600">
               Configure meals, kids, and nutrition targets.
             </p>
@@ -135,6 +164,25 @@ export default function SettingsPage() {
                       />
                     </div>
 
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium">Activity Level</div>
+                      <Select
+                        value={kid.activityLevel || 'moderate'}
+                        onValueChange={(v) =>
+                          updateKid(kid.id, { activityLevel: v as 'sedentary' | 'moderate' | 'active' })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select activity level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sedentary">Sedentary</SelectItem>
+                          <SelectItem value="moderate">Moderate</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="flex justify-end">
                       <Button
                         variant="destructive"
@@ -145,16 +193,47 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {nutritionMode === "custom" && !sameGoalsForAllKids && (
-                    <KidGoalsEditor
-                      kidId={kid.id}
-                      mealTypes={enabledMealsResolved}
-                      scope={nutritionScope}
-                      goals={
-                        customGoalsByKidId[kid.id] ?? customGoalsForAllKids
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">Dietary Restrictions / Allergies</div>
+                    <Input
+                      placeholder="e.g. peanut allergy, vegetarian, no shellfish"
+                      value={kid.restrictions || ''}
+                      onChange={(e) =>
+                        updateKid(kid.id, { restrictions: e.target.value })
                       }
-                      onChange={(next) => setCustomGoalsForKid(kid.id, next)}
                     />
+                  </div>
+
+                  {nutritionMode === "custom" && !sameGoalsForAllKids && (
+                    <>
+                      <KidGoalsEditor
+                        kidId={kid.id}
+                        mealTypes={enabledMealsResolved}
+                        scope={nutritionScope}
+                        goals={
+                          customGoalsByKidId[kid.id] ?? customGoalsForAllKids
+                        }
+                        onChange={(next) => setCustomGoalsForKid(kid.id, next)}
+                      />
+                      <div className="flex justify-end pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const goals =
+                              customGoalsByKidId[kid.id] ??
+                              customGoalsForAllKids;
+                            kids.forEach((k) => {
+                              if (k.id !== kid.id) {
+                                setCustomGoalsForKid(k.id, goals);
+                              }
+                            });
+                          }}
+                        >
+                          Apply to Other Kids
+                        </Button>
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
@@ -168,7 +247,137 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Milk</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!editingMilk ? (
+              <div className="flex items-center justify-between rounded-md border p-4 bg-white">
+                <div>
+                  <div className="font-medium">{milkFood.name}</div>
+                  <div className="text-sm text-gray-600">
+                    {milkFood.calories} kcal &middot; {milkFood.protein}g protein &middot; {milkFood.carbs}g carbs &middot; {milkFood.fat}g fat
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setMilkDraft(milkFood);
+                      setEditingMilk(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={resetMilkFood}>
+                    Reset
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-md border p-4 bg-white space-y-3">
+                <div className="text-sm font-semibold">Edit Milk Food</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">Name</div>
+                    <Input
+                      value={milkDraft.name}
+                      onChange={(e) =>
+                        setMilkDraft({ ...milkDraft, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">Calories</div>
+                    <Input
+                      inputMode="numeric"
+                      type="number"
+                      value={milkDraft.calories}
+                      onChange={(e) =>
+                        setMilkDraft({
+                          ...milkDraft,
+                          calories: numberValue(e.target.value),
+                          adjustedCalories: numberValue(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">Protein (g)</div>
+                    <Input
+                      inputMode="numeric"
+                      type="number"
+                      value={milkDraft.protein}
+                      onChange={(e) =>
+                        setMilkDraft({
+                          ...milkDraft,
+                          protein: numberValue(e.target.value),
+                          adjustedProtein: numberValue(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">Carbs (g)</div>
+                    <Input
+                      inputMode="numeric"
+                      type="number"
+                      value={milkDraft.carbs}
+                      onChange={(e) =>
+                        setMilkDraft({
+                          ...milkDraft,
+                          carbs: numberValue(e.target.value),
+                          adjustedCarbs: numberValue(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">Fat (g)</div>
+                    <Input
+                      inputMode="numeric"
+                      type="number"
+                      value={milkDraft.fat}
+                      onChange={(e) =>
+                        setMilkDraft({
+                          ...milkDraft,
+                          fat: numberValue(e.target.value),
+                          adjustedFat: numberValue(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingMilk(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setMilkFood(milkDraft);
+                      setEditingMilk(false);
+                    }}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Nutrition Targets</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              You can switch between recommended and custom modes at any time.
+              Your custom settings are saved.
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -227,8 +436,8 @@ export default function SettingsPage() {
             {nutritionMode === "custom" && (
               <div className="space-y-4">
                 {sameGoalsForAllKids && (
-                  <div className="rounded-md border p-4 bg-white">
-                    <div className="text-sm font-semibold mb-3">
+                  <div className="rounded-md border p-4 bg-white space-y-3">
+                    <div className="text-sm font-semibold">
                       Custom Goals (All Kids)
                     </div>
                     <KidGoalsEditor
@@ -238,6 +447,19 @@ export default function SettingsPage() {
                       goals={customGoalsForAllKids}
                       onChange={setCustomGoalsForAllKids}
                     />
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          kids.forEach((k) => {
+                            setCustomGoalsForKid(k.id, customGoalsForAllKids);
+                          });
+                        }}
+                      >
+                        Copy to Individual Kid Settings
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -250,6 +472,39 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {nutritionMode === "recommended" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Age-Based Recommendations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {kids.map(kid => {
+                  const guidelines = getPediatricGuidelines(kid.age);
+                  const ageGroup = getAgeGroup(kid.age);
+                  const avgCalories = (guidelines.caloriesMin + guidelines.caloriesMax) / 2;
+                  const adjustedCalories = kid.activityLevel
+                    ? adjustForActivity(avgCalories, kid.activityLevel)
+                    : avgCalories;
+                  return (
+                    <div key={kid.id} className="rounded-md border p-4 bg-blue-50">
+                      <div className="font-semibold">{kid.name} (Age {kid.age})</div>
+                      <div className="text-sm text-gray-700 mt-2">
+                        <div>Age Group: {ageGroup} years</div>
+                        <div>Activity Level: {kid.activityLevel || 'moderate'}</div>
+                        <div>Calories: {adjustedCalories} kcal/day (base: {guidelines.caloriesMin}-{guidelines.caloriesMax})</div>
+                        <div>Protein: {guidelines.proteinGrams}g/day minimum</div>
+                        <div>Fat: {guidelines.fatPercentMin}-{guidelines.fatPercentMax}% of calories</div>
+                        <div>Sodium: &lt;{guidelines.sodiumMaxMg}mg/day</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </main>
   );

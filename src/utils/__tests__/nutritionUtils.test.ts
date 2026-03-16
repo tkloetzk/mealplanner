@@ -7,20 +7,25 @@ import {
   getProgressBarWidth,
   getProgressColor,
   getNutrientColor,
+  getSodiumColor,
+  getSugarColor,
+  getSaturatedFatColor,
   ensureNumber,
-  calculateExpectedCalories
+  calculateExpectedCalories,
+  distributeMealCalories,
+  adjustForActivity
 } from '../nutritionUtils';
 import { NutritionSummary } from '@/types/food';
 
 describe('nutritionUtils', () => {
   describe('createEmptyMealSelection', () => {
-    it('creates an empty meal selection with all null values', () => {
+    it('creates an empty meal selection with empty arrays and null single foods', () => {
       const emptySelection = createEmptyMealSelection();
-      
-      expect(emptySelection.proteins).toBeNull();
-      expect(emptySelection.fruits).toBeNull();
-      expect(emptySelection.vegetables).toBeNull();
-      expect(emptySelection.grains).toBeNull();
+
+      expect(emptySelection.proteins).toEqual([]);
+      expect(emptySelection.fruits).toEqual([]);
+      expect(emptySelection.vegetables).toEqual([]);
+      expect(emptySelection.grains).toEqual([]);
       expect(emptySelection.milk).toBeNull();
       expect(emptySelection.ranch).toBeNull();
       expect(emptySelection.condiments).toEqual([]);
@@ -37,16 +42,16 @@ describe('nutritionUtils', () => {
       };
 
       const mealSelection = nutritionToMealSelection(nutrition);
-      
-      expect(mealSelection.proteins).toBeDefined();
-      expect(mealSelection.proteins?.calories).toBe(300);
-      expect(mealSelection.proteins?.protein).toBe(25);
-      expect(mealSelection.proteins?.carbs).toBe(30);
-      expect(mealSelection.proteins?.fat).toBe(10);
-      expect(mealSelection.proteins?.name).toBe('Total');
+
+      expect(mealSelection.proteins).toHaveLength(1);
+      expect(mealSelection.proteins[0]?.calories).toBe(300);
+      expect(mealSelection.proteins[0]?.protein).toBe(25);
+      expect(mealSelection.proteins[0]?.carbs).toBe(30);
+      expect(mealSelection.proteins[0]?.fat).toBe(10);
+      expect(mealSelection.proteins[0]?.name).toBe('Total');
     });
 
-    it('returns empty selection for zero nutrition', () => {
+    it('returns empty array for zero nutrition', () => {
       const nutrition: NutritionSummary = {
         calories: 0,
         protein: 0,
@@ -55,7 +60,7 @@ describe('nutritionUtils', () => {
       };
 
       const mealSelection = nutritionToMealSelection(nutrition);
-      expect(mealSelection.proteins).toBeNull();
+      expect(mealSelection.proteins).toEqual([]);
     });
   });
 
@@ -164,10 +169,157 @@ describe('nutritionUtils', () => {
       const proteinCals = calculateExpectedCalories(1, 0, 0);
       const carbCals = calculateExpectedCalories(0, 1, 0);
       const fatCals = calculateExpectedCalories(0, 0, 1);
-      
+
       expect(proteinCals).toBe(CALORIES_PER_PROTEIN);
       expect(carbCals).toBe(CALORIES_PER_CARB);
       expect(fatCals).toBe(CALORIES_PER_FAT);
+    });
+  });
+
+  describe('adjustForActivity', () => {
+    it('adjusts calories based on activity level', () => {
+      const baseCalories = 2000;
+
+      // Sedentary (0.9 multiplier)
+      expect(adjustForActivity(baseCalories, 'sedentary')).toBe(1800);
+
+      // Moderate (1.0 multiplier) - no change
+      expect(adjustForActivity(baseCalories, 'moderate')).toBe(2000);
+
+      // Active (1.15 multiplier)
+      expect(adjustForActivity(baseCalories, 'active')).toBe(2300);
+    });
+
+    it('handles different calorie values', () => {
+      expect(adjustForActivity(1000, 'sedentary')).toBe(900);
+      expect(adjustForActivity(1000, 'moderate')).toBe(1000);
+      expect(adjustForActivity(1000, 'active')).toBe(1150);
+
+      expect(adjustForActivity(3000, 'sedentary')).toBe(2700);
+      expect(adjustForActivity(3000, 'moderate')).toBe(3000);
+      expect(adjustForActivity(3000, 'active')).toBe(3450);
+    });
+
+    it('rounds to nearest integer', () => {
+      expect(adjustForActivity(1500, 'active')).toBe(1725); // 1500 * 1.15 = 1725
+      expect(adjustForActivity(100, 'active')).toBe(115);   // 100 * 1.15 = 115
+    });
+  });
+
+  describe('getSodiumColor', () => {
+    it('returns correct colors based on sodium levels', () => {
+      // At or below 80% of max - green (0 to 800 for max 1000)
+      expect(getSodiumColor(799, 0, 1000)).toBe('text-green-600'); // 79.9% of max
+      expect(getSodiumColor(790, 0, 1000)).toBe('text-green-600'); // 79% of max
+      expect(getSodiumColor(800, 0, 1000)).toBe('text-green-600'); // Exactly 80% (800 out of 1000)
+
+      // Above 80% but at or below max - yellow (801 to 1000 for max 1000)
+      expect(getSodiumColor(801, 0, 1000)).toBe('text-yellow-600'); // Just above 80%
+      expect(getSodiumColor(850, 0, 1000)).toBe('text-yellow-600'); // 85% of max
+      expect(getSodiumColor(900, 0, 1000)).toBe('text-yellow-600'); // 90% of max
+      expect(getSodiumColor(999, 0, 1000)).toBe('text-yellow-600'); // 99.9% of max
+      expect(getSodiumColor(1000, 0, 1000)).toBe('text-yellow-600'); // Exactly at max
+
+      // Above max - red (1001+ for max 1000)
+      expect(getSodiumColor(1001, 0, 1000)).toBe('text-red-600'); // Above max
+      expect(getSodiumColor(1200, 0, 1000)).toBe('text-red-600'); // Well above max
+    });
+
+    it('handles edge cases', () => {
+      expect(getSodiumColor(0, 0, 1000)).toBe('text-green-600'); // Zero sodium
+      expect(getSodiumColor(800, 0, 1000)).toBe('text-green-600'); // Exactly at 80% threshold
+      expect(getSodiumColor(801, 0, 1000)).toBe('text-yellow-600'); // Just above 80% threshold
+    });
+  });
+
+  describe('getSugarColor', () => {
+    it('returns correct colors based on sugar levels', () => {
+      // At or below 80% of max - green (0 to 20 for max 25)
+      expect(getSugarColor(19, 0, 25)).toBe('text-green-600'); // 19 out of 25 (76%)
+      expect(getSugarColor(20, 0, 25)).toBe('text-green-600'); // 20 out of 25 (80%)
+
+      // Above 80% but at or below max - yellow (21 to 25 for max 25)
+      expect(getSugarColor(21, 0, 25)).toBe('text-yellow-600'); // Just above 80%
+      expect(getSugarColor(24, 0, 25)).toBe('text-yellow-600'); // 96% of max
+      expect(getSugarColor(25, 0, 25)).toBe('text-yellow-600'); // Exactly at max
+
+      // Above max - red (26+ for max 25)
+      expect(getSugarColor(26, 0, 25)).toBe('text-red-600'); // Above max
+      expect(getSugarColor(50, 0, 25)).toBe('text-red-600'); // Well above max
+    });
+
+    it('handles edge cases', () => {
+      expect(getSugarColor(0, 0, 25)).toBe('text-green-600'); // Zero sugar
+      expect(getSugarColor(20, 0, 25)).toBe('text-green-600'); // Exactly at 80% threshold
+      expect(getSugarColor(21, 0, 25)).toBe('text-yellow-600'); // Just above 80% threshold
+    });
+  });
+
+  describe('getSaturatedFatColor', () => {
+    it('returns correct colors based on saturated fat levels', () => {
+      // At or below 80% of max - green (0 to 16 for max 20)
+      expect(getSaturatedFatColor(15, 0, 20)).toBe('text-green-600'); // 15 out of 20 (75%)
+      expect(getSaturatedFatColor(16, 0, 20)).toBe('text-green-600'); // 16 out of 20 (80%)
+
+      // Above 80% but at or below max - yellow (17 to 20 for max 20)
+      expect(getSaturatedFatColor(17, 0, 20)).toBe('text-yellow-600'); // Just above 80%
+      expect(getSaturatedFatColor(19, 0, 20)).toBe('text-yellow-600'); // 95% of max
+      expect(getSaturatedFatColor(20, 0, 20)).toBe('text-yellow-600'); // Exactly at max
+
+      // Above max - red (21+ for max 20)
+      expect(getSaturatedFatColor(21, 0, 20)).toBe('text-red-600'); // Above max
+      expect(getSaturatedFatColor(40, 0, 20)).toBe('text-red-600'); // Well above max
+    });
+
+    it('handles edge cases', () => {
+      expect(getSaturatedFatColor(0, 0, 20)).toBe('text-green-600'); // Zero saturated fat
+      expect(getSaturatedFatColor(16, 0, 20)).toBe('text-green-600'); // Exactly at 80% threshold
+      expect(getSaturatedFatColor(17, 0, 20)).toBe('text-yellow-600'); // Just above 80% threshold
+    });
+  });
+
+  describe('distributeMealCalories', () => {
+    it('distributes calories based on default meal distribution', () => {
+      const totalCalories = 2000;
+      const enabledMeals = ['breakfast', 'lunch', 'dinner'];
+      const result = distributeMealCalories(totalCalories, enabledMeals);
+
+      // Total percentage for enabled meals: 25% + 30% + 30% = 85%
+      // breakfast: (25/85) * 2000 = 588.24 -> 588
+      // lunch: (30/85) * 2000 = 705.88 -> 706
+      // dinner: (30/85) * 2000 = 705.88 -> 706
+      expect(result.breakfast).toBe(588);
+      expect(result.lunch).toBe(706);
+      expect(result.dinner).toBe(706);
+    });
+
+    it('distributes equally when no default distribution exists', () => {
+      const totalCalories = 1500;
+      const enabledMeals = ['midmorning_snack', 'afternoon_snack', 'bedtime_snack'];
+      const result = distributeMealCalories(totalCalories, enabledMeals);
+
+      // All snack meals have 5% default distribution, totaling 15%
+      // Each gets equal proportion: 5/15 = 1/3 each
+      // Each gets (1/3) * 1500 = 500
+      expect(result.midmorning_snack).toBe(500);
+      expect(result.afternoon_snack).toBe(500);
+      expect(result.bedtime_snack).toBe(500);
+    });
+
+    it('handles single meal', () => {
+      const totalCalories = 1800;
+      const enabledMeals = ['lunch'];
+      const result = distributeMealCalories(totalCalories, enabledMeals);
+
+      expect(result.lunch).toBe(1800);
+    });
+
+    it('returns empty object when no meals enabled', () => {
+      const totalCalories = 2000;
+      const enabledMeals: string[] = [];
+      const result = distributeMealCalories(totalCalories, enabledMeals);
+
+      expect(result).toEqual({});
     });
   });
 });

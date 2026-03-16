@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { produce } from "immer";
-import { DEFAULT_MEAL_PLAN, MILK_OPTION } from "@/constants/meal-goals";
+import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 import { MEAL_TYPES } from "@/constants";
 import type {
   MealHistoryRecord,
@@ -18,6 +18,9 @@ import type { Food, SelectedFood, NutritionSummary } from "@/types/food";
 import { format } from "date-fns";
 import { calculateTargetDate } from "@/utils/dateUtils";
 import { saveMealHistory } from "@/utils/mealApiUtils";
+import { calculateNutritionForServing } from "@/utils/foodMigration";
+import { computeMealNutrition, computeDailyNutrition } from "@/utils/nutritionUtils";
+import { useAppSettingsStore } from "@/store/useAppSettingsStore";
 
 interface MealSelectionResponse {
   kidId: string;
@@ -45,6 +48,9 @@ interface MealStore
   // Meal management actions
   initializeKids: (kids: Kid[]) => void;
   handleFoodSelect: (category: CategoryType, food: Food) => void;
+  handleBatchFoodSelect: (
+    selections: Array<{ category: CategoryType; food: Food; servings: number }>
+  ) => Promise<void>;
   handleServingAdjustment: (
     category: CategoryType,
     id: string,
@@ -55,6 +61,8 @@ interface MealStore
   // Utility functions
   getCurrentMealSelection: () => MealSelection | null;
   resetMeal: (kidId: string, day: DayType, meal: MealType) => void;
+  copyMealToKid: (targetKidId: string) => Promise<void>;
+  copyDayToKid: (targetKidId: string) => Promise<void>;
   calculateMealNutrition: (meal: MealType) => NutritionSummary;
   calculateDailyTotals: () => NutritionSummary;
 
@@ -102,13 +110,30 @@ const upsertMealHistoryRecord = (
 };
 
 const adjustFoodServings = (food: Food, newServings: number): SelectedFood => {
+  let calories, protein, carbs, fat;
+  if (food.baseNutritionPer100g && food.servingSizes?.[0]?.gramsEquivalent) {
+    const n = calculateNutritionForServing(
+      food.baseNutritionPer100g,
+      food.servingSizes[0].gramsEquivalent,
+      newServings
+    );
+    calories = Math.round(n.calories);
+    protein = n.protein;
+    carbs = n.carbs;
+    fat = n.fat;
+  } else {
+    calories = food.calories * newServings;
+    protein = food.protein * newServings;
+    carbs = food.carbs * newServings;
+    fat = food.fat * newServings;
+  }
   return {
     ...food,
     servings: newServings,
-    adjustedCalories: food.calories * newServings,
-    adjustedProtein: food.protein * newServings,
-    adjustedCarbs: food.carbs * newServings,
-    adjustedFat: food.fat * newServings,
+    adjustedCalories: calories,
+    adjustedProtein: protein,
+    adjustedCarbs: carbs,
+    adjustedFat: fat,
   };
 };
 
@@ -225,37 +250,21 @@ export const useMealStore = create<MealStore>()(
             return;
           }
 
-          if (category === "condiments") {
-            const existingIndex = currentMeal.condiments.findIndex(
-              (c: Food) => c.id === food.id
-            );
+          const adjustedFood = adjustFoodServings(food, 1);
+
+          if (Array.isArray(currentMeal[category])) {
+            // Array categories: toggle in/out
+            const arr = currentMeal[category] as Food[];
+            const existingIndex = arr.findIndex((c: Food) => c.id === food.id);
             if (existingIndex >= 0) {
-              currentMeal.condiments.splice(existingIndex, 1);
+              arr.splice(existingIndex, 1);
             } else {
-              currentMeal.condiments.push({
-                ...food,
-                servings: 1,
-                adjustedCalories: food.calories,
-                adjustedProtein: food.protein,
-                adjustedCarbs: food.carbs,
-                adjustedFat: food.fat,
-              });
+              arr.push(adjustedFood);
             }
           } else {
-            const isSelected = currentMeal[category]?.id === food.id;
-
-            if (isSelected) {
-              currentMeal[category] = null;
-            } else {
-              currentMeal[category] = {
-                ...food,
-                servings: 1,
-                adjustedCalories: food.calories,
-                adjustedProtein: food.protein,
-                adjustedCarbs: food.carbs,
-                adjustedFat: food.fat,
-              };
-            }
+            // Single-value categories: milk, ranch
+            const isSelected = (currentMeal[category] as Food | null)?.id === food.id;
+            currentMeal[category] = isSelected ? null : adjustedFood;
           }
         })
       );
@@ -287,6 +296,63 @@ export const useMealStore = create<MealStore>()(
       }
     },
 
+    handleBatchFoodSelect: async (
+      selections: Array<{ category: CategoryType; food: Food; servings: number }>
+    ) => {
+      const state = get();
+      const { selectedKid, selectedDay, selectedMeal } = state;
+      if (!selectedKid || !selectedDay || !selectedMeal) return;
+
+      // Update local state with all selections in one batch
+      set(
+        produce((state) => {
+          const currentMeal =
+            state.selections[selectedKid][selectedDay][selectedMeal];
+
+          if (!currentMeal) {
+            console.error("No meal found for batch selection");
+            return;
+          }
+
+          selections.forEach(({ category, food, servings }) => {
+            const adjustedFood = adjustFoodServings(food, servings);
+            if (Array.isArray(currentMeal[category])) {
+              (currentMeal[category] as Food[]).push(adjustedFood);
+            } else {
+              currentMeal[category] = adjustedFood;
+            }
+          });
+        })
+      );
+
+      // Get the updated selections after state change
+      const updatedState = get();
+      const updatedSelections =
+        updatedState.selections[selectedKid][selectedDay][selectedMeal];
+
+      // Save to database once
+      try {
+        const targetDate = calculateTargetDate(selectedDay);
+        const saved = await saveMealHistory({
+          kidId: selectedKid,
+          meal: selectedMeal,
+          date: targetDate,
+          selections: updatedSelections,
+        });
+
+        if (saved) {
+          set(
+            produce((draft: MealStore) => {
+              upsertMealHistoryRecord(draft, saved);
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Failed to save batch meal selection:", error);
+        throw error; // Propagate error so UI can show it
+      }
+    },
+
     handleServingAdjustment: async (
       category: CategoryType,
       id: string,
@@ -306,18 +372,14 @@ export const useMealStore = create<MealStore>()(
             return;
           }
 
-          if (category === "condiments") {
-            const index = currentMeal.condiments.findIndex(
-              (c: Food) => c.id === id
-            );
+          if (Array.isArray(currentMeal[category])) {
+            const arr = currentMeal[category] as Food[];
+            const index = arr.findIndex((c: Food) => c.id === id);
             if (index >= 0) {
-              currentMeal.condiments[index] = adjustFoodServings(
-                currentMeal.condiments[index],
-                servings
-              );
+              arr[index] = adjustFoodServings(arr[index], servings);
             }
           } else {
-            const food = currentMeal[category];
+            const food = currentMeal[category] as Food | null;
             if (food?.id === id) {
               currentMeal[category] = adjustFoodServings(food, servings);
             }
@@ -365,13 +427,14 @@ export const useMealStore = create<MealStore>()(
           if (!currentMeal) return;
 
           if (enabled) {
+            const milkFood = useAppSettingsStore.getState().milkFood;
             currentMeal.milk = {
-              ...MILK_OPTION,
+              ...milkFood,
               servings: 1,
-              adjustedCalories: MILK_OPTION.calories,
-              adjustedProtein: MILK_OPTION.protein,
-              adjustedCarbs: MILK_OPTION.carbs,
-              adjustedFat: MILK_OPTION.fat,
+              adjustedCalories: milkFood.calories,
+              adjustedProtein: milkFood.protein,
+              adjustedCarbs: milkFood.carbs,
+              adjustedFat: milkFood.fat,
             };
           } else {
             currentMeal.milk = null;
@@ -417,119 +480,21 @@ export const useMealStore = create<MealStore>()(
       const state = get();
       const { selectedKid, selectedDay } = state;
       if (!selectedKid || !selectedDay) {
-        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        return { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, sugar: 0, saturatedFat: 0 };
       }
-
-      const mealSelections =
-        state.selections[selectedKid]?.[selectedDay]?.[meal];
-      if (!mealSelections) {
-        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      }
-
-      // Initialize totals
-      const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-
-      // Check if there's consumption data for this meal
-      // Convert selectedDay to Date object to compare consistently
-      const selectedDate = new Date(selectedDay);
+      const mealSelections = state.selections[selectedKid]?.[selectedDay]?.[meal];
+      const targetDateKey = format(calculateTargetDate(selectedDay), "yyyy-MM-dd");
       const consumptionData = state.mealHistory[selectedKid]?.find(
         (record) =>
           record.meal === meal &&
-          new Date(record.date).toDateString() === selectedDate.toDateString()
+          format(new Date(record.date), "yyyy-MM-dd") === targetDateKey
       )?.consumptionData;
-
-      // Calculate nutrition for regular food items
-      Object.entries(mealSelections).forEach(([category, food]) => {
-        if (!food || category === "condiments") return;
-
-        let multiplier = 1; // Default to 100% consumption
-
-        // If consumption data exists, adjust based on the consumption status
-        if (consumptionData && consumptionData.foods) {
-          // Find the consumption status for this specific food
-          const foodConsumption = consumptionData.foods.find(
-            (f) => f.foodId === food.id
-          );
-
-          if (foodConsumption) {
-            if (foodConsumption.status === "not_eaten") {
-              multiplier = 0; // 0% consumed
-            } else if (
-              foodConsumption.status === "partially_eaten" &&
-              foodConsumption.percentageEaten !== undefined
-            ) {
-              multiplier = foodConsumption.percentageEaten / 100; // Convert percentage to fraction
-            }
-            // If status is 'eaten', multiplier remains 1 (100% consumed)
-          }
-        }
-
-        // Add the adjusted nutrition values based on consumption
-        totals.calories += (food.adjustedCalories || 0) * multiplier;
-        totals.protein += (food.adjustedProtein || 0) * multiplier;
-        totals.carbs += (food.adjustedCarbs || 0) * multiplier;
-        totals.fat += (food.adjustedFat || 0) * multiplier;
-      });
-
-      // Add condiments if they exist for this meal
-      if (
-        mealSelections.condiments &&
-        Array.isArray(mealSelections.condiments)
-      ) {
-        mealSelections.condiments.forEach((condiment) => {
-          if (!condiment) return;
-
-          let multiplier = 1; // Default to 100% consumption
-
-          // If consumption data exists, check consumption status for condiments
-          if (consumptionData && consumptionData.foods) {
-            // Find the consumption status for this specific condiment
-            const foodConsumption = consumptionData.foods.find(
-              (f) => f.foodId === condiment.id
-            );
-
-            if (foodConsumption) {
-              if (foodConsumption.status === "not_eaten") {
-                multiplier = 0; // 0% consumed
-              } else if (
-                foodConsumption.status === "partially_eaten" &&
-                foodConsumption.percentageEaten !== undefined
-              ) {
-                multiplier = foodConsumption.percentageEaten / 100; // Convert percentage to fraction
-              }
-              // If status is 'eaten', multiplier remains 1 (100% consumed)
-            }
-          }
-
-          totals.calories += (condiment.adjustedCalories || 0) * multiplier;
-          totals.protein += (condiment.adjustedProtein || 0) * multiplier;
-          totals.carbs += (condiment.adjustedCarbs || 0) * multiplier;
-          totals.fat += (condiment.adjustedFat || 0) * multiplier;
-        });
-      }
-
-      return {
-        calories: Math.round(totals.calories),
-        protein: Math.round(totals.protein),
-        carbs: Math.round(totals.carbs),
-        fat: Math.round(totals.fat),
-      };
+      return computeMealNutrition(mealSelections, consumptionData?.foods);
     },
 
     calculateDailyTotals: () => {
       const state = get();
-      return MEAL_TYPES.reduce(
-        (totals, meal) => {
-          const mealNutrition = state.calculateMealNutrition(meal);
-          return {
-            calories: totals.calories + mealNutrition.calories,
-            protein: totals.protein + mealNutrition.protein,
-            carbs: totals.carbs + mealNutrition.carbs,
-            fat: totals.fat + mealNutrition.fat,
-          };
-        },
-        { calories: 0, protein: 0, carbs: 0, fat: 0 }
-      );
+      return computeDailyNutrition((meal) => state.calculateMealNutrition(meal));
     },
 
     resetMeal: (kidId, day, meal) =>
@@ -540,6 +505,93 @@ export const useMealStore = create<MealStore>()(
           );
         })
       ),
+
+    copyDayToKid: async (targetKidId: string) => {
+      const state = get();
+      const { selectedKid, selectedDay } = state;
+      if (!selectedKid || !selectedDay) return;
+
+      const sourceDay = state.selections[selectedKid]?.[selectedDay];
+      if (!sourceDay) return;
+
+      const copiedDay = structuredClone(sourceDay);
+
+      set(
+        produce((draft: MealStore) => {
+          if (!draft.selections[targetKidId]) {
+            draft.selections[targetKidId] = structuredClone(DEFAULT_MEAL_PLAN);
+          }
+          draft.selections[targetKidId][selectedDay] = copiedDay;
+        })
+      );
+
+      try {
+        const targetDate = calculateTargetDate(selectedDay);
+        await Promise.all(
+          (MEAL_TYPES as readonly MealType[]).map(async (meal) => {
+            const mealSelections = copiedDay[meal];
+            if (!mealSelections) return;
+            const saved = await saveMealHistory({
+              kidId: targetKidId,
+              meal,
+              date: targetDate,
+              selections: mealSelections,
+            });
+            if (saved) {
+              set(
+                produce((draft: MealStore) => {
+                  upsertMealHistoryRecord(draft, saved);
+                })
+              );
+            }
+          })
+        );
+      } catch (error) {
+        console.error("Failed to copy day to kid:", error);
+        throw error;
+      }
+    },
+
+    copyMealToKid: async (targetKidId: string) => {
+      const state = get();
+      const { selectedKid, selectedDay, selectedMeal } = state;
+      if (!selectedKid || !selectedDay || !selectedMeal) return;
+
+      const sourceMeal = state.selections[selectedKid]?.[selectedDay]?.[selectedMeal];
+      if (!sourceMeal) return;
+
+      const copiedMeal = structuredClone(sourceMeal);
+
+      set(
+        produce((draft: MealStore) => {
+          if (!draft.selections[targetKidId]) {
+            draft.selections[targetKidId] = structuredClone(DEFAULT_MEAL_PLAN);
+          }
+          draft.selections[targetKidId][selectedDay][selectedMeal] = copiedMeal;
+        })
+      );
+
+      try {
+        const targetDate = calculateTargetDate(selectedDay);
+        const saved = await saveMealHistory({
+          kidId: targetKidId,
+          meal: selectedMeal,
+          date: targetDate,
+          selections: copiedMeal,
+        });
+
+        if (saved) {
+          set(
+            produce((draft: MealStore) => {
+              upsertMealHistoryRecord(draft, saved);
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Failed to copy meal to kid:", error);
+        throw error;
+      }
+    },
 
     loadSelectionsFromHistory: async ({ kidId, date }: LoadHistoryOptions) => {
       try {
@@ -639,28 +691,24 @@ export const useMealStore = create<MealStore>()(
               // Update selections for each meal found in history
               history.forEach((entry: MealHistoryRecord) => {
                 if (entry.meal && entry.selections) {
+                  // Helper to restore array fields (supports both old Food|null and new Food[] format)
+                  const restoreArray = (
+                    raw: Food | Food[] | null | undefined,
+                    category: CategoryType
+                  ): Food[] => {
+                    if (!raw) return [];
+                    const items = Array.isArray(raw) ? raw : [raw];
+                    return items
+                      .map((f) => findMatchingFood(f, category, foodOptions))
+                      .filter((f): f is Food => f !== null);
+                  };
+
                   // Match each food item with available options
                   const selections: MealSelection = {
-                    proteins: findMatchingFood(
-                      entry.selections.proteins,
-                      "proteins",
-                      foodOptions
-                    ),
-                    grains: findMatchingFood(
-                      entry.selections.grains,
-                      "grains",
-                      foodOptions
-                    ),
-                    fruits: findMatchingFood(
-                      entry.selections.fruits,
-                      "fruits",
-                      foodOptions
-                    ),
-                    vegetables: findMatchingFood(
-                      entry.selections.vegetables,
-                      "vegetables",
-                      foodOptions
-                    ),
+                    proteins: restoreArray(entry.selections.proteins as Food | Food[] | null, "proteins"),
+                    grains: restoreArray(entry.selections.grains as Food | Food[] | null, "grains"),
+                    fruits: restoreArray(entry.selections.fruits as Food | Food[] | null, "fruits"),
+                    vegetables: restoreArray(entry.selections.vegetables as Food | Food[] | null, "vegetables"),
                     milk: findMatchingFood(
                       entry.selections.milk,
                       "milk",
@@ -671,18 +719,8 @@ export const useMealStore = create<MealStore>()(
                       "ranch",
                       foodOptions
                     ),
-                    condiments: Array.isArray(entry.selections.condiments)
-                      ? entry.selections.condiments
-                          .map((c) =>
-                            findMatchingFood(c, "condiments", foodOptions)
-                          )
-                          .filter((c): c is Food => c !== null)
-                      : [],
-                    other: findMatchingFood(
-                      entry.selections.other,
-                      "other",
-                      foodOptions
-                    ),
+                    condiments: restoreArray(entry.selections.condiments, "condiments"),
+                    other: restoreArray(entry.selections.other as Food | Food[] | null, "other"),
                   };
 
                   // Update the selections in state using Immer

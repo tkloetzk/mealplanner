@@ -3,6 +3,45 @@ import React, { act } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ImageCapture } from "@/components/ImageCapture";
 
+// Mock media device utilities
+jest.mock("@/utils/mediaDeviceUtils", () => ({
+  hasMediaDeviceSupport: jest.fn(() => true),
+  isIOSDevice: jest.fn(() => false),
+  isSafari: jest.fn(() => false),
+  isMobileDevice: jest.fn(() => false),
+  getMediaErrorMessage: jest.fn((error) => {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
+
+    // Match behavior of actual utility
+    if (errorMessage.includes("access denied")) {
+      return {
+        message: "Camera access denied",
+        code: "NotAllowedError",
+        suggestedAction:
+          "Please check your camera permissions and try again.",
+      };
+    }
+
+    return {
+      message: errorMessage || "Could not access camera",
+      code: "UnknownError",
+      suggestedAction:
+        "Please check your camera permissions and try again.",
+    };
+  }),
+  getOptimalMediaConstraints: jest.fn(() => [
+    {
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 },
+      },
+    },
+    { video: true },
+  ]),
+}));
+
 // Mock navigator.mediaDevices
 const mockGetUserMedia = jest.fn().mockResolvedValue({
   getTracks: () => [
@@ -36,34 +75,67 @@ describe("ImageCapture Component", () => {
     jest.restoreAllMocks();
   });
 
-  it("renders camera initialization view", async () => {
-    await act(async () => {
-      render(<ImageCapture onCapture={mockOnCapture} onClose={mockOnClose} />);
-    });
+  it("renders idle state with Start Camera button initially", async () => {
+    render(<ImageCapture onCapture={mockOnCapture} onClose={mockOnClose} />);
 
+    // Should show idle state, not auto-initialize
     expect(screen.getByText(/Take Food Photo/i)).toBeInTheDocument();
-    expect(screen.getByText(/Initializing camera/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/We'll need access to your camera/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Start Camera/i)).toBeInTheDocument();
+
+    // Camera should NOT be initialized yet
+    expect(mockGetUserMedia).not.toHaveBeenCalled();
   });
 
-  it("handles camera access error", async () => {
+  it("initializes camera when Start Camera button is clicked", async () => {
+    render(<ImageCapture onCapture={mockOnCapture} onClose={mockOnClose} />);
+
+    // Click Start Camera button
+    const startButton = screen.getByText(/Start Camera/i);
+    await act(async () => {
+      fireEvent.click(startButton);
+    });
+
+    // Should show initializing state
+    await waitFor(() => {
+      expect(screen.getByText(/Initializing camera/i)).toBeInTheDocument();
+    });
+
+    // Camera should be initialized from user gesture
+    expect(mockGetUserMedia).toHaveBeenCalled();
+  });
+
+  it("handles camera access error with suggested action", async () => {
     // Simulate camera access error
+    const mockError = new Error("Camera access denied");
     Object.defineProperty(navigator, "mediaDevices", {
       value: {
-        getUserMedia: jest
-          .fn()
-          .mockRejectedValue(new Error("Camera access denied")),
+        getUserMedia: jest.fn().mockRejectedValue(mockError),
       },
       configurable: true,
     });
 
+    render(<ImageCapture onCapture={mockOnCapture} onClose={mockOnClose} />);
+
+    // Click Start Camera to trigger initialization
+    const startButton = screen.getByText(/Start Camera/i);
     await act(async () => {
-      render(<ImageCapture onCapture={mockOnCapture} onClose={mockOnClose} />);
+      fireEvent.click(startButton);
     });
 
+    // Should show error with suggested action
     await waitFor(() => {
       expect(screen.getByText(/Camera Error/i)).toBeInTheDocument();
-      expect(screen.getByText(/Could not access camera/i)).toBeInTheDocument();
+      expect(screen.getByText(/Camera access denied/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Please check your camera permissions/i)
+      ).toBeInTheDocument();
     });
+
+    // Should show Retry button
+    expect(screen.getByText(/Retry/i)).toBeInTheDocument();
   });
 
   it.skip("captures image and allows retake", async () => {

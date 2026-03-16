@@ -1,14 +1,21 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MealHistoryRecord, MealSelection } from "@/types/meals";
-import type { ConsumptionInfo, MealType } from "@/types/shared";
+import type { ConsumptionInfo, MealType, SatietyEntry } from "@/types/shared";
+import { computeSatietyDuration, formatDuration } from "@/types/shared";
 import { MEAL_TYPES } from "@/constants";
 import { DAILY_GOALS } from "@/constants/meal-goals";
-import { MarkConsumptionButton } from "@/components/features/consumption";
+import { MarkConsumptionButton, SatietyLogger } from "@/components/features/consumption";
 import { useMealStore } from "@/store/useMealStore";
 
 interface MealHistoryEntryProps {
   entries: MealHistoryRecord[];
 }
+
+const SATIETY_LABELS: Record<number, string> = {
+  1: "😟 Hungry fast",
+  2: "😐 Moderate",
+  3: "😊 Stayed full",
+};
 
 export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
   // Sort entries by meal type according to MEAL_TYPES order
@@ -236,6 +243,24 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
               entry.meal as keyof typeof DAILY_GOALS.mealCalories
             ];
 
+          const mealTimeDisplay = entry.consumptionData?.mealTime
+            ? new Date(entry.consumptionData.mealTime).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })
+            : null;
+
+          const satietyLog = entry.consumptionData?.satietyLog;
+          const satietyDuration = computeSatietyDuration(
+            entry.consumptionData?.mealTime,
+            satietyLog?.hungryAgainAt,
+          );
+
+          // Show the satiety logger when the meal has been eaten (not just offered)
+          const showSatietyLogger =
+            entry.consumptionData &&
+            entry.consumptionData.overallStatus !== "offered";
+
           return (
             <div
               key={`${entry._id}-${index}`}
@@ -246,6 +271,12 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
                   <h3 className="text-lg font-semibold">
                     {entry.meal.charAt(0).toUpperCase() + entry.meal.slice(1)}
                   </h3>
+                  {/* ── Meal time display ── */}
+                  {mealTimeDisplay && (
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      ⏰ Ate at {mealTimeDisplay}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div
@@ -311,9 +342,9 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
                                 </h4>
                                 <div className="space-y-1 mt-1">
                                   {entry.consumptionData.foods.map(
-                                    (food, index) => (
+                                    (food, foodIdx) => (
                                       <div
-                                        key={index}
+                                        key={foodIdx}
                                         className="flex justify-between text-xs"
                                       >
                                         <span>
@@ -333,6 +364,23 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
                               {entry.consumptionData.notes}
                             </p>
                           )}
+
+                          {/* ── Satiety summary (read-only display) ── */}
+                          {satietyLog && (satietyLog.satietyRating || satietyLog.hungryAgainAt) && (
+                            <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-700 space-y-0.5">
+                              {satietyLog.satietyRating && (
+                                <div>{SATIETY_LABELS[satietyLog.satietyRating]}</div>
+                              )}
+                              {satietyDuration != null && (
+                                <div>⏱️ Lasted {formatDuration(satietyDuration)}</div>
+                              )}
+                              {satietyLog.notes && (
+                                <div className="italic text-gray-500">
+                                  📝 {satietyLog.notes}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -343,6 +391,11 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
                     )}
                   </div>
                 </div>
+
+                {/* ── Satiety logger (interactive) ── */}
+                {showSatietyLogger && (
+                  <InlineSatietyLogger entry={entry} />
+                )}
 
                 {/* Milk */}
                 {entry.selections.milk && (
@@ -411,6 +464,8 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
   );
 }
 
+// ─── Sub-components ──────────────────────────────────────────────
+
 interface UpdateConsumptionButtonProps {
   entry: MealHistoryRecord;
 }
@@ -438,6 +493,44 @@ function UpdateConsumptionButton({ entry }: UpdateConsumptionButtonProps) {
       initialStatus={entry.consumptionData}
       mealSelections={entry.selections}
       onSave={handleUpdateConsumption}
+    />
+  );
+}
+
+interface InlineSatietyLoggerProps {
+  entry: MealHistoryRecord;
+}
+
+function InlineSatietyLogger({ entry }: InlineSatietyLoggerProps) {
+  const updateConsumptionData = useMealStore(
+    (state) => state.updateConsumptionData,
+  );
+
+  const handleSatietyUpdate = async (satietyEntry: SatietyEntry) => {
+    if (!entry.consumptionData) return;
+
+    const updatedConsumption: ConsumptionInfo = {
+      ...entry.consumptionData,
+      satietyLog: satietyEntry,
+    };
+
+    try {
+      await updateConsumptionData(
+        entry.kidId,
+        new Date(entry.date),
+        entry.meal,
+        updatedConsumption,
+      );
+    } catch (error) {
+      console.error("Error updating satiety data:", error);
+    }
+  };
+
+  return (
+    <SatietyLogger
+      mealTime={entry.consumptionData?.mealTime}
+      existingLog={entry.consumptionData?.satietyLog}
+      onUpdate={handleSatietyUpdate}
     />
   );
 }

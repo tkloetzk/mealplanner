@@ -1,6 +1,7 @@
 import React from "react";
-import { MEAL_TYPES, MEAL_TYPE_LABELS } from "@/constants";
+import { MEAL_TYPE_LABELS } from "@/constants";
 import type { MealType } from "@/types/shared";
+import { useAppSettingsStore } from "@/store/useAppSettingsStore";
 
 interface MealSelectorProps {
   selectedMeal: MealType;
@@ -9,9 +10,11 @@ interface MealSelectorProps {
 
 export const MealSelector = React.memo(
   ({ selectedMeal, onMealSelect }: MealSelectorProps) => {
+    const enabledMeals = useAppSettingsStore((s) => s.getEnabledMeals());
+
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {(MEAL_TYPES as readonly MealType[]).map((meal) => (
+        {enabledMeals.map((meal) => (
           <button
             key={meal}
             onClick={() => onMealSelect(meal)}

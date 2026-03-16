@@ -61,7 +61,7 @@ describe("MarkConsumptionButton", () => {
         {...defaultProps}
         initialStatus={initialStatus}
         mealSelections={{
-          proteins: {
+          proteins: [{
             id: 'test-food-1',
             name: 'Test Food',
             category: 'proteins',
@@ -73,14 +73,14 @@ describe("MarkConsumptionButton", () => {
             protein: 20,
             carbs: 0,
             fat: 5
-          },
-          grains: null,
-          fruits: null,
-          vegetables: null,
+          }],
+          grains: [],
+          fruits: [],
+          vegetables: [],
           milk: null,
           ranch: null,
           condiments: [],
-          other: null,
+          other: [],
         }}
       />
     );
@@ -101,7 +101,7 @@ describe("MarkConsumptionButton", () => {
       <MarkConsumptionButton
         {...defaultProps}
         mealSelections={{
-          proteins: {
+          proteins: [{
             id: 'protein-1',
             name: 'Chicken',
             category: 'proteins',
@@ -113,14 +113,14 @@ describe("MarkConsumptionButton", () => {
             protein: 20,
             carbs: 0,
             fat: 5
-          },
-          grains: null,
-          fruits: null,
-          vegetables: null,
+          }],
+          grains: [],
+          fruits: [],
+          vegetables: [],
           milk: null,
           ranch: null,
           condiments: [],
-          other: null,
+          other: [],
         }}
       />
     );
@@ -140,17 +140,20 @@ describe("MarkConsumptionButton", () => {
     const saveButton = screen.getByText("Save Status");
     fireEvent.click(saveButton);
 
-    expect(mockOnSave).toHaveBeenCalledWith({
-      foods: [
-        {
-          foodId: 'protein-1',
-          status: 'eaten',
-          percentageEaten: 100,
-          notes: undefined,
-        }
-      ],
-      overallStatus: "eaten",
-      notes: undefined,
-    });
+    expect(mockOnSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        foods: [
+          {
+            foodId: 'protein-1',
+            status: 'eaten',
+            percentageEaten: 100,
+            notes: undefined,
+          }
+        ],
+        overallStatus: "eaten",
+        notes: undefined,
+        mealTime: expect.any(String),
+      })
+    );
   });
 });

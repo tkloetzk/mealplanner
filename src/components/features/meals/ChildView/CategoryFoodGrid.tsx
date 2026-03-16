@@ -36,8 +36,23 @@ export function CategoryFoodGrid({
       );
     }
 
-    const selectedFood = selections[selectedDay][selectedMeal][category];
-    return selectedFood?.id === food.id;
+    const categoryValue = selections[selectedDay][selectedMeal][category];
+    if (!categoryValue) return false;
+    if (Array.isArray(categoryValue)) {
+      return (categoryValue as Food[]).some((f) => {
+        if (f.id !== food.id) return false;
+        if (food.selectedPreparation) {
+          return f.selectedPreparation?.id === food.selectedPreparation.id;
+        }
+        return true;
+      });
+    }
+    const selectedFood = categoryValue as Food;
+    if (selectedFood.id !== food.id) return false;
+    if (food.selectedPreparation) {
+      return selectedFood.selectedPreparation?.id === food.selectedPreparation.id;
+    }
+    return true;
   };
 
   const getServingInfo = (food: Food) => {
@@ -70,14 +85,25 @@ export function CategoryFoodGrid({
 
         <div className="p-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {foods.map((food, index) => {
+            {foods.flatMap((food) =>
+              food.preparations && food.preparations.length > 0
+                ? food.preparations.map((prep) => ({
+                    ...food,
+                    name: prep.name,
+                    imageUrl: prep.imageUrl,
+                    cloudinaryUrl: prep.cloudinaryUrl,
+                    selectedPreparation: prep,
+                    preparations: undefined,
+                  }))
+                : [food]
+            ).map((food, index) => {
               const isSelected = isFoodSelected(food);
               const imageSource = getFoodImageSource(food);
               const servingInfo = getServingInfo(food);
 
               return (
                 <Card
-                  key={food.id}
+                  key={food.selectedPreparation ? `${food.id}-${food.selectedPreparation.id}` : food.id}
                   data-testid={`${category}-${selectedMeal}-${index}`}
                   className={`relative cursor-pointer transition-transform hover:scale-105 ${
                     isSelected ? "ring-2 ring-green-500" : "hover:shadow-md"

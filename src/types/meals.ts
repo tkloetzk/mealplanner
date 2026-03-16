@@ -4,14 +4,14 @@ import type { DayType, ConsumptionInfo } from "./shared";
 export type MealType = import("./shared").MealType;
 
 export interface MealSelection {
-  proteins: Food | null;
-  grains: Food | null;
-  fruits: Food | null;
-  vegetables: Food | null;
+  proteins: Food[];
+  grains: Food[];
+  fruits: Food[];
+  vegetables: Food[];
   milk: Food | null;
   ranch: Food | null;
   condiments: Food[];
-  other: Food | null;
+  other: Food[];
 }
 
 export interface DayMeals {
