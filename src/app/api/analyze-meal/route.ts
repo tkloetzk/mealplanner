@@ -1,7 +1,37 @@
 // app/api/analyze-meal/route.ts
 import { NextResponse } from "next/server";
+import { SchemaType } from "@google/generative-ai";
 import { generateTextWithFallback } from "@/services/ai/geminiService";
 import { safeParseAiJson } from "@/utils/parseAiJson";
+
+const MEAL_ANALYSIS_SCHEMA = {
+  type: SchemaType.OBJECT,
+  properties: {
+    nutrition: {
+      type: SchemaType.OBJECT,
+      properties: {
+        calories: { type: SchemaType.NUMBER },
+        protein:  { type: SchemaType.NUMBER },
+        carbs:    { type: SchemaType.NUMBER },
+        fat:      { type: SchemaType.NUMBER },
+      },
+      required: ["calories", "protein", "carbs", "fat"],
+    },
+    recommendations: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    warnings:        { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    balanceScore:    { type: SchemaType.NUMBER },
+    nutritionalGoalsAnalysis: {
+      type: SchemaType.OBJECT,
+      properties: {
+        meetsCalorieGoal: { type: SchemaType.BOOLEAN },
+        meetsProteinGoal: { type: SchemaType.BOOLEAN },
+        meetsFatGoal:     { type: SchemaType.BOOLEAN },
+      },
+      required: ["meetsCalorieGoal", "meetsProteinGoal", "meetsFatGoal"],
+    },
+  },
+  required: ["nutrition", "recommendations", "warnings", "balanceScore", "nutritionalGoalsAnalysis"],
+};
 import type { MealSelection, SelectedFood, Food } from "@/types/food";
 import type { MealType } from "@/types/meals";
 
@@ -100,6 +130,7 @@ Respond with ONLY a JSON object using these exact keys:
       topK: 40,
       topP: 0.95,
       maxOutputTokens: 1024,
+      responseSchema: MEAL_ANALYSIS_SCHEMA,
     });
 
     const { data, error } = safeParseAiJson(output);

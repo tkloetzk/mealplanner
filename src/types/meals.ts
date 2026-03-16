@@ -43,6 +43,10 @@ export interface MealHistoryRecord {
   consumptionData?: ConsumptionInfo;
 }
 
+export interface OptimisticMealHistoryRecord extends MealHistoryRecord {
+  _optimistic?: true;
+}
+
 export interface MealState {
   selections: Record<string, Record<DayType, Record<MealType, MealSelection>>>;
   selectedKid: string | null;

@@ -5,9 +5,34 @@
 // doesn't find what they need.
 
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { normalizeAIEstimate, type AIEstimateResponse } from "@/services/food/normalizers";
 import type { FoodEstimateRequest, FoodEstimateResponse } from "@/types/foodSearch";
+
+const FOOD_ESTIMATE_SCHEMA = {
+  type: SchemaType.OBJECT,
+  properties: {
+    name:            { type: SchemaType.STRING },
+    calories:        { type: SchemaType.NUMBER },
+    protein:         { type: SchemaType.NUMBER },
+    carbs:           { type: SchemaType.NUMBER },
+    fat:             { type: SchemaType.NUMBER },
+    fiber:           { type: SchemaType.NUMBER },
+    sugar:           { type: SchemaType.NUMBER },
+    sodium:          { type: SchemaType.NUMBER },
+    saturatedFat:    { type: SchemaType.NUMBER },
+    servingSize:     { type: SchemaType.STRING },
+    servingSizeUnit: {
+      type: SchemaType.STRING,
+      enum: ["g", "ml", "piece", "cup", "tbsp", "oz", "tsp"],
+    },
+    category: {
+      type: SchemaType.STRING,
+      enum: ["proteins", "grains", "fruits", "vegetables", "milk", "other"],
+    },
+  },
+  required: ["name", "calories", "protein", "carbs", "fat", "servingSize", "servingSizeUnit", "category"],
+};
 
 const GEMINI_MODELS = ["gemini-3.1-flash-lite-preview"] as const;
 
@@ -21,6 +46,7 @@ async function tryGenerate(apiKey: string, modelName: string, prompt: string): P
       topK: 40,
       maxOutputTokens: 1024,
       responseMimeType: "application/json",
+      responseSchema: FOOD_ESTIMATE_SCHEMA,
     },
   });
   const result = await model.generateContent(prompt);

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -20,9 +20,12 @@ We will extend the system to support recipe-based meals through these architectu
 
 ```typescript
 interface RecipeIngredient {
-  food: Food;
+  name: string;                        // Display name; fallback label if foodId is deleted
   amount: number;
   unit: ServingSizeUnit;
+  foodId?: string;                     // Primary reference — resolved to live Food at calc time
+  upc?: string;                        // Alternate lookup key (barcode scanning)
+  nutritionSnapshot?: NutritionInfo;   // Fallback when foodId can't be resolved
 }
 
 interface Recipe {
@@ -32,11 +35,13 @@ interface Recipe {
   ingredients: RecipeIngredient[];
   instructions: string[];
   servings: number;
-  totalNutrition: NutritionInfo;
+  totalNutrition: NutritionInfo;       // Cached computed total; recomputed on ingredient re-resolution
   category: CategoryType;
   meal: MealType[];
 }
 ```
+
+**Rationale for hybrid approach:** The original snapshot approach (`food: Food`) breaks live nutrition accuracy — if a parent corrects calories on "Homemade Bread," existing recipes silently stay wrong. Pure reference (`foodId` only) fails gracefully for deleted foods: a recipe ingredient becomes nutritionally invisible. The hybrid gives both accuracy (resolve `foodId` → live Food at calculation time) and graceful degradation (fall back to `nutritionSnapshot` if the food was deleted, surfacing a UI warning).
 
 ### 2. New Service Layer Components
 

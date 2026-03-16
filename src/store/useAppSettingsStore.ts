@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { MEAL_TYPES } from "@/constants";
-import type { MealType } from "@/types/shared";
+import type { MealType, GrowthEntry } from "@/types/shared";
 import { DAILY_GOALS, MILK_OPTION } from "@/constants/meal-goals";
 import { getPediatricGuidelines } from "@/constants/pediatric-nutrition-guidelines";
 import type { Food } from "@/types/food";
@@ -34,6 +34,7 @@ export type KidSettings = {
   age: number;
   activityLevel?: ActivityLevel;  // Optional enhancement
   restrictions?: string; // Dietary restrictions, allergies, etc.
+  growthLog?: GrowthEntry[];
 };
 
 type AppSettingsState = {
@@ -241,8 +242,8 @@ export const useAppSettingsStore = create<AppSettingsState>()(
             carbs: baseGoals.carbs,
             fat: baseGoals.fat,
             sodium: baseGoals.sodium || { max: DAILY_GOALS.dailyTotals.sodiumMax },
-            sugar: baseGoals.sugar || { max: guidelines.sugarMaxG }, // Age-specific limit
-            saturatedFat: baseGoals.saturatedFat || { max: guidelines.saturatedFatMaxG }, // Age-specific limit
+            sugar: baseGoals.sugar || { max: 25 },
+            saturatedFat: baseGoals.saturatedFat || { max: 20 },
           };
         }
 
@@ -265,8 +266,8 @@ export const useAppSettingsStore = create<AppSettingsState>()(
           carbs: baseGoals.carbs,
           fat: baseGoals.fat,
           sodium: baseGoals.sodium || { max: DAILY_GOALS.dailyTotals.sodiumMax },
-          sugar: baseGoals.sugar || { max: guidelines.sugarMaxG }, // Age-specific limit
-          saturatedFat: baseGoals.saturatedFat || { max: guidelines.saturatedFatMaxG }, // Age-specific limit
+          sugar: baseGoals.sugar || { max: 25 },
+          saturatedFat: baseGoals.saturatedFat || { max: 20 },
         };
       },
 

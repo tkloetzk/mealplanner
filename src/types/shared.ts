@@ -55,6 +55,21 @@ export interface FoodConsumptionStatus {
   status: "not_eaten" | "partially_eaten" | "eaten";
   percentageEaten?: number;
   notes?: string;
+  /** ISO 8601 datetime — when this food's status was recorded */
+  recordedAt?: string;
+}
+
+/**
+ * Longitudinal growth measurement for a child.
+ * Stored at the kid level (not per-meal) so it can be joined with
+ * meal consumption data at query time by kidId + date.
+ */
+export interface GrowthEntry {
+  /** ISO 8601 date of measurement */
+  date: string;
+  weightKg?: number;
+  heightCm?: number;
+  notes?: string;
 }
 
 /** Quick parent rating for how long a meal kept the child full */

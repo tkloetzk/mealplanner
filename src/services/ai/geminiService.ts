@@ -5,10 +5,10 @@ export interface GeminiGenerationConfig {
   topK?: number;
   topP?: number;
   maxOutputTokens?: number;
+  responseSchema?: Record<string, unknown>; // JSON Schema object — constrains model output at generation time
 }
 
 const DEFAULT_TEXT_MODEL = "gemini-3.1-flash-lite-preview";
-const FALLBACK_TEXT_MODEL = "gemini-3.1-flash-lite-preview";
 
 function getClient(): GoogleGenerativeAI {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -44,7 +44,7 @@ export async function generateText(
 export async function generateTextWithImage(
   imageBase64: string,
   prompt: string,
-  modelName = FALLBACK_TEXT_MODEL
+  modelName = DEFAULT_TEXT_MODEL
 ): Promise<string> {
   const mimeType = imageBase64.startsWith("data:image/png")
     ? "image/png"
@@ -60,64 +60,42 @@ export async function generateTextWithImage(
   return result.response.text();
 }
 
-/** Generate text+image with automatic quota fallback (mirrors generateTextWithFallback) */
+/** Generate text+image, throwing a structured quotaExceeded error on 429/quota errors */
 export async function generateTextWithImageFallback(
   imageBase64: string,
   prompt: string,
-  primaryModel = DEFAULT_TEXT_MODEL,
-  fallbackModel = FALLBACK_TEXT_MODEL
+  model = DEFAULT_TEXT_MODEL
 ): Promise<string> {
   try {
-    return await generateTextWithImage(imageBase64, prompt, primaryModel);
+    return await generateTextWithImage(imageBase64, prompt, model);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (!msg.includes("429") && !msg.toLowerCase().includes("quota")) throw e;
-    console.warn(`[gemini] ${primaryModel} quota/rate error:`, msg);
-  }
-  try {
-    return await generateTextWithImage(imageBase64, prompt, fallbackModel);
-  } catch (e2) {
-    const msg2 = e2 instanceof Error ? e2.message : String(e2);
-    if (msg2.includes("429") || msg2.toLowerCase().includes("quota")) {
-      console.error(`[gemini] ${fallbackModel} quota/rate error:`, msg2);
+    if (msg.includes("429") || msg.toLowerCase().includes("quota")) {
+      console.error(`[gemini] ${model} quota/rate error:`, msg);
       const err = new Error("quota_exceeded") as Error & { quotaExceeded: true };
       (err as unknown as Record<string, unknown>).quotaExceeded = true;
       throw err;
     }
-    throw e2;
+    throw e;
   }
 }
 
-/**
- * Generate text with automatic quota fallback:
- * tries primaryModel first; on 429/quota error falls back to fallbackModel.
- * Throws a structured error with quotaExceeded=true if both are exhausted.
- */
+/** Generate text, throwing a structured quotaExceeded error on 429/quota errors */
 export async function generateTextWithFallback(
   prompt: string,
   config?: GeminiGenerationConfig,
-  primaryModel = DEFAULT_TEXT_MODEL,
-  fallbackModel = FALLBACK_TEXT_MODEL
+  model = DEFAULT_TEXT_MODEL
 ): Promise<string> {
   try {
-    return await generateText(prompt, primaryModel, config);
+    return await generateText(prompt, model, config);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (!msg.includes("429") && !msg.toLowerCase().includes("quota")) throw e;
-    console.warn(`[gemini] ${primaryModel} quota/rate error:`, msg);
-  }
-  try {
-    return await generateText(prompt, fallbackModel, config);
-  } catch (e2) {
-    const msg2 = e2 instanceof Error ? e2.message : String(e2);
-    if (msg2.includes("429") || msg2.toLowerCase().includes("quota")) {
-      console.error(`[gemini] ${fallbackModel} quota/rate error:`, msg2);
-      const err = new Error("quota_exceeded") as Error & {
-        quotaExceeded: true;
-      };
+    if (msg.includes("429") || msg.toLowerCase().includes("quota")) {
+      console.error(`[gemini] ${model} quota/rate error:`, msg);
+      const err = new Error("quota_exceeded") as Error & { quotaExceeded: true };
       (err as unknown as Record<string, unknown>).quotaExceeded = true;
       throw err;
     }
-    throw e2;
+    throw e;
   }
 }

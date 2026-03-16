@@ -1,11 +1,14 @@
 import { CategoryType, MealType, NutritionInfo } from "./shared";
-import { Food, ServingSizeUnit } from "./food";
+import { ServingSizeUnit } from "./food";
 import { ObjectId } from "mongodb";
 
 export interface RecipeIngredient {
-  food: Food;
+  name: string;                        // Display name; fallback label if foodId is deleted
   amount: number;
   unit: ServingSizeUnit;
+  foodId?: string;                     // Primary reference — resolved to live Food at calc time
+  upc?: string;                        // Alternate lookup key (barcode scanning)
+  nutritionSnapshot?: NutritionInfo;   // Fallback when foodId can't be resolved
 }
 
 export interface Recipe {

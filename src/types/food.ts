@@ -76,9 +76,13 @@ export interface Food extends NutritionInfo {
 export interface SelectedFood extends Food {
   servings: number;
   selectedServingSizeId?: string;
+  /** Computed via adjustFoodServings() — never set manually */
   adjustedCalories: number;
+  /** Computed via adjustFoodServings() — never set manually */
   adjustedProtein: number;
+  /** Computed via adjustFoodServings() — never set manually */
   adjustedCarbs: number;
+  /** Computed via adjustFoodServings() — never set manually */
   adjustedFat: number;
   selectedPreparation?: FoodPreparation;
 }
@@ -111,28 +115,3 @@ export interface FoodDocument extends Food {
   _id: ObjectId;
 }
 
-export interface RecipeIngredient {
-  name: string;
-  amount: number;
-  unit: ServingSizeUnit;
-  foodId?: string; // Reference to existing food if available
-  upc?: string; // UPC code if scanned
-}
-
-export interface Recipe {
-  id: string;
-  name: string;
-  description?: string;
-  ingredients: RecipeIngredient[];
-  servingSize: string;
-  servingSizeUnit: ServingSizeUnit;
-  totalNutrition: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  instructions?: string[];
-  category: CategoryType;
-  meal: MealType[];
-}
