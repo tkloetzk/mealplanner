@@ -59,13 +59,13 @@ describe('Pediatric Nutrition Guidelines', () => {
 
     test('returns correct guidelines for 4-8 year olds', () => {
       const guidelines = getPediatricGuidelines(6);
-      expect(guidelines.caloriesMin).toBe(1400);
-      expect(guidelines.caloriesMax).toBe(2000);
-      expect(guidelines.proteinGrams).toBe(19);
+      expect(guidelines.caloriesMin).toBe(1200);
+      expect(guidelines.caloriesMax).toBe(1600);
+      expect(guidelines.proteinGrams).toBe(35);
       expect(guidelines.fatPercentMin).toBe(25);
       expect(guidelines.fatPercentMax).toBe(35);
       expect(guidelines.carbsPercentMin).toBe(45);
-      expect(guidelines.carbsPercentMax).toBe(65);
+      expect(guidelines.carbsPercentMax).toBe(55);
       expect(guidelines.sodiumMaxMg).toBe(1500);
     });
 

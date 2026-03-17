@@ -60,6 +60,7 @@ jest.mock("@/store/useMealStore", () => ({
 jest.mock("@/store/mealSelectors", () => ({
   useMealNutrition: jest.fn(),
   useDailyNutrition: jest.fn(),
+  useCurrentMealSelection: jest.fn().mockReturnValue(null),
 }));
 
 // Mock the useAppSettingsStore hook

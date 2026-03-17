@@ -22,6 +22,23 @@ if (!global.Response) {
   };
 }
 
+if (!global.Request) {
+  global.Request = class Request {
+    constructor(input, init) {
+      this.url = typeof input === "string" ? input : input.url;
+      this.method = init?.method || "GET";
+      this.headers = new Map(Object.entries(init?.headers || {}));
+      this._body = init?.body || null;
+    }
+    async json() {
+      return JSON.parse(this._body);
+    }
+    async text() {
+      return this._body || "";
+    }
+  };
+}
+
 // Mock BroadcastChannel
 class MockBroadcastChannel {
   constructor(channel) {

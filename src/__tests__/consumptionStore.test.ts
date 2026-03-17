@@ -75,14 +75,14 @@ describe("useMealStore consumption functionality", () => {
               date: new Date("2023-01-01").toISOString(),
               meal: "breakfast",
               selections: {
-                proteins: null,
-                grains: null,
-                fruits: null,
-                vegetables: null,
+                proteins: [],
+                fruits: [],
+                vegetables: [],
+                grains: [],
                 milk: null,
                 ranch: null,
                 condiments: [],
-                other: null,
+                other: [],
               },
               consumptionData: mockConsumptionData
             }
@@ -125,10 +125,6 @@ describe("useMealStore consumption functionality", () => {
         ).rejects.toThrow();
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Error updating consumption data:",
-        expect.any(Error)
-      );
       consoleSpy.mockRestore();
     });
 

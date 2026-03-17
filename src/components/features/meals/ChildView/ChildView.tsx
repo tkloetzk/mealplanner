@@ -35,8 +35,12 @@ export function ChildView({
 
     const currentSelections = selections[selectedDay][selectedMeal];
     const selectedFoods = Object.entries(currentSelections)
-      .filter(([category, food]) => food !== null && category !== "condiments")
-      .map(([, food]) => food);
+      .filter(([category]) => category !== "condiments")
+      .flatMap(([, food]) => {
+        if (!food) return [];
+        if (Array.isArray(food)) return food;
+        return [food];
+      });
 
     // Filter condiments based on recommendedUses of selected foods
     return (

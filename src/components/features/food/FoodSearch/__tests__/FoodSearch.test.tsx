@@ -190,15 +190,15 @@ describe("FoodSearch", () => {
     it("routes to /api/upc for numeric-only input of 8-14 digits", async () => {
       const user = userEvent.setup();
       mockFetch({
-        "/api/upc": {
+        "/api/foods/search": {
           ok: true,
           json: () =>
             Promise.resolve({
+              id: "016000275287",
+              source: "openfoodfacts",
               name: "Cheerios",
-              calories: 100,
-              protein: 3,
-              carbs: 20,
-              fat: 2,
+              nutrition: { calories: 100, protein: 3, carbs: 20, fat: 2 },
+              confidence: "exact",
             }),
         },
       });
@@ -212,7 +212,7 @@ describe("FoodSearch", () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining("/api/upc?upc=016000275287")
+          expect.stringContaining("/api/foods/search?id=016000275287")
         );
         expect(mockOnFoodFound).toHaveBeenCalledWith(
           expect.objectContaining({ name: "Cheerios" }),

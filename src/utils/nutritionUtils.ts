@@ -93,6 +93,7 @@ export const getSodiumColor = (
   max: number
 ): string => {
   if (current > max) return "text-red-600";
+  if (current > max * 0.8) return "text-yellow-600";
   return "text-green-600";
 };
 
@@ -115,6 +116,7 @@ export const getSugarColor = (
   max: number
 ): string => {
   if (current > max) return "text-red-600";
+  if (current > max * 0.8) return "text-yellow-600";
   return "text-green-600";
 };
 
@@ -137,6 +139,7 @@ export const getSaturatedFatColor = (
   max: number
 ): string => {
   if (current > max) return "text-red-600";
+  if (current > max * 0.8) return "text-yellow-600";
   return "text-green-600";
 };
 

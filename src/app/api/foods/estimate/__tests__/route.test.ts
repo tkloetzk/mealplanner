@@ -1,4 +1,15 @@
 // src/app/api/foods/estimate/__tests__/route.test.ts
+
+// Mock next/server before importing route
+jest.mock("next/server", () => ({
+  NextResponse: {
+    json: (data: unknown, init?: ResponseInit) => ({
+      json: async () => data,
+      status: init?.status ?? 200,
+    }),
+  },
+}));
+
 import { POST } from "../route";
 
 // Mock GoogleGenerativeAI
@@ -26,6 +37,7 @@ jest.mock("@google/generative-ai", () => ({
       }),
     }),
   })),
+  SchemaType: { OBJECT: "OBJECT", STRING: "STRING", NUMBER: "NUMBER" },
 }));
 
 describe("POST /api/foods/estimate", () => {

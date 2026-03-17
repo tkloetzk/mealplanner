@@ -143,7 +143,7 @@ describe("MealEditor", () => {
   it("handles description mode analysis", async () => {
     // Mock the analysis API call
     global.fetch = jest.fn().mockImplementation((url) => {
-      if (url === "/api/analyze-meal") {
+      if (url === "/api/analyze-food") {
         return Promise.resolve({
           ok: true,
           json: () =>
@@ -180,7 +180,7 @@ describe("MealEditor", () => {
     // Verify API call
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/analyze-meal",
+        "/api/analyze-food",
         expect.any(Object)
       );
     });
@@ -189,7 +189,7 @@ describe("MealEditor", () => {
   it("handles recipe mode analysis", async () => {
     // Mock the analysis API call
     global.fetch = jest.fn().mockImplementation((url) => {
-      if (url === "/api/analyze-meal") {
+      if (url === "/api/analyze-food") {
         return Promise.resolve({
           ok: true,
           json: () =>
@@ -226,7 +226,7 @@ describe("MealEditor", () => {
     // Verify API call
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/analyze-meal",
+        "/api/analyze-food",
         expect.any(Object)
       );
     });
@@ -367,7 +367,7 @@ describe("MealEditor", () => {
 
     // Verify serving size and calorie total are displayed correctly
     expect(
-      screen.getByText("1 serving(s) • 165 cal total")
+      screen.getByText("1 serving(s) (4 oz each) • 165 cal total")
     ).toBeInTheDocument();
 
     // Verify serving size unit is displayed

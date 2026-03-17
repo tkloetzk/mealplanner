@@ -1,8 +1,10 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MealPlanner } from "../MealPlanner";
 import { MOCK_FOODS } from "@/__mocks__/testConstants";
+import { useMealStore } from "@/store/useMealStore";
+import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 
 // Mock the meal service
 jest.mock("@/services/meal/mealService", () => ({
@@ -120,6 +122,16 @@ describe("MealPlanner Integration Tests", () => {
   const user = userEvent.setup();
 
   beforeEach(() => {
+    act(() => {
+      useMealStore.setState({
+        selections: {},
+        selectedKid: "",
+        selectedDay: "monday",
+        selectedMeal: "breakfast",
+        mealHistory: {},
+      });
+    });
+
     // Reset any mock implementations
     jest.clearAllMocks();
 
@@ -140,7 +152,7 @@ describe("MealPlanner Integration Tests", () => {
 
     expect(screen.getByTestId("meal-planner")).toBeInTheDocument();
     expect(screen.getByText("Presley")).toBeInTheDocument();
-    expect(screen.getByText("Evy")).toBeInTheDocument();
+    expect(screen.getAllByText("Evy")[0]).toBeInTheDocument();
   });
 
   it("shows kids are available for selection", () => {
@@ -148,7 +160,7 @@ describe("MealPlanner Integration Tests", () => {
 
     // Kids should be visible and selectable, with first kid (Presley) selected by default
     expect(screen.getByText("Presley")).toBeInTheDocument();
-    expect(screen.getByText("Evy")).toBeInTheDocument();
+    expect(screen.getAllByText("Evy")[0]).toBeInTheDocument();
 
     // Presley should be selected by default (has blue background)
     const presleyButton = screen.getByText("Presley");

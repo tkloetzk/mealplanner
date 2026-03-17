@@ -113,8 +113,8 @@ describe("MealStore Integration Tests", () => {
 
       const selections =
         result.current.selections[mockKids[0].id]["monday"]["breakfast"];
-      expect(selections?.proteins?.id).toBe(testFood.id);
-      expect(selections?.proteins?.servings).toBe(1);
+      expect(selections?.proteins[0]?.id).toBe(testFood.id);
+      expect(selections?.proteins[0]?.servings).toBe(1);
     });
 
     it("toggles food selection when same food is selected again", async () => {
@@ -133,7 +133,7 @@ describe("MealStore Integration Tests", () => {
 
       let selections =
         result.current.selections[mockKids[0].id]["monday"]["breakfast"];
-      expect(selections?.proteins?.id).toBe(testFood.id);
+      expect(selections?.proteins[0]?.id).toBe(testFood.id);
 
       // Select same food again (should deselect)
       await act(async () => {
@@ -142,7 +142,7 @@ describe("MealStore Integration Tests", () => {
 
       selections =
         result.current.selections[mockKids[0].id]["monday"]["breakfast"];
-      expect(selections?.proteins).toBeNull();
+      expect(selections?.proteins).toHaveLength(0);
     });
 
     it("handles condiments as array", async () => {
@@ -200,7 +200,7 @@ describe("MealStore Integration Tests", () => {
 
       const selections =
         result.current.selections[mockKids[0].id]["monday"]["breakfast"];
-      const selectedFood = selections?.proteins;
+      const selectedFood = selections?.proteins?.[0];
 
       expect(selectedFood?.servings).toBe(2);
       expect(selectedFood?.adjustedCalories).toBe(testFood.calories * 2);

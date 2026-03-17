@@ -284,13 +284,13 @@ describe('nutritionUtils', () => {
       const enabledMeals = ['breakfast', 'lunch', 'dinner'];
       const result = distributeMealCalories(totalCalories, enabledMeals);
 
-      // Total percentage for enabled meals: 25% + 30% + 30% = 85%
+      // Total percentage for enabled meals: 25% + 29% + 31% = 85%
       // breakfast: (25/85) * 2000 = 588.24 -> 588
-      // lunch: (30/85) * 2000 = 705.88 -> 706
-      // dinner: (30/85) * 2000 = 705.88 -> 706
+      // lunch: (29/85) * 2000 = 682.35 -> 682
+      // dinner: (31/85) * 2000 = 729.41 -> 729
       expect(result.breakfast).toBe(588);
-      expect(result.lunch).toBe(706);
-      expect(result.dinner).toBe(706);
+      expect(result.lunch).toBe(682);
+      expect(result.dinner).toBe(729);
     });
 
     it('distributes equally when no default distribution exists', () => {
@@ -298,12 +298,13 @@ describe('nutritionUtils', () => {
       const enabledMeals = ['midmorning_snack', 'afternoon_snack', 'bedtime_snack'];
       const result = distributeMealCalories(totalCalories, enabledMeals);
 
-      // All snack meals have 5% default distribution, totaling 15%
-      // Each gets equal proportion: 5/15 = 1/3 each
-      // Each gets (1/3) * 1500 = 500
-      expect(result.midmorning_snack).toBe(500);
-      expect(result.afternoon_snack).toBe(500);
-      expect(result.bedtime_snack).toBe(500);
+      // Snack percentages: midmorning=8%, afternoon=15%, bedtime=8%, totaling 31%
+      // midmorning: (8/31) * 1500 = 387.1 -> 387
+      // afternoon: (15/31) * 1500 = 725.8 -> 726
+      // bedtime: (8/31) * 1500 = 387.1 -> 387
+      expect(result.midmorning_snack).toBe(387);
+      expect(result.afternoon_snack).toBe(726);
+      expect(result.bedtime_snack).toBe(387);
     });
 
     it('handles single meal', () => {

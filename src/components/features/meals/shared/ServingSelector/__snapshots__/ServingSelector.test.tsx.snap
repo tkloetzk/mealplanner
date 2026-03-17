@@ -34,7 +34,7 @@ exports[`ServingSelector Component matches snapshot 1`] = `
         <span
           class="text-sm text-gray-600 whitespace-nowrap"
         >
-          × 1
+          × 1 piece
         </span>
       </div>
       <button

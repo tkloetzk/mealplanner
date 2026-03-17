@@ -154,7 +154,7 @@ describe("FoodItem Component", () => {
 
       expect(
         screen.getByText(
-          `2 serving(s) • ${(defaultProps.food.calories * 2).toFixed(
+          `2 serving(s) (1 piece each) • ${(defaultProps.food.calories * 2).toFixed(
             0
           )} cal total`
         )
