@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Sliders, Edit } from "lucide-react";
+import { Sliders, Edit, BookOpen } from "lucide-react";
 import { CategoryType } from "@/types/shared";
 import { Food } from "@/types/food";
 import { getFoodImageSource } from "@/utils/imageUtils";
@@ -81,6 +81,15 @@ export const FoodItem = ({
             <div className="flex items-center gap-2">
               <h4 className="font-medium">{food.name}</h4>
               {food.analysis && <FoodScoreDisplay analysis={food.analysis} />}
+              {food.isRecipe && (
+                <div
+                  className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded flex items-center gap-1"
+                  title="Created from a recipe"
+                >
+                  <BookOpen className="h-3 w-3" />
+                  Recipe
+                </div>
+              )}
               {isHidden && (
                 <div
                   className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded"

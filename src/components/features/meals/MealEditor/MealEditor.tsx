@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { MealType, CategoryType } from "@/types/shared";
 import { MealSelection } from "@/types/meals";
 import { Food, ServingSizeUnit } from "@/types/food";
+import { CATEGORY_EMOJIS } from "@/constants";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FoodItem } from "../shared/FoodItem";
@@ -77,6 +79,7 @@ export const MealEditor = ({
   const [pendingAnalyzedFood, setPendingAnalyzedFood] =
     useState<Partial<Food> | null>(null);
   const [showFoodReview, setShowFoodReview] = useState(false);
+  const [postSaveFood, setPostSaveFood] = useState<Food | null>(null);
 
   // Original food selection state
   const [foodOptions, setFoodOptions] = useState<Record<CategoryType, Food[]>>({
@@ -137,6 +140,7 @@ export const MealEditor = ({
       setCurrentIngredient({});
       setPendingAnalyzedFood(null);
       setShowFoodReview(false);
+      setPostSaveFood(null);
       setSelections(
         initialSelections || {
           proteins: [],
@@ -321,9 +325,22 @@ export const MealEditor = ({
     }
   };
 
+  const inferServingSizeUnit = (desc?: string): ServingSizeUnit => {
+    if (!desc) return "piece";
+    const lower = desc.toLowerCase();
+    if (lower.includes("cup")) return "cup";
+    if (lower.includes("tbsp") || lower.includes("tablespoon")) return "tbsp";
+    if (lower.includes("tsp") || lower.includes("teaspoon")) return "tsp";
+    if (lower.includes(" oz") || lower.includes("ounce")) return "oz";
+    if (lower.includes(" g") || lower.includes("gram")) return "g";
+    if (lower.includes("ml") || lower.includes("milliliter")) return "ml";
+    return "piece";
+  };
+
   const analyzeFoodText = async (
     text: string,
     promptPrefix: string,
+    isRecipe = false,
   ): Promise<Partial<Food>> => {
     const prompt = `${promptPrefix}
 
@@ -341,6 +358,8 @@ Return ONLY a JSON object with these exact keys:
   "saturatedFat": number (grams, 0 if unknown),
   "fiber": number (grams, 0 if unknown),
   "servingsPerRecipe": number,
+  "servingDescription": string (e.g. "1 muffin", "1 cup", "2 tbsp"),
+  "estimatedServingWeightGrams": number (approximate gram weight of one serving),
   "suggestedCategory": "proteins" | "grains" | "fruits" | "vegetables" | "other",
   "ingredients": string (comma-separated ingredient list)
 }
@@ -371,15 +390,35 @@ Input: ${text}`;
       );
     }
 
+    const gramsEquivalent: number = data.estimatedServingWeightGrams ?? 100;
+    const factor = gramsEquivalent > 0 ? 100 / gramsEquivalent : 1;
+    const baseNutritionPer100g = {
+      calories: Math.round((data.calories ?? 0) * factor),
+      protein: Math.round((data.protein ?? 0) * factor),
+      carbs: Math.round((data.carbs ?? 0) * factor),
+      fat: Math.round((data.fat ?? 0) * factor),
+      sodium: Math.round((data.sodium ?? 0) * factor),
+      sugar: Math.round((data.sugar ?? 0) * factor),
+      saturatedFat: Math.round((data.saturatedFat ?? 0) * factor),
+      fiber: Math.round((data.fiber ?? 0) * factor),
+    };
+    const unit = inferServingSizeUnit(data.servingDescription);
+
     return {
       name: data.name || name || "Analyzed Recipe",
       category: data.suggestedCategory || "other",
-      meal: [mealType || "breakfast"],
+      meal: ["breakfast", "lunch", "dinner", "midmorning_snack", "afternoon_snack", "bedtime_snack"],
       servings: 1,
-      servingSize: data.servingsPerRecipe
-        ? String(data.servingsPerRecipe)
-        : "1",
-      servingSizeUnit: "piece" as ServingSizeUnit,
+      servingSize: "1",
+      servingSizeUnit: unit,
+      baseNutritionPer100g,
+      servingSizes: [{
+        id: "default",
+        label: data.servingDescription || "1 serving",
+        amount: 1,
+        unit,
+        gramsEquivalent,
+      }],
       calories: Math.round(data.calories ?? 0),
       protein: Math.round(data.protein ?? 0),
       carbs: Math.round(data.carbs ?? 0),
@@ -389,6 +428,14 @@ Input: ${text}`;
       saturatedFat: Math.round(data.saturatedFat ?? 0),
       fiber: Math.round(data.fiber ?? 0),
       ingredients: data.ingredients || "",
+      ingredientText: data.ingredients
+        ? data.ingredients.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : [],
+      ...(isRecipe && {
+        recipeText: text,
+        recipeYield: data.servingsPerRecipe ?? undefined,
+        isRecipe: true,
+      }),
     };
   };
 
@@ -420,6 +467,7 @@ Input: ${text}`;
       const food = await analyzeFoodText(
         recipe,
         "Parse this recipe and calculate nutritional information per serving.",
+        true,
       );
       setPendingAnalyzedFood(food);
       setShowFoodReview(true);
@@ -445,29 +493,55 @@ Input: ${text}`;
       if (!response.ok) throw new Error("Failed to save food");
       const result = await response.json();
       const persistedFood: Food = { ...food, id: result.insertedId };
-
-      const category = persistedFood.category || "other";
-      const updated = { ...selections };
-      if (category === "milk" || category === "ranch") {
-        (updated as Record<string, unknown>)[category] = persistedFood;
-      } else {
-        const arr = (
-          Array.isArray(updated[category as CategoryType])
-            ? updated[category as CategoryType]
-            : []
-        ) as Food[];
-        (updated as Record<string, unknown>)[category] = [
-          ...arr,
-          persistedFood,
-        ];
-      }
-
-      await onSave(name, updated as MealSelection);
       setShowFoodReview(false);
       setPendingAnalyzedFood(null);
-      onClose();
+      setPostSaveFood(persistedFood);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save food");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePostSaveEdit = async (food: Food) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/foods/${food.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(food),
+      });
+      if (!response.ok) throw new Error("Failed to update food");
+      setPostSaveFood(food);
+      setShowFoodReview(false);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update food");
+      setShowFoodReview(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmDone = async () => {
+    if (!postSaveFood) return;
+    try {
+      setLoading(true);
+      const category = postSaveFood.category || "other";
+      const updated = { ...selections };
+      if (category === "milk" || category === "ranch") {
+        (updated as Record<string, unknown>)[category] = postSaveFood;
+      } else {
+        const arr = (Array.isArray(updated[category as CategoryType])
+          ? updated[category as CategoryType]
+          : []) as Food[];
+        (updated as Record<string, unknown>)[category] = [...arr, postSaveFood];
+      }
+      await onSave(name, updated as MealSelection);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save meal");
     } finally {
       setLoading(false);
     }
@@ -478,9 +552,12 @@ Input: ${text}`;
       <Dialog
         open={isOpen}
         onOpenChange={(open) => {
-          // Only handle actual close requests
           if (!open && !loading) {
-            onClose();
+            if (postSaveFood) {
+              void handleConfirmDone();
+            } else {
+              onClose();
+            }
           }
         }}
       >
@@ -490,268 +567,325 @@ Input: ${text}`;
         >
           <DialogHeader>
             <DialogTitle>
-              {initialSelections ? "Edit Meal" : "Create New Meal"}
+              {postSaveFood
+                ? "Food Saved"
+                : initialSelections
+                  ? "Edit Meal"
+                  : "Create New Meal"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="flex-1 min-h-0">
-            <div className="space-y-4 mb-4">
-              <div className="space-y-2">
-                <Label htmlFor="meal-name">Meal Name</Label>
-                <Input
-                  id="meal-name"
-                  value={name}
-                  onChange={handleNameChange}
-                  placeholder="Enter meal name"
-                />
+            {!postSaveFood && (
+              <div className="space-y-4 mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="meal-name">Meal Name</Label>
+                  <Input
+                    id="meal-name"
+                    value={name}
+                    onChange={handleNameChange}
+                    placeholder="Enter meal name"
+                  />
+                </div>
+
+                {mealType && (
+                  <div className="text-sm text-gray-500">
+                    This meal will be saved as a {mealType} option
+                  </div>
+                )}
+
+                {error && <div className="text-sm text-red-500">{error}</div>}
               </div>
+            )}
 
-              {mealType && (
-                <div className="text-sm text-gray-500">
-                  This meal will be saved as a {mealType} option
-                </div>
-              )}
-
-              {error && <div className="text-sm text-red-500">{error}</div>}
-            </div>
-
-            <Tabs
-              value={creationMethod}
-              onValueChange={(v) => setCreationMethod(v as CreationMethod)}
-            >
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="select">Select Foods</TabsTrigger>
-                <TabsTrigger value="describe">Describe</TabsTrigger>
-                <TabsTrigger value="recipe">Recipe</TabsTrigger>
-                <TabsTrigger value="scan">Scan & Add</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="select">
-                <ScrollArea className="h-[50vh] pr-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(foodOptions).map(([category, foods]) => {
-                      if (foods.length === 0) return null;
-                      return (
-                        <Card key={category}>
-                          <CardContent className="p-4">
-                            <h3 className="text-lg font-semibold capitalize mb-3">
-                              {category}
-                            </h3>
-                            <div className="space-y-2">
-                              {foods.map((food, index) => {
-                                const isSelected =
-                                  category === "condiments" ||
-                                  (category !== "milk" && category !== "ranch")
-                                    ? (
-                                        selections[
-                                          category as CategoryType
-                                        ] as Food[]
-                                      ).some((f) => f.id === food.id)
-                                    : (
-                                        selections[
-                                          category as CategoryType
-                                        ] as Food | null
-                                      )?.id === food.id;
-
-                                const selectedFood =
-                                  category === "milk" || category === "ranch"
-                                    ? (selections[
-                                        category as CategoryType
-                                      ] as Food | null)
-                                    : ((
-                                        selections[
-                                          category as CategoryType
-                                        ] as Food[]
-                                      )?.find((f) => f.id === food.id) ?? null);
-
-                                return (
-                                  <div key={food.id || index}>
-                                    <FoodItem
-                                      key={food.id || index}
-                                      food={food}
-                                      category={category as CategoryType}
-                                      index={index}
-                                      isSelected={!!isSelected}
-                                      selectedFoodInCategory={
-                                        selectedFood || null
-                                      }
-                                      onSelect={() =>
-                                        handleFoodSelect(
-                                          category as CategoryType,
-                                          food,
-                                        )
-                                      }
-                                      onServingClick={() =>
-                                        handleServingClick(
-                                          category as CategoryType,
-                                          food,
-                                        )
-                                      }
-                                      showVisibilityControls={false}
-                                      isChildView={false}
-                                      onToggleVisibility={() => {}}
-                                      isHidden={false}
-                                      mealType={mealType || "breakfast"}
-                                    />
-                                    {servingSelectorContext?.food.id ===
-                                      food.id && (
-                                      <div className="mt-2 p-4 bg-white border rounded-lg shadow-lg">
-                                        <ServingSelector
-                                          food={servingSelectorContext.food}
-                                          currentServings={
-                                            servingSelectorContext.currentServings
-                                          }
-                                          onConfirm={(adjustedFood) => {
-                                            handleServingsChange(
-                                              servingSelectorContext.category,
-                                              adjustedFood,
-                                              adjustedFood.servings,
-                                            );
-                                          }}
-                                          onCancel={() =>
-                                            setServingSelectorContext(null)
-                                          }
-                                          compact={true}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+            {postSaveFood ? (
+              <div className="flex-1 flex flex-col gap-4 py-2">
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="font-semibold text-base">{postSaveFood.name}</p>
+                    <span className="text-sm font-medium capitalize bg-gray-100 px-2 py-0.5 rounded text-gray-700">
+                      {`${CATEGORY_EMOJIS[postSaveFood.category as keyof typeof CATEGORY_EMOJIS] ?? "🍽️"} ${postSaveFood.category}`}
+                    </span>
                   </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="describe">
-                <div className="space-y-4">
-                  <Label htmlFor="description">Describe the Meal</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Example: Deviled eggs made with mustard, mayo, and paprika"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="h-[200px]"
-                  />
-                  <Button
-                    onClick={handleDescriptionAnalysis}
-                    disabled={!description.trim() || loading}
-                  >
-                    {loading ? "Analyzing..." : "Analyze Description"}
-                  </Button>
                 </div>
-              </TabsContent>
 
-              <TabsContent value="recipe">
-                <div className="space-y-4">
-                  <Label htmlFor="recipe">Enter Recipe</Label>
-                  <Textarea
-                    id="recipe"
-                    placeholder="Enter ingredients and instructions..."
-                    value={recipe}
-                    onChange={(e) => {
-                      setRecipe(e.target.value);
-                      setPendingAnalyzedFood(null);
-                    }}
-                    className="h-[200px]"
-                  />
-                  <Button
-                    onClick={handleRecipeAnalysis}
-                    disabled={!recipe.trim() || loading}
-                  >
-                    {loading ? "Analyzing..." : "Analyze Recipe"}
-                  </Button>
+                <div className="flex gap-4 text-sm">
+                  <span><strong>{postSaveFood.calories}</strong> cal</span>
+                  <span><strong>{postSaveFood.protein}g</strong> protein</span>
+                  <span><strong>{postSaveFood.carbs}g</strong> carbs</span>
+                  <span><strong>{postSaveFood.fat}g</strong> fat</span>
                 </div>
-              </TabsContent>
 
-              <TabsContent value="scan">
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <FoodSearch
-                        onFoodFound={(food) => {
-                          setIngredients([
-                            ...ingredients,
-                            {
-                              name: food.name,
-                              amount: 1,
-                              unit: food.servingSizeUnit,
-                              foodId: food.id,
-                              upc: food.upc,
-                            },
-                          ]);
-                        }}
-                        onError={(error: string | Error) => {
-                          console.error("Food search error:", error);
-                          setError(
-                            typeof error === "string" ? error : error.message,
-                          );
-                        }}
-                        onScanRequest={() => setIsScanning(true)}
-                      />
-                    </div>
-                    <Input
-                      type="number"
-                      placeholder="Amount"
-                      className="w-24"
-                      value={currentIngredient.amount || ""}
-                      onChange={(e) =>
-                        setCurrentIngredient((prev) => ({
-                          ...prev,
-                          amount: parseFloat(e.target.value),
-                        }))
-                      }
-                    />
-                    <select
-                      className="border rounded px-2"
-                      value={currentIngredient.unit || ""}
-                      onChange={(e) =>
-                        setCurrentIngredient((prev) => ({
-                          ...prev,
-                          unit: e.target.value as ServingSizeUnit,
-                        }))
-                      }
-                    >
-                      <option value="">Unit</option>
-                      <option value="g">grams</option>
-                      <option value="ml">ml</option>
-                      <option value="cup">cup</option>
-                      <option value="tbsp">tbsp</option>
-                      <option value="tsp">tsp</option>
-                      <option value="piece">piece</option>
-                    </select>
-                    <Button onClick={handleAddIngredient}>Add</Button>
-                  </div>
+                {postSaveFood.servingSizes?.[0]?.label && (
+                  <p className="text-xs text-gray-500">
+                    Per serving: {postSaveFood.servingSizes[0].label}
+                  </p>
+                )}
 
-                  <div className="space-y-2">
-                    {ingredients.map((ingredient, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center p-2 bg-gray-50 rounded"
-                      >
-                        <span>{ingredient.name}</span>
-                        <span>
-                          {ingredient.amount} {ingredient.unit}
-                        </span>
-                      </div>
+                {postSaveFood.meal && postSaveFood.meal.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {postSaveFood.meal.map((m) => (
+                      <Badge key={m} variant="outline" className="text-xs capitalize">
+                        {m.replace(/_/g, " ")}
+                      </Badge>
                     ))}
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                )}
+
+                {error && <div className="text-sm text-red-500">{error}</div>}
+              </div>
+            ) : (
+              <Tabs
+                value={creationMethod}
+                onValueChange={(v) => setCreationMethod(v as CreationMethod)}
+              >
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="select">Select Foods</TabsTrigger>
+                  <TabsTrigger value="describe">Describe</TabsTrigger>
+                  <TabsTrigger value="recipe">Recipe</TabsTrigger>
+                  <TabsTrigger value="scan">Scan & Add</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="select">
+                  <ScrollArea className="h-[50vh] pr-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(foodOptions).map(([category, foods]) => {
+                        if (foods.length === 0) return null;
+                        return (
+                          <Card key={category}>
+                            <CardContent className="p-4">
+                              <h3 className="text-lg font-semibold capitalize mb-3">
+                                {category}
+                              </h3>
+                              <div className="space-y-2">
+                                {foods.map((food, index) => {
+                                  const isSelected =
+                                    category === "condiments" ||
+                                    (category !== "milk" && category !== "ranch")
+                                      ? (
+                                          selections[
+                                            category as CategoryType
+                                          ] as Food[]
+                                        ).some((f) => f.id === food.id)
+                                      : (
+                                          selections[
+                                            category as CategoryType
+                                          ] as Food | null
+                                        )?.id === food.id;
+
+                                  const selectedFood =
+                                    category === "milk" || category === "ranch"
+                                      ? (selections[
+                                          category as CategoryType
+                                        ] as Food | null)
+                                      : ((
+                                          selections[
+                                            category as CategoryType
+                                          ] as Food[]
+                                        )?.find((f) => f.id === food.id) ?? null);
+
+                                  return (
+                                    <div key={food.id || index}>
+                                      <FoodItem
+                                        key={food.id || index}
+                                        food={food}
+                                        category={category as CategoryType}
+                                        index={index}
+                                        isSelected={!!isSelected}
+                                        selectedFoodInCategory={
+                                          selectedFood || null
+                                        }
+                                        onSelect={() =>
+                                          handleFoodSelect(
+                                            category as CategoryType,
+                                            food,
+                                          )
+                                        }
+                                        onServingClick={() =>
+                                          handleServingClick(
+                                            category as CategoryType,
+                                            food,
+                                          )
+                                        }
+                                        showVisibilityControls={false}
+                                        isChildView={false}
+                                        onToggleVisibility={() => {}}
+                                        isHidden={false}
+                                        mealType={mealType || "breakfast"}
+                                      />
+                                      {servingSelectorContext?.food.id ===
+                                        food.id && (
+                                        <div className="mt-2 p-4 bg-white border rounded-lg shadow-lg">
+                                          <ServingSelector
+                                            food={servingSelectorContext.food}
+                                            currentServings={
+                                              servingSelectorContext.currentServings
+                                            }
+                                            onConfirm={(adjustedFood) => {
+                                              handleServingsChange(
+                                                servingSelectorContext.category,
+                                                adjustedFood,
+                                                adjustedFood.servings,
+                                              );
+                                            }}
+                                            onCancel={() =>
+                                              setServingSelectorContext(null)
+                                            }
+                                            compact={true}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="describe">
+                  <div className="space-y-4">
+                    <Label htmlFor="description">Describe the Meal</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Example: Deviled eggs made with mustard, mayo, and paprika"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="h-[200px]"
+                    />
+                    <Button
+                      onClick={handleDescriptionAnalysis}
+                      disabled={!description.trim() || loading}
+                    >
+                      {loading ? "Analyzing..." : "Analyze Description"}
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="recipe">
+                  <div className="space-y-4">
+                    <Label htmlFor="recipe">Enter Recipe</Label>
+                    <Textarea
+                      id="recipe"
+                      placeholder="Enter ingredients and instructions..."
+                      value={recipe}
+                      onChange={(e) => {
+                        setRecipe(e.target.value);
+                        setPendingAnalyzedFood(null);
+                      }}
+                      className="h-[200px]"
+                    />
+                    <Button
+                      onClick={handleRecipeAnalysis}
+                      disabled={!recipe.trim() || loading}
+                    >
+                      {loading ? "Analyzing..." : "Analyze Recipe"}
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="scan">
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <FoodSearch
+                          onFoodFound={(food) => {
+                            setIngredients([
+                              ...ingredients,
+                              {
+                                name: food.name,
+                                amount: 1,
+                                unit: food.servingSizeUnit,
+                                foodId: food.id,
+                                upc: food.upc,
+                              },
+                            ]);
+                          }}
+                          onError={(error: string | Error) => {
+                            console.error("Food search error:", error);
+                            setError(
+                              typeof error === "string" ? error : error.message,
+                            );
+                          }}
+                          onScanRequest={() => setIsScanning(true)}
+                        />
+                      </div>
+                      <Input
+                        type="number"
+                        placeholder="Amount"
+                        className="w-24"
+                        value={currentIngredient.amount || ""}
+                        onChange={(e) =>
+                          setCurrentIngredient((prev) => ({
+                            ...prev,
+                            amount: parseFloat(e.target.value),
+                          }))
+                        }
+                      />
+                      <select
+                        className="border rounded px-2"
+                        value={currentIngredient.unit || ""}
+                        onChange={(e) =>
+                          setCurrentIngredient((prev) => ({
+                            ...prev,
+                            unit: e.target.value as ServingSizeUnit,
+                          }))
+                        }
+                      >
+                        <option value="">Unit</option>
+                        <option value="g">grams</option>
+                        <option value="ml">ml</option>
+                        <option value="cup">cup</option>
+                        <option value="tbsp">tbsp</option>
+                        <option value="tsp">tsp</option>
+                        <option value="piece">piece</option>
+                      </select>
+                      <Button onClick={handleAddIngredient}>Add</Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {ingredients.map((ingredient, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-center p-2 bg-gray-50 rounded"
+                        >
+                          <span>{ingredient.name}</span>
+                          <span>
+                            {ingredient.amount} {ingredient.unit}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
 
           <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={loading}>
-              {loading ? "Saving..." : "Save Meal"}
-            </Button>
+            {postSaveFood ? (
+              <>
+                <Button variant="outline" onClick={() => setShowFoodReview(true)} disabled={loading}>
+                  Edit
+                </Button>
+                <Button onClick={handleConfirmDone} disabled={loading}>
+                  {loading ? "Saving..." : "Done"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={onClose} disabled={loading}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} disabled={loading}>
+                  {loading ? "Saving..." : "Save Meal"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
 
@@ -770,13 +904,13 @@ Input: ${text}`;
         )}
       </Dialog>
 
-      {showFoodReview && pendingAnalyzedFood && (
+      {showFoodReview && (pendingAnalyzedFood || postSaveFood) && (
         <FoodEditor
-          initialFood={pendingAnalyzedFood}
-          onSave={handleReviewedFoodSave}
+          initialFood={postSaveFood ?? pendingAnalyzedFood ?? undefined}
+          onSave={postSaveFood ? handlePostSaveEdit : handleReviewedFoodSave}
           onCancel={() => {
             setShowFoodReview(false);
-            setPendingAnalyzedFood(null);
+            if (!postSaveFood) setPendingAnalyzedFood(null);
           }}
         />
       )}

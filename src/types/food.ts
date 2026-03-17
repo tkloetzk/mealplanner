@@ -71,6 +71,14 @@ export interface Food extends NutritionInfo {
   adjustedFat?: number;
   preparations?: FoodPreparation[];
   selectedPreparation?: FoodPreparation;
+  /** Original recipe text the user submitted for AI analysis */
+  // NOTE: consider excluding recipeText from list endpoints if payload size becomes an issue;
+  // solve with a MongoDB projection that omits it from GET /api/foods and only fetches it in GET /api/foods/:id
+  recipeText?: string;
+  /** Total number of servings the recipe yields (distinct from servingSize) */
+  recipeYield?: number;
+  /** True when this food was created from a recipe analysis */
+  isRecipe?: boolean;
 }
 
 export interface SelectedFood extends Food {

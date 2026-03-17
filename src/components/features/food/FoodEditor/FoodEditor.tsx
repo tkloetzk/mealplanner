@@ -516,6 +516,26 @@ export function FoodEditor({
             />
           </div>
 
+          {food.isRecipe && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+              <h4 className="text-sm font-medium text-amber-800">Recipe Info</h4>
+              {food.recipeYield != null && (
+                <p className="text-xs text-amber-700">Makes {food.recipeYield} servings</p>
+              )}
+              {food.recipeText && (
+                <div>
+                  <Label className="text-xs text-amber-700">Original Recipe</Label>
+                  <Textarea
+                    value={food.recipeText}
+                    readOnly
+                    rows={4}
+                    className="text-xs mt-1 bg-white/60 resize-none"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-sm" htmlFor="calories">
