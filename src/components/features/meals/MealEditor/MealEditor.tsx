@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { MealType, CategoryType } from "@/types/shared";
 import { MealSelection } from "@/types/meals";
 import { Food, ServingSizeUnit } from "@/types/food";
-import { CATEGORY_EMOJIS } from "@/constants";
+import { CATEGORY_EMOJIS } from "@/constants/index";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
