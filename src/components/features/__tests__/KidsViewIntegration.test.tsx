@@ -4,6 +4,7 @@ import { MOCK_FOODS } from "@/__mocks__/testConstants";
 import { MealPlanner } from "../meals/MealPlanner";
 import userEvent from "@testing-library/user-event";
 import { useMealStore } from "@/store/useMealStore";
+import { useAppSettingsStore } from "@/store/useAppSettingsStore";
 import { MealType } from "@/types/meals";
 import { DEFAULT_MEAL_PLAN } from "@/constants/meal-goals";
 
@@ -41,6 +42,9 @@ describe("Kids View Integration Tests", () => {
 
   // Reset store state before each test
   beforeEach(() => {
+    // Use custom mode with fixed targets so tests are not affected by age-based guidelines
+    useAppSettingsStore.setState({ nutritionMode: "custom" });
+
     act(() => {
       const { initializeKids } = useMealStore.getState();
       useMealStore.setState({

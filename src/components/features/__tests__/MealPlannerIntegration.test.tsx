@@ -8,6 +8,7 @@ import { MealType } from "@/types/meals";
 import userEvent from "@testing-library/user-event";
 import { MEAL_TYPES } from "@/constants";
 import { useMealStore } from "@/store/useMealStore";
+import { useAppSettingsStore } from "@/store/useAppSettingsStore";
 
 // Mock the meal service
 jest.mock("@/services/meal/mealService", () => ({
@@ -53,6 +54,9 @@ describe("MealPlanner Integration Tests", () => {
 
   // Reset store state before each test
   beforeEach(() => {
+    // Use custom mode with fixed targets so tests are not affected by age-based guidelines
+    useAppSettingsStore.setState({ nutritionMode: "custom" });
+
     act(() => {
       const { initializeKids } = useMealStore.getState();
       useMealStore.setState({

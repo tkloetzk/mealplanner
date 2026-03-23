@@ -133,7 +133,7 @@ describe("Pediatric Nutrition Guidelines", () => {
       expect(getPediatricGuidelines(16).proteinGrams).toBe(52); // 14-18
     });
 
-    test("carbs AMDR upper bound is 65% for all age groups except 1-3 fat transition", () => {
+    test("carbs AMDR upper bound is 65% for all age groups", () => {
       // Ages 1-3 have wider fat range (30-40%) but same carbs AMDR
       expect(getPediatricGuidelines(2).carbsPercentMax).toBe(65);
       expect(getPediatricGuidelines(6).carbsPercentMax).toBe(65);

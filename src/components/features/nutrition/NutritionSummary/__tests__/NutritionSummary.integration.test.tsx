@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { NutritionSummary } from "../NutritionSummary";
 import { useMealStore } from "@/store/useMealStore";
+import { useAppSettingsStore } from "@/store/useAppSettingsStore";
 import { MealType } from "@/types/meals";
 import type { Food } from "@/types/food";
 import { ServingSizeUnit } from "@/types/food";
@@ -21,6 +22,9 @@ describe("NutritionSummary Integration", () => {
   beforeEach(() => {
     // Clear fetch mock
     (global.fetch as jest.Mock).mockClear();
+
+    // Use custom mode with fixed targets so tests are not affected by age-based guidelines
+    useAppSettingsStore.setState({ nutritionMode: "custom" });
 
     // Fully reset store state to prevent leakage between tests
     useMealStore.setState({ selections: {}, selectedKid: "", mealHistory: {} });
