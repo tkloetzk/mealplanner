@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,6 +72,11 @@ export const MealEditor = ({
     useState<CreationMethod>("select");
   const [description, setDescription] = useState("");
   const [recipe, setRecipe] = useState("");
+  const [recipeServings, setRecipeServings] = useState("");
+  const [manualCalories, setManualCalories] = useState("");
+  const [manualProtein, setManualProtein] = useState("");
+  const [manualCarbs, setManualCarbs] = useState("");
+  const [manualFat, setManualFat] = useState("");
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [currentIngredient, setCurrentIngredient] = useState<
     Partial<Ingredient>
@@ -136,6 +142,11 @@ export const MealEditor = ({
       setCreationMethod("select");
       setDescription("");
       setRecipe("");
+      setRecipeServings("");
+      setManualCalories("");
+      setManualProtein("");
+      setManualCarbs("");
+      setManualFat("");
       setIngredients([]);
       setCurrentIngredient({});
       setPendingAnalyzedFood(null);
@@ -337,6 +348,64 @@ export const MealEditor = ({
     return "piece";
   };
 
+  const sortIngredientsByVolume = (ingredients: string[]): string[] => {
+    const unitMap: Record<string, number> = {
+      tsp: 5, teaspoon: 5, teaspoons: 5,
+      tbsp: 15, tablespoon: 15, tablespoons: 15,
+      "fl oz": 30, floz: 30,
+      cup: 240, cups: 240,
+      pint: 473, pints: 473,
+      quart: 946, quarts: 946,
+      gallon: 3785, gallons: 3785,
+      ml: 1, milliliter: 1, milliliters: 1,
+      l: 1000, liter: 1000, liters: 1000,
+      g: 1, gram: 1, grams: 1,
+      kg: 1000, kilogram: 1000, kilograms: 1000,
+      oz: 28, ounce: 28, ounces: 28,
+      lb: 454, lbs: 454, pound: 454, pounds: 454,
+    };
+
+    const parseVolume = (ingredient: string): number => {
+      // Match leading quantity: supports decimals, fractions like 1/2, mixed like 1 1/2
+      const qtyMatch = ingredient.match(/^((\d+\s+)?\d+\/\d+|\d*\.?\d+)/);
+      if (!qtyMatch) return -1;
+
+      let qty = 0;
+      const raw = qtyMatch[0].trim();
+      if (raw.includes("/")) {
+        const parts = raw.split(/\s+/);
+        if (parts.length === 2) {
+          // mixed number: "1 1/2"
+          qty = parseFloat(parts[0]);
+          const [num, den] = parts[1].split("/");
+          qty += parseFloat(num) / parseFloat(den);
+        } else {
+          const [num, den] = raw.split("/");
+          qty = parseFloat(num) / parseFloat(den);
+        }
+      } else {
+        qty = parseFloat(raw);
+      }
+
+      const rest = ingredient.slice(qtyMatch[0].length).trim().toLowerCase();
+      for (const unit of Object.keys(unitMap).sort((a, b) => b.length - a.length)) {
+        if (rest.startsWith(unit) && (rest.length === unit.length || /[\s,]/.test(rest[unit.length]))) {
+          return qty * unitMap[unit];
+        }
+      }
+      return -1;
+    };
+
+    return [...ingredients].sort((a, b) => {
+      const va = parseVolume(a);
+      const vb = parseVolume(b);
+      if (va === -1 && vb === -1) return 0;
+      if (va === -1) return 1;
+      if (vb === -1) return -1;
+      return vb - va;
+    });
+  };
+
   const analyzeFoodText = async (
     text: string,
     promptPrefix: string,
@@ -361,7 +430,7 @@ Return ONLY a JSON object with these exact keys:
   "servingDescription": string (e.g. "1 muffin", "1 cup", "2 tbsp"),
   "estimatedServingWeightGrams": number (approximate gram weight of one serving),
   "suggestedCategory": "proteins" | "grains" | "fruits" | "vegetables" | "other",
-  "ingredients": string (comma-separated ingredient list)
+  "ingredients": string (comma-separated ingredient list with quantities, e.g. "2 cups flour, 1 tsp salt, 3 tbsp butter")
 }
 All nutrition values should be per single serving.
 
@@ -427,9 +496,11 @@ Input: ${text}`;
       sugar: Math.round(data.sugar ?? 0),
       saturatedFat: Math.round(data.saturatedFat ?? 0),
       fiber: Math.round(data.fiber ?? 0),
-      ingredients: data.ingredients || "",
+      ingredients: data.ingredients
+        ? sortIngredientsByVolume(data.ingredients.split(",").map((s: string) => s.trim()).filter(Boolean)).join(", ")
+        : "",
       ingredientText: data.ingredients
-        ? data.ingredients.split(",").map((s: string) => s.trim()).filter(Boolean)
+        ? sortIngredientsByVolume(data.ingredients.split(",").map((s: string) => s.trim()).filter(Boolean))
         : [],
       ...(isRecipe && {
         recipeText: text,
@@ -461,14 +532,69 @@ Input: ${text}`;
     }
   };
 
+  const normalizeRecipeText = (text: string): string =>
+    text
+      .replace(/[\u00A0\u202F\u2007\u2060]/g, " ")
+      .replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, "")
+      .replace(/[☐☑☒✓✗✘•◦▪▸▶→]/g, "-")
+      .replace(/[®©™]/g, "")
+      .replace(/[ \t]+/g, " ")
+      .trim();
+
   const handleRecipeAnalysis = async () => {
     try {
       setLoading(true);
-      const food = await analyzeFoodText(
-        recipe,
+
+      const hints: string[] = [];
+      if (recipeServings.trim()) {
+        hints.push(`This recipe makes ${recipeServings.trim()} servings total.`);
+      }
+      const hasManualMacros = manualCalories || manualProtein || manualCarbs || manualFat;
+      if (hasManualMacros) {
+        const parts = [
+          manualCalories && `${manualCalories} calories`,
+          manualProtein  && `${manualProtein}g protein`,
+          manualCarbs    && `${manualCarbs}g carbs`,
+          manualFat      && `${manualFat}g fat`,
+        ].filter(Boolean).join(", ");
+        hints.push(
+          `The per-serving macros are already known: ${parts}. ` +
+          `Use these exact values and focus on estimating sodium, sugar, saturated fat, fiber, and other fields.`
+        );
+      }
+
+      const prefix = [
         "Parse this recipe and calculate nutritional information per serving.",
-        true,
-      );
+        ...hints,
+      ].join(" ");
+
+      const cleanedRecipe = normalizeRecipeText(recipe);
+      let food = await analyzeFoodText(cleanedRecipe, prefix, true);
+
+      if (manualCalories) food = { ...food, calories: Math.round(Number(manualCalories)) };
+      if (manualProtein)  food = { ...food, protein:  Math.round(Number(manualProtein)) };
+      if (manualCarbs)    food = { ...food, carbs:    Math.round(Number(manualCarbs)) };
+      if (manualFat)      food = { ...food, fat:      Math.round(Number(manualFat)) };
+
+      if (recipeServings.trim()) {
+        food = { ...food, recipeYield: Number(recipeServings.trim()) || food.recipeYield };
+      }
+
+      if (hasManualMacros && food.servingSizes?.[0]?.gramsEquivalent) {
+        const grams = food.servingSizes[0].gramsEquivalent;
+        const f = grams > 0 ? 100 / grams : 1;
+        food = {
+          ...food,
+          baseNutritionPer100g: {
+            ...food.baseNutritionPer100g!,
+            calories:     Math.round((food.calories     ?? 0) * f),
+            protein:      Math.round((food.protein      ?? 0) * f),
+            carbs:        Math.round((food.carbs        ?? 0) * f),
+            fat:          Math.round((food.fat          ?? 0) * f),
+          },
+        };
+      }
+
       setPendingAnalyzedFood(food);
       setShowFoodReview(true);
       setError(null);
@@ -551,6 +677,7 @@ Input: ${text}`;
     <>
       <Dialog
         open={isOpen}
+        modal={!showFoodReview}
         onOpenChange={(open) => {
           if (!open && !loading) {
             if (postSaveFood) {
@@ -564,6 +691,9 @@ Input: ${text}`;
         <DialogContent
           className="max-w-3xl max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
+          onInteractOutside={(e) => {
+            if (showFoodReview) e.preventDefault();
+          }}
         >
           <DialogHeader>
             <DialogTitle>
@@ -779,6 +909,47 @@ Input: ${text}`;
                       }}
                       className="h-[200px]"
                     />
+                    <div className="flex items-center gap-3">
+                      <Label htmlFor="recipeServings" className="whitespace-nowrap">
+                        How many servings?
+                      </Label>
+                      <Input
+                        id="recipeServings"
+                        type="number"
+                        min={1}
+                        placeholder="e.g. 12"
+                        value={recipeServings}
+                        onChange={(e) => setRecipeServings(e.target.value)}
+                        className="w-28"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-gray-500">
+                        Know the nutrition facts? Enter them and AI will fill the rest.
+                      </p>
+                      <div className="flex gap-2">
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs">Calories</Label>
+                          <Input type="number" min={0} placeholder="—" value={manualCalories}
+                            onChange={(e) => setManualCalories(e.target.value)} className="w-20 h-8 text-sm" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs">Protein (g)</Label>
+                          <Input type="number" min={0} placeholder="—" value={manualProtein}
+                            onChange={(e) => setManualProtein(e.target.value)} className="w-20 h-8 text-sm" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs">Carbs (g)</Label>
+                          <Input type="number" min={0} placeholder="—" value={manualCarbs}
+                            onChange={(e) => setManualCarbs(e.target.value)} className="w-20 h-8 text-sm" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs">Fat (g)</Label>
+                          <Input type="number" min={0} placeholder="—" value={manualFat}
+                            onChange={(e) => setManualFat(e.target.value)} className="w-20 h-8 text-sm" />
+                        </div>
+                      </div>
+                    </div>
                     <Button
                       onClick={handleRecipeAnalysis}
                       disabled={!recipe.trim() || loading}
@@ -904,7 +1075,7 @@ Input: ${text}`;
         )}
       </Dialog>
 
-      {showFoodReview && (pendingAnalyzedFood || postSaveFood) && (
+      {showFoodReview && (pendingAnalyzedFood || postSaveFood) && createPortal(
         <FoodEditor
           initialFood={postSaveFood ?? pendingAnalyzedFood ?? undefined}
           onSave={postSaveFood ? handlePostSaveEdit : handleReviewedFoodSave}
@@ -912,7 +1083,8 @@ Input: ${text}`;
             setShowFoodReview(false);
             if (!postSaveFood) setPendingAnalyzedFood(null);
           }}
-        />
+        />,
+        document.body
       )}
     </>
   );

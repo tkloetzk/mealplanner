@@ -20,7 +20,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MealType } from "@/types/meals";
-import { DAILY_GOALS } from "@/constants/meal-goals";
 import { ArrowUpDown, Info } from "lucide-react";
 import { useMealNutrition, useDailyNutrition, useCurrentMealSelection } from "@/store/mealSelectors";
 import { useAppSettingsStore } from "@/store/useAppSettingsStore";
@@ -117,14 +116,17 @@ export function NutritionSummary({ selectedMeal }: NutritionSummaryProps) {
     </div>
   );
 
+  const kidTargets = selectedKidId ? getTargetsForKid(selectedKidId) : null;
+
   const targetCalories = showDailyTotal
-    ? DAILY_GOALS.dailyTotals.calories
+    ? (kidTargets?.dailyCalories ?? 0)
     : selectedMeal
-    ? DAILY_GOALS.mealCalories[selectedMeal] || 0
+    ? (kidTargets?.mealCalories[selectedMeal] ?? 0)
     : 0;
 
-  // Get sodium target for the selected kid
-  const sodiumTarget = selectedKidId ? getTargetsForKid(selectedKidId).sodium?.max : DAILY_GOALS.dailyTotals.sodiumMax;
+  const sodiumTarget = kidTargets?.sodium?.max ?? 1500;
+  const proteinTarget = kidTargets?.protein ?? { min: 0, max: 0 };
+  const fatTarget = kidTargets?.fat ?? { min: 0, max: 0 };
 
   const nutritionStatus = selectedMeal
     ? {
@@ -132,11 +134,11 @@ export function NutritionSummary({ selectedMeal }: NutritionSummaryProps) {
           currentNutrition.calories >= targetCalories * 0.9 &&
           currentNutrition.calories <= targetCalories * 1.1,
         meetsProteinGoal:
-          currentNutrition.protein >= DAILY_GOALS.dailyTotals.protein.min &&
-          currentNutrition.protein <= DAILY_GOALS.dailyTotals.protein.max,
+          currentNutrition.protein >= proteinTarget.min &&
+          currentNutrition.protein <= proteinTarget.max,
         meetsFatGoal:
-          currentNutrition.fat >= DAILY_GOALS.dailyTotals.fat.min &&
-          currentNutrition.fat <= DAILY_GOALS.dailyTotals.fat.max,
+          currentNutrition.fat >= fatTarget.min &&
+          currentNutrition.fat <= fatTarget.max,
       }
     : null;
 
@@ -213,8 +215,8 @@ export function NutritionSummary({ selectedMeal }: NutritionSummaryProps) {
               {renderNutrientCard(
                 "Protein",
                 currentNutrition.protein,
-                DAILY_GOALS.dailyTotals.protein.min,
-                DAILY_GOALS.dailyTotals.protein.max,
+                proteinTarget.min,
+                proteinTarget.max,
                 "g",
                 undefined,
                 "Essential for growth and muscle development",
@@ -235,8 +237,8 @@ export function NutritionSummary({ selectedMeal }: NutritionSummaryProps) {
               {renderNutrientCard(
                 "Fat",
                 currentNutrition.fat,
-                DAILY_GOALS.dailyTotals.fat.min,
-                DAILY_GOALS.dailyTotals.fat.max,
+                fatTarget.min,
+                fatTarget.max,
                 "g",
                 undefined,
                 "Important for brain development and energy",

@@ -3,9 +3,9 @@ import { useMemo, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import { DAILY_GOALS } from "@/constants/meal-goals";
 import { MealType } from "@/types/food";
 import { useNutrition } from "./hooks/useNutrition";
+import { useAppSettingsStore } from "@/store/useAppSettingsStore";
 
 type MetricType = "calories" | "protein" | "fat";
 
@@ -14,6 +14,7 @@ interface CompactNutritionProgressProps {
   currentProtein: number;
   currentFat: number;
   selectedMeal?: MealType;
+  kidId?: string;
 }
 
 const metricLabels: Record<MetricType, string> = {
@@ -27,9 +28,12 @@ export const CompactNutritionProgress = ({
   currentProtein,
   currentFat,
   selectedMeal,
+  kidId,
 }: CompactNutritionProgressProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeMetric, setActiveMetric] = useState<MetricType>("calories");
+  const getTargetsForKid = useAppSettingsStore((state) => state.getTargetsForKid);
+  const kidTargets = kidId ? getTargetsForKid(kidId) : null;
 
   const { getProgressBarWidth, getProgressColor, getNutrientColor } =
     useNutrition(
@@ -48,8 +52,8 @@ export const CompactNutritionProgress = ({
     switch (metric) {
       case "calories":
         const targetCalories = selectedMeal
-          ? DAILY_GOALS.mealCalories[selectedMeal]
-          : DAILY_GOALS.dailyTotals.calories;
+          ? (kidTargets?.mealCalories[selectedMeal] ?? 0)
+          : (kidTargets?.dailyCalories ?? 0);
         return {
           current: currentCalories,
           target: targetCalories,
@@ -59,7 +63,7 @@ export const CompactNutritionProgress = ({
         };
       case "protein":
         const { min: proteinMin, max: proteinMax } =
-          DAILY_GOALS.dailyTotals.protein;
+          kidTargets?.protein ?? { min: 0, max: 0 };
         return {
           current: currentProtein,
           target: proteinMin,
@@ -72,7 +76,8 @@ export const CompactNutritionProgress = ({
           unit: "g",
         };
       case "fat":
-        const { min: fatMin, max: fatMax } = DAILY_GOALS.dailyTotals.fat;
+        const { min: fatMin, max: fatMax } =
+          kidTargets?.fat ?? { min: 0, max: 0 };
         return {
           current: currentFat,
           target: fatMin,

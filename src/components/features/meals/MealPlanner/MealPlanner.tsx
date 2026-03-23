@@ -547,6 +547,7 @@ export const MealPlanner = () => {
           currentProtein={dailyNutrition.protein}
           currentFat={dailyNutrition.fat}
           selectedMeal={selectedMeal}
+          kidId={selectedKid ?? undefined}
         />
       </div>
 

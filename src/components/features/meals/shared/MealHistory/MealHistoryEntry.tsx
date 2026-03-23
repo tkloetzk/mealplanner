@@ -3,12 +3,25 @@ import { MealHistoryRecord, MealSelection } from "@/types/meals";
 import type { ConsumptionInfo, MealType, SatietyEntry } from "@/types/shared";
 import { computeSatietyDuration, formatDuration } from "@/types/shared";
 import { MEAL_TYPES } from "@/constants";
-import { DAILY_GOALS } from "@/constants/meal-goals";
 import { MarkConsumptionButton, SatietyLogger } from "@/components/features/consumption";
 import { useMealStore } from "@/store/useMealStore";
+import { useAppSettingsStore } from "@/store/useAppSettingsStore";
 
 interface MealHistoryEntryProps {
   entries: MealHistoryRecord[];
+}
+
+function hasFoods(selections: MealSelection) {
+  return (
+    (Array.isArray(selections.proteins) && selections.proteins.length > 0) ||
+    (Array.isArray(selections.grains) && selections.grains.length > 0) ||
+    (Array.isArray(selections.fruits) && selections.fruits.length > 0) ||
+    (Array.isArray(selections.vegetables) && selections.vegetables.length > 0) ||
+    !!selections.milk ||
+    !!selections.ranch ||
+    (Array.isArray(selections.condiments) && selections.condiments.length > 0) ||
+    (Array.isArray(selections.other) && selections.other.length > 0)
+  );
 }
 
 const SATIETY_LABELS: Record<number, string> = {
@@ -18,17 +31,33 @@ const SATIETY_LABELS: Record<number, string> = {
 };
 
 export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
-  // Sort entries by meal type according to MEAL_TYPES order
-  const sortedEntries = [...entries].sort((a, b) => {
-    return (
-      MEAL_TYPES.indexOf(a.meal as MealType) -
-      MEAL_TYPES.indexOf(b.meal as MealType)
-    );
-  });
+  const enabledMeals = useAppSettingsStore((state) => state.enabledMeals);
+  const getTargetsForKid = useAppSettingsStore((state) => state.getTargetsForKid);
+  const kidId = entries[0]?.kidId ?? "";
+  const kidTargets = getTargetsForKid(kidId);
+
+  // Filter to enabled meal types and non-empty meals, then sort by MEAL_TYPES order
+  const sortedEntries = [...entries]
+    .filter((entry) => enabledMeals.includes(entry.meal as MealType) && hasFoods(entry.selections))
+    .sort((a, b) => {
+      return (
+        MEAL_TYPES.indexOf(a.meal as MealType) -
+        MEAL_TYPES.indexOf(b.meal as MealType)
+      );
+    });
 
   // Helper function to calculate calories for a meal considering consumption data
   const calculateMealCalories = (entry: MealHistoryRecord) => {
     let total = 0;
+
+    const applyConsumption = (calories: number, foodId: string) => {
+      const fc = entry.consumptionData?.foods?.find((f) => f.foodId === foodId);
+      if (!fc) return calories;
+      if (fc.status === "not_eaten") return 0;
+      if (fc.status === "partially_eaten" && fc.percentageEaten !== undefined)
+        return calories * (fc.percentageEaten / 100);
+      return calories;
+    };
 
     // If consumption data exists, use it to calculate actual consumed calories
     if (
@@ -36,37 +65,14 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
       entry.consumptionData.foods.length > 0
     ) {
       // Calculate calories from main foods considering consumption
-      Object.entries(entry.selections)
-        .filter(
-          ([category]) =>
-            category !== "condiments" &&
-            category !== "milk" &&
-            category !== "ranch"
-        )
-        .forEach(([, food]) => {
-          if (food) {
-            // Find corresponding consumption data for this food
-            const foodConsumption = entry.consumptionData?.foods?.find(
-              (f) => f.foodId === food.id
-            );
-
-            // Calculate calories based on consumption percentage
-            let foodCalories =
-              Number(food.adjustedCalories) || Number(food.calories) || 0;
-            if (foodConsumption) {
-              if (foodConsumption.status === "not_eaten") {
-                foodCalories = 0; // Not eaten contributes 0 calories
-              } else if (
-                foodConsumption.status === "partially_eaten" &&
-                foodConsumption.percentageEaten !== undefined
-              ) {
-                foodCalories *= foodConsumption.percentageEaten / 100; // Scale by percentage eaten
-              }
-              // If status is 'eaten', use full calories
-            }
-            total += foodCalories;
-          }
-        });
+      (["proteins", "grains", "fruits", "vegetables", "other"] as const).forEach(
+        (category) => {
+          (entry.selections[category] ?? []).forEach((food) => {
+            const base = Number(food.adjustedCalories) || Number(food.calories) || 0;
+            total += applyConsumption(base, food.id);
+          });
+        }
+      );
 
       // Add milk calories considering consumption if present
       if (entry.selections.milk) {
@@ -142,19 +148,13 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
       }
     } else {
       // If no consumption data, use the original calculation (assuming all was eaten)
-      Object.entries(entry.selections)
-        .filter(
-          ([category]) =>
-            category !== "condiments" &&
-            category !== "milk" &&
-            category !== "ranch"
-        )
-        .forEach(([, food]) => {
-          if (food) {
-            total +=
-              Number(food.adjustedCalories) || Number(food.calories) || 0;
-          }
-        });
+      (["proteins", "grains", "fruits", "vegetables", "other"] as const).forEach(
+        (category) => {
+          (entry.selections[category] ?? []).forEach((food) => {
+            total += Number(food.adjustedCalories) || Number(food.calories) || 0;
+          });
+        }
+      );
 
       // Add milk calories if present
       if (entry.selections.milk) {
@@ -190,7 +190,7 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
 
   // Calculate percentage of daily goal
   const percentOfDailyGoal =
-    (dailyTotalCalories / DAILY_GOALS.dailyTotals.calories) * 100;
+    (dailyTotalCalories / kidTargets.dailyCalories) * 100;
 
   // Helper function to get color based on percentage of goal
   const getCalorieColor = (calories: number, targetCalories: number) => {
@@ -200,20 +200,6 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
     return "text-green-600";
   };
 
-  // Helper function to check if there are any foods in the meal selections
-  const hasFoods = (selections: MealSelection) => {
-    return (
-      !!selections.proteins ||
-      !!selections.grains ||
-      !!selections.fruits ||
-      !!selections.vegetables ||
-      !!selections.milk ||
-      !!selections.ranch ||
-      (Array.isArray(selections.condiments) &&
-        selections.condiments.length > 0) ||
-      !!selections.other
-    );
-  };
 
   return (
     <Card>
@@ -224,10 +210,10 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
           <div
             className={`font-bold ${getCalorieColor(
               dailyTotalCalories,
-              DAILY_GOALS.dailyTotals.calories
+              kidTargets.dailyCalories
             )}`}
           >
-            {dailyTotalCalories} / {DAILY_GOALS.dailyTotals.calories} cal
+            {dailyTotalCalories} / {kidTargets.dailyCalories} cal
             <div className="text-xs text-gray-500 text-right">
               {percentOfDailyGoal.toFixed(1)}% of daily goal
             </div>
@@ -238,10 +224,7 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
       <CardContent className="p-6">
         {sortedEntries.map((entry, index) => {
           const mealCalories = calculateMealCalories(entry);
-          const mealTarget =
-            DAILY_GOALS.mealCalories[
-              entry.meal as keyof typeof DAILY_GOALS.mealCalories
-            ];
+          const mealTarget = kidTargets.mealCalories[entry.meal as MealType] ?? 0;
 
           const mealTimeDisplay = entry.consumptionData?.mealTime
             ? new Date(entry.consumptionData.mealTime).toLocaleTimeString([], {
@@ -297,28 +280,28 @@ export function MealHistoryEntry({ entries }: MealHistoryEntryProps) {
                 {/* Main Foods */}
                 {(
                   [
-                    ["proteins", entry.selections.proteins],
-                    ["grains", entry.selections.grains],
-                    ["fruits", entry.selections.fruits],
-                    ["vegetables", entry.selections.vegetables],
-                    ["other", entry.selections.other],
+                    "proteins",
+                    "grains",
+                    "fruits",
+                    "vegetables",
+                    "other",
                   ] as const
-                )
-                  .filter(([, food]) => !!food)
-                  .map(([category, food]) => (
+                ).flatMap((category) =>
+                  (entry.selections[category] ?? []).map((food, idx) => (
                     <div
-                      key={category}
+                      key={`${category}-${idx}`}
                       className="flex justify-between items-center"
                     >
                       <div>
-                        <span className="font-medium">{food!.name}</span>
+                        <span className="font-medium">{food.name}</span>
                         <div className="text-sm text-gray-600">
-                          {food!.servings} serving(s) •{" "}
-                          {food!.adjustedCalories || food!.calories} cal
+                          {food.servings} serving(s) •{" "}
+                          {food.adjustedCalories || food.calories} cal
                         </div>
                       </div>
                     </div>
-                  ))}
+                  ))
+                )}
 
                 {/* Consumption Data */}
                 <div className="mt-4">
